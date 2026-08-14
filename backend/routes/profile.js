@@ -9,7 +9,10 @@ const profileInclude = {
   city: true,
   skills: true,
   knowledgeAreas: true,
-  experiences: { orderBy: { startDate: 'desc' } },
+  experiences: {
+    orderBy: { startDate: 'desc' },
+    include: { venue: { include: { city: true } } },
+  },
   certifications: {
     orderBy: { issueDate: 'desc' },
     include: { certificationType: true },
@@ -161,15 +164,18 @@ router.delete('/knowledge-areas/:name', requireProfile, async (req, res) => {
 // --- Experience ---
 
 router.post('/experience', requireProfile, async (req, res) => {
-  const { venueName, roleTitle, startDate, endDate, isCurrent } = req.body || {}
+  const { venueId, roleTitle, startDate, endDate, isCurrent } = req.body || {}
 
-  if (
-    typeof venueName !== 'string' ||
-    !venueName.trim() ||
-    typeof roleTitle !== 'string' ||
-    !roleTitle.trim()
-  ) {
-    return res.status(400).json({ error: 'Venue name and role title are required' })
+  if (typeof venueId !== 'string' || !venueId.trim()) {
+    return res.status(400).json({ error: 'Venue is required' })
+  }
+  if (typeof roleTitle !== 'string' || !roleTitle.trim()) {
+    return res.status(400).json({ error: 'Role title is required' })
+  }
+
+  const venue = await prisma.venue.findUnique({ where: { id: venueId.trim() } })
+  if (!venue) {
+    return res.status(400).json({ error: 'Selected venue was not found' })
   }
 
   const parsedStart = parseDate(startDate)
@@ -189,12 +195,13 @@ router.post('/experience', requireProfile, async (req, res) => {
   const experience = await prisma.experience.create({
     data: {
       profileId: req.profile.id,
-      venueName: venueName.trim(),
+      venueId: venue.id,
       roleTitle: roleTitle.trim(),
       startDate: parsedStart,
       endDate: parsedEnd,
       isCurrent: current,
     },
+    include: { venue: { include: { city: true } } },
   })
 
   res.status(201).json({ experience })
@@ -208,15 +215,18 @@ router.put('/experience/:id', requireProfile, async (req, res) => {
     return res.status(404).json({ error: 'Experience entry not found' })
   }
 
-  const { venueName, roleTitle, startDate, endDate, isCurrent } = req.body || {}
+  const { venueId, roleTitle, startDate, endDate, isCurrent } = req.body || {}
 
-  if (
-    typeof venueName !== 'string' ||
-    !venueName.trim() ||
-    typeof roleTitle !== 'string' ||
-    !roleTitle.trim()
-  ) {
-    return res.status(400).json({ error: 'Venue name and role title are required' })
+  if (typeof venueId !== 'string' || !venueId.trim()) {
+    return res.status(400).json({ error: 'Venue is required' })
+  }
+  if (typeof roleTitle !== 'string' || !roleTitle.trim()) {
+    return res.status(400).json({ error: 'Role title is required' })
+  }
+
+  const venue = await prisma.venue.findUnique({ where: { id: venueId.trim() } })
+  if (!venue) {
+    return res.status(400).json({ error: 'Selected venue was not found' })
   }
 
   const parsedStart = parseDate(startDate)
@@ -236,12 +246,13 @@ router.put('/experience/:id', requireProfile, async (req, res) => {
   const experience = await prisma.experience.update({
     where: { id: existing.id },
     data: {
-      venueName: venueName.trim(),
+      venueId: venue.id,
       roleTitle: roleTitle.trim(),
       startDate: parsedStart,
       endDate: parsedEnd,
       isCurrent: current,
     },
+    include: { venue: { include: { city: true } } },
   })
 
   res.json({ experience })

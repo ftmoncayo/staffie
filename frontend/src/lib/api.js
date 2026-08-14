@@ -178,3 +178,69 @@ export async function createCertificationType(name) {
   })
   return data.certificationType
 }
+
+export async function fetchVenueSpecialties(search) {
+  const data = await authRequest(
+    `/api/venue-specialties?search=${encodeURIComponent(search || '')}`,
+  )
+  return data.venueSpecialties
+}
+
+export async function createVenueSpecialty(name) {
+  const data = await authRequest('/api/venue-specialties', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.venueSpecialty
+}
+
+export async function fetchVenues({ search, sort, status } = {}) {
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  if (sort) params.set('sort', sort)
+  if (status) params.set('status', status)
+  const data = await authRequest(`/api/venues?${params.toString()}`)
+  return data.venues
+}
+
+export async function fetchVenueOptions(search) {
+  const venues = await fetchVenues({ search })
+  return venues.map((v) => ({ id: v.id, name: v.name }))
+}
+
+export async function fetchVenueTypeOptions(search) {
+  const venues = await fetchVenues({})
+  const types = [...new Set(venues.map((v) => v.venueType).filter(Boolean))]
+  const filtered = search
+    ? types.filter((t) => t.toLowerCase().includes(search.toLowerCase()))
+    : types
+  return filtered.map((t) => ({ id: t, name: t }))
+}
+
+export async function fetchVenue(id) {
+  const data = await authRequest(`/api/venues/${id}`)
+  return data.venue
+}
+
+export async function createVenue(venue) {
+  const data = await authRequest('/api/venues', {
+    method: 'POST',
+    body: JSON.stringify(venue),
+  })
+  return data.venue
+}
+
+export async function updateVenue(id, venue) {
+  const data = await authRequest(`/api/venues/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(venue),
+  })
+  return data.venue
+}
+
+export async function verifyVenue(id) {
+  const data = await authRequest(`/api/venues/${id}/verify`, {
+    method: 'PUT',
+  })
+  return data.venue
+}

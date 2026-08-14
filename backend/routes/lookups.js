@@ -92,4 +92,27 @@ router.post('/certification-types', async (req, res) => {
   res.status(201).json({ certificationType })
 })
 
+// --- Venue specialties ---
+
+router.get('/venue-specialties', async (req, res) => {
+  const venueSpecialties = await prisma.venueSpecialty.findMany({
+    where: searchFilter(getSearch(req)),
+    orderBy: { name: 'asc' },
+    take: SEARCH_LIMIT,
+  })
+  res.json({ venueSpecialties })
+})
+
+router.post('/venue-specialties', async (req, res) => {
+  const name = validateName(req, res)
+  if (!name) return
+
+  const venueSpecialty = await prisma.venueSpecialty.upsert({
+    where: { name },
+    create: { name },
+    update: {},
+  })
+  res.status(201).json({ venueSpecialty })
+})
+
 module.exports = router

@@ -17,6 +17,14 @@ function Dashboard() {
       <Link to="/profile" className="text-blue-600 hover:underline">
         View / edit your profile
       </Link>
+      <Link to="/venues" className="text-blue-600 hover:underline">
+        Venues
+      </Link>
+      {user?.isAdmin && (
+        <Link to="/admin/venues" className="text-blue-600 hover:underline">
+          Admin
+        </Link>
+      )}
       <button
         onClick={handleLogout}
         className="rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-700"

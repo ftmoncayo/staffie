@@ -4,7 +4,12 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
+import VenueDirectory from './pages/VenueDirectory'
+import VenueCreate from './pages/VenueCreate'
+import VenueDetail from './pages/VenueDetail'
+import AdminVenues from './pages/AdminVenues'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
 
 function App() {
   return (
@@ -26,6 +31,38 @@ function App() {
           <ProtectedRoute>
             <Profile />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/venues"
+        element={
+          <ProtectedRoute>
+            <VenueDirectory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/venues/new"
+        element={
+          <ProtectedRoute>
+            <VenueCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/venues/:id"
+        element={
+          <ProtectedRoute>
+            <VenueDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/venues"
+        element={
+          <AdminRoute>
+            <AdminVenues />
+          </AdminRoute>
         }
       />
     </Routes>

@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import * as api from '../../lib/api'
+import SearchCombobox from '../SearchCombobox'
 
-const emptyForm = { venueName: '', roleTitle: '', startDate: '', endDate: '', isCurrent: false }
+const emptyForm = { venue: null, roleTitle: '', startDate: '', endDate: '', isCurrent: false }
 
 function formatDate(value) {
   if (!value) return ''
@@ -15,9 +18,13 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    if (!form.venue) {
+      setError('Venue is required')
+      return
+    }
     setSubmitting(true)
     try {
-      await onSubmit(form)
+      await onSubmit({ ...form, venueId: form.venue.id })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -31,14 +38,17 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm text-gray-700">
-          Venue name
-          <input
-            type="text"
-            required
-            value={form.venueName}
-            onChange={(e) => setForm({ ...form, venueName: e.target.value })}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          Venue
+          <SearchCombobox
+            fetchOptions={api.fetchVenueOptions}
+            onCreate={(name) => api.createVenue({ name })}
+            onSelect={(venue) => setForm({ ...form, venue })}
+            initialQuery={form.venue?.name || ''}
+            placeholder="Search or add a venue..."
           />
+          <Link to="/venues/new" className="text-xs text-blue-600 hover:underline">
+            + Create a full venue profile
+          </Link>
         </label>
         <label className="flex flex-col gap-1 text-sm text-gray-700">
           Role title
@@ -147,7 +157,7 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete }
             <ExperienceForm
               key={exp.id}
               initial={{
-                venueName: exp.venueName,
+                venue: exp.venue,
                 roleTitle: exp.roleTitle,
                 startDate: formatDate(exp.startDate),
                 endDate: formatDate(exp.endDate),
@@ -163,7 +173,9 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete }
             <div key={exp.id} className="flex items-start justify-between rounded border border-gray-200 p-4">
               <div>
                 <p className="font-medium text-gray-900">{exp.roleTitle}</p>
-                <p className="text-sm text-gray-600">{exp.venueName}</p>
+                <Link to={`/venues/${exp.venue.id}`} className="text-sm text-blue-600 hover:underline">
+                  {exp.venue.name}
+                </Link>
                 <p className="text-sm text-gray-500">
                   {formatDate(exp.startDate)} – {exp.isCurrent ? 'Current' : formatDate(exp.endDate) || '—'}
                 </p>

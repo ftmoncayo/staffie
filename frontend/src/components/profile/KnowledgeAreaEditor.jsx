@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import Tag from '../Tag'
 
 function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
   const [error, setError] = useState('')
@@ -58,21 +59,14 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
 
       <div className="mt-4 flex flex-wrap gap-2">
         {knowledgeAreas.map((area) => (
-          <span
+          <Tag
             key={area.id}
-            className="flex items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 py-1.5 text-sm text-accent"
+            onRemove={() => handleRemove(area.name)}
+            removeDisabled={removing === area.name}
+            removeLabel={`Remove ${area.name}`}
           >
             {area.name}
-            <button
-              type="button"
-              disabled={removing === area.name}
-              onClick={() => handleRemove(area.name)}
-              className="text-accent/70 hover:text-accent disabled:opacity-50"
-              aria-label={`Remove ${area.name}`}
-            >
-              ×
-            </button>
-          </span>
+          </Tag>
         ))}
         {profile && knowledgeAreas.length === 0 && (
           <p className="text-sm text-text-faint">No knowledge areas added yet.</p>

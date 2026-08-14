@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import VenueForm from '../components/venue/VenueForm'
 import VerificationBadge from '../components/venue/VerificationBadge'
 import VenueManagersPanel from '../components/venue/VenueManagersPanel'
+import Tag from '../components/Tag'
 
 function VenueDetail() {
   const { id } = useParams()
@@ -78,7 +79,7 @@ function VenueDetail() {
               <div>
                 <dt className="text-sm text-text-faint">Location</dt>
                 <dd className="text-text">
-                  {[venue.suburb?.name, venue.city?.name, venue.state, venue.country]
+                  {[venue.city?.name, venue.state, venue.suburb?.name, venue.country]
                     .filter(Boolean)
                     .join(', ') || '—'}
                 </dd>
@@ -94,12 +95,7 @@ function VenueDetail() {
               <dd className="mt-2 flex flex-wrap gap-2">
                 {venue.specialties.length === 0 && <span className="text-text">—</span>}
                 {venue.specialties.map((s) => (
-                  <span
-                    key={s.id}
-                    className="rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-sm text-accent"
-                  >
-                    {s.name}
-                  </span>
+                  <Tag key={s.id}>{s.name}</Tag>
                 ))}
               </dd>
             </div>

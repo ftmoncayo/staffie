@@ -201,7 +201,8 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
     include: venueInclude,
   })
 
-  res.json({ venue })
+  const canEdit = await canEditVenue(req.userId, venue.id)
+  res.json({ venue: { ...venue, canEdit } })
 })
 
 router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
@@ -216,7 +217,8 @@ router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
     include: venueInclude,
   })
 
-  res.json({ venue })
+  const canEdit = await canEditVenue(req.userId, venue.id)
+  res.json({ venue: { ...venue, canEdit } })
 })
 
 // --- Venue managers (admin-only) ---

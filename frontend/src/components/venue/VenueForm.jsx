@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import Tag from '../Tag'
 
 const DEFAULT_CITY_NAME = 'Melbourne'
 
@@ -106,17 +107,6 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Venue type (optional)
-          <SearchCombobox
-            fetchOptions={api.fetchVenueTypes}
-            onCreate={api.createVenueType}
-            onSelect={setVenueType}
-            initialQuery={venueType?.name || ''}
-            placeholder="e.g. Bar, Restaurant, Hotel..."
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
           State/Region (optional)
           <input
             type="text"
@@ -146,6 +136,17 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
             className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
           />
         </label>
+
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
+          Venue type (optional)
+          <SearchCombobox
+            fetchOptions={api.fetchVenueTypes}
+            onCreate={api.createVenueType}
+            onSelect={setVenueType}
+            initialQuery={venueType?.name || ''}
+            placeholder="e.g. Bar, Restaurant, Hotel..."
+          />
+        </label>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -160,20 +161,13 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
         />
         <div className="flex flex-wrap gap-2">
           {specialties.map((s) => (
-            <span
+            <Tag
               key={s.id}
-              className="flex items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 py-1.5 text-sm text-accent"
+              onRemove={() => handleRemoveSpecialty(s.name)}
+              removeLabel={`Remove ${s.name}`}
             >
               {s.name}
-              <button
-                type="button"
-                onClick={() => handleRemoveSpecialty(s.name)}
-                className="text-accent/70 hover:text-accent"
-                aria-label={`Remove ${s.name}`}
-              >
-                ×
-              </button>
-            </span>
+            </Tag>
           ))}
         </div>
       </div>

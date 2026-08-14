@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import Tag from '../Tag'
 
 function SkillsEditor({ profile, onAdd, onRemove }) {
   const [error, setError] = useState('')
@@ -55,21 +56,14 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
 
       <div className="mt-4 flex flex-wrap gap-2">
         {skills.map((skill) => (
-          <span
+          <Tag
             key={skill.id}
-            className="flex items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 py-1.5 text-sm text-accent"
+            onRemove={() => handleRemove(skill.name)}
+            removeDisabled={removing === skill.name}
+            removeLabel={`Remove ${skill.name}`}
           >
             {skill.name}
-            <button
-              type="button"
-              disabled={removing === skill.name}
-              onClick={() => handleRemove(skill.name)}
-              className="text-accent/70 hover:text-accent disabled:opacity-50"
-              aria-label={`Remove ${skill.name}`}
-            >
-              ×
-            </button>
-          </span>
+          </Tag>
         ))}
         {profile && skills.length === 0 && (
           <p className="text-sm text-text-faint">No skills added yet.</p>

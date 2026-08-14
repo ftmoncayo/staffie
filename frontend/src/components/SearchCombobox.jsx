@@ -93,19 +93,19 @@ function SearchCombobox({
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
-        className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+        className="w-full rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-sm text-danger">{error}</p>}
       {open && (
-        <div className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded border border-gray-200 bg-white shadow-lg">
-          {loading && <p className="px-3 py-2 text-sm text-gray-500">Searching...</p>}
+        <div className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded border border-border bg-surface shadow-lg shadow-black/40">
+          {loading && <p className="px-3 py-2 text-sm text-text-faint">Searching...</p>}
           {!loading &&
             visibleOptions.map((item) => (
               <button
                 type="button"
                 key={item.id}
                 onClick={() => handleSelect(item)}
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                className="block w-full px-3 py-2 text-left text-sm text-text hover:bg-surface-hover"
               >
                 {item.name}
               </button>
@@ -115,13 +115,13 @@ function SearchCombobox({
               type="button"
               disabled={creating}
               onClick={handleCreate}
-              className="block w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-50 disabled:opacity-50"
+              className="block w-full px-3 py-2 text-left text-sm text-accent hover:bg-surface-hover disabled:opacity-50"
             >
               {creating ? 'Adding...' : `+ Add "${trimmedQuery}"`}
             </button>
           )}
           {!loading && visibleOptions.length === 0 && !trimmedQuery && (
-            <p className="px-3 py-2 text-sm text-gray-500">Start typing to search</p>
+            <p className="px-3 py-2 text-sm text-text-faint">Start typing to search</p>
           )}
         </div>
       )}

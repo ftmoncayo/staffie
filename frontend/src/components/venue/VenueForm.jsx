@@ -43,22 +43,22 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg bg-white p-6 shadow">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-6">
+      {error && <p className="text-sm text-danger">{error}</p>}
 
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
         Venue name
         <input
           type="text"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
         />
       </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           City (optional)
           <SearchCombobox
             fetchOptions={api.fetchCities}
@@ -69,7 +69,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           Venue type (optional)
           <SearchCombobox
             fetchOptions={api.fetchVenueTypeOptions}
@@ -80,29 +80,29 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           State (optional)
           <input
             type="text"
             value={state}
             onChange={(e) => setState(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           Country (optional)
           <input
             type="text"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
           />
         </label>
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm text-gray-700">Specialties (optional)</span>
+        <span className="text-sm text-text-muted">Specialties (optional)</span>
         <SearchCombobox
           fetchOptions={api.fetchVenueSpecialties}
           onCreate={api.createVenueSpecialty}
@@ -115,13 +115,13 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
           {specialties.map((s) => (
             <span
               key={s.id}
-              className="flex items-center gap-2 rounded-full border border-blue-600 bg-blue-600 px-4 py-1.5 text-sm text-white"
+              className="flex items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 py-1.5 text-sm text-accent"
             >
               {s.name}
               <button
                 type="button"
                 onClick={() => handleRemoveSpecialty(s.name)}
-                className="text-white/80 hover:text-white"
+                className="text-accent/70 hover:text-accent"
                 aria-label={`Remove ${s.name}`}
               >
                 ×
@@ -135,7 +135,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-accent px-4 py-2 font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? 'Saving...' : submitLabel}
         </button>
@@ -143,7 +143,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+            className="rounded border border-border-strong px-4 py-2 text-text-muted hover:bg-surface-hover"
           >
             Cancel
           </button>

@@ -31,14 +31,14 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
-      <h2 className="text-xl font-semibold text-gray-900">Skills</h2>
+    <div className="rounded-lg border border-border bg-surface p-6">
+      <h2 className="text-xl font-semibold text-text">Skills</h2>
       {!profile && (
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-text-faint">
           Complete your profile details above before adding skills.
         </p>
       )}
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       {profile && (
         <div className="mt-4">
@@ -57,14 +57,14 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
         {skills.map((skill) => (
           <span
             key={skill.id}
-            className="flex items-center gap-2 rounded-full border border-blue-600 bg-blue-600 px-4 py-1.5 text-sm text-white"
+            className="flex items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 py-1.5 text-sm text-accent"
           >
             {skill.name}
             <button
               type="button"
               disabled={removing === skill.name}
               onClick={() => handleRemove(skill.name)}
-              className="text-white/80 hover:text-white disabled:opacity-50"
+              className="text-accent/70 hover:text-accent disabled:opacity-50"
               aria-label={`Remove ${skill.name}`}
             >
               ×
@@ -72,7 +72,7 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
           </span>
         ))}
         {profile && skills.length === 0 && (
-          <p className="text-sm text-gray-500">No skills added yet.</p>
+          <p className="text-sm text-text-faint">No skills added yet.</p>
         )}
       </div>
     </div>

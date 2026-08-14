@@ -20,17 +20,17 @@ function VenueDirectory() {
   }, [sort, search])
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-10">
+    <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Venues</h1>
+          <h1 className="text-2xl font-semibold text-text">Venues</h1>
           <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="text-sm text-blue-600 hover:underline">
+            <Link to="/dashboard" className="text-sm text-accent hover:text-accent-hover hover:underline">
               Back to dashboard
             </Link>
             <Link
               to="/venues/new"
-              className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
             >
               + Create Venue
             </Link>
@@ -43,14 +43,16 @@ function VenueDirectory() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or city..."
-            className="w-64 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-64 rounded border border-border-strong bg-surface px-3 py-2 text-sm text-text focus:border-accent"
           />
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Sort:</span>
+            <span className="text-text-faint">Sort:</span>
             <button
               onClick={() => setSort('createdAt_desc')}
               className={`rounded px-3 py-1 ${
-                sort === 'createdAt_desc' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
+                sort === 'createdAt_desc'
+                  ? 'bg-accent text-accent-text'
+                  : 'text-text-muted hover:bg-surface-hover'
               }`}
             >
               Newest
@@ -58,7 +60,9 @@ function VenueDirectory() {
             <button
               onClick={() => setSort('name_asc')}
               className={`rounded px-3 py-1 ${
-                sort === 'name_asc' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
+                sort === 'name_asc'
+                  ? 'bg-accent text-accent-text'
+                  : 'text-text-muted hover:bg-surface-hover'
               }`}
             >
               A–Z
@@ -66,21 +70,21 @@ function VenueDirectory() {
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
         <div className="flex flex-col gap-3">
           {!loading && venues.length === 0 && (
-            <p className="text-sm text-gray-500">No venues found.</p>
+            <p className="text-sm text-text-faint">No venues found.</p>
           )}
           {venues.map((venue) => (
             <Link
               key={venue.id}
               to={`/venues/${venue.id}`}
-              className="flex items-center justify-between rounded-lg bg-white p-4 shadow hover:shadow-md"
+              className="flex items-center justify-between rounded-lg border border-border bg-surface p-4 hover:border-border-strong hover:bg-surface-hover"
             >
               <div>
-                <p className="font-medium text-gray-900">{venue.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-medium text-text">{venue.name}</p>
+                <p className="text-sm text-text-faint">
                   {[venue.city?.name, venue.state, venue.country].filter(Boolean).join(', ') || '—'}
                 </p>
               </div>

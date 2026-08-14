@@ -32,11 +32,11 @@ function CertificationForm({ initial, onSubmit, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-gray-200 p-4">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-border p-4">
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           Name
           <SearchCombobox
             fetchOptions={api.fetchCertificationTypes}
@@ -46,23 +46,23 @@ function CertificationForm({ initial, onSubmit, onCancel }) {
             placeholder="Search or add a certification..."
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           Issue date
           <input
             type="date"
             required
             value={issueDate}
             onChange={(e) => setIssueDate(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           Expiry date (optional)
           <input
             type="date"
             value={expiryDate}
             onChange={(e) => setExpiryDate(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
           />
         </label>
       </div>
@@ -71,14 +71,14 @@ function CertificationForm({ initial, onSubmit, onCancel }) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? 'Saving...' : 'Save'}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="rounded border border-border-strong px-4 py-2 text-sm text-text-muted hover:bg-surface-hover"
         >
           Cancel
         </button>
@@ -106,13 +106,13 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
+    <div className="rounded-lg border border-border bg-surface p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">Certifications</h2>
+        <h2 className="text-xl font-semibold text-text">Certifications</h2>
         {profile && !adding && (
           <button
             onClick={() => setAdding(true)}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-accent hover:text-accent-hover hover:underline"
           >
             + Add certification
           </button>
@@ -120,11 +120,11 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
       </div>
 
       {!profile && (
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-text-faint">
           Complete your profile details above before adding certifications.
         </p>
       )}
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       <div className="mt-4 flex flex-col gap-3">
         {certifications.map((cert) =>
@@ -143,22 +143,22 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
               }}
             />
           ) : (
-            <div key={cert.id} className="flex items-start justify-between rounded border border-gray-200 p-4">
+            <div key={cert.id} className="flex items-start justify-between rounded border border-border p-4">
               <div>
-                <p className="font-medium text-gray-900">{cert.certificationType?.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-medium text-text">{cert.certificationType?.name}</p>
+                <p className="text-sm text-text-faint">
                   Issued {formatDate(cert.issueDate)}
                   {cert.expiryDate ? ` · Expires ${formatDate(cert.expiryDate)}` : ''}
                 </p>
               </div>
               <div className="flex gap-3 text-sm">
-                <button onClick={() => setEditingId(cert.id)} className="text-blue-600 hover:underline">
+                <button onClick={() => setEditingId(cert.id)} className="text-accent hover:text-accent-hover hover:underline">
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(cert.id)}
                   disabled={deletingId === cert.id}
-                  className="text-red-600 hover:underline disabled:opacity-50"
+                  className="text-danger hover:underline disabled:opacity-50"
                 >
                   Delete
                 </button>
@@ -178,7 +178,7 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
         )}
 
         {certifications.length === 0 && !adding && profile && (
-          <p className="text-sm text-gray-500">No certifications added yet.</p>
+          <p className="text-sm text-text-faint">No certifications added yet.</p>
         )}
       </div>
     </div>

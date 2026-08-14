@@ -11,23 +11,23 @@ function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50">
-      <h1 className="text-3xl font-semibold text-gray-900">Dashboard</h1>
-      <p className="text-lg text-gray-600">Logged in as {user?.email}</p>
-      <Link to="/profile" className="text-blue-600 hover:underline">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg">
+      <h1 className="text-3xl font-semibold text-text">Dashboard</h1>
+      <p className="text-lg text-text-muted">Logged in as {user?.email}</p>
+      <Link to="/profile" className="text-accent hover:text-accent-hover hover:underline">
         View / edit your profile
       </Link>
-      <Link to="/venues" className="text-blue-600 hover:underline">
+      <Link to="/venues" className="text-accent hover:text-accent-hover hover:underline">
         Venues
       </Link>
       {user?.isAdmin && (
-        <Link to="/admin/venues" className="text-blue-600 hover:underline">
+        <Link to="/admin/venues" className="text-accent hover:text-accent-hover hover:underline">
           Admin
         </Link>
       )}
       <button
         onClick={handleLogout}
-        className="rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-700"
+        className="rounded border border-border-strong bg-surface px-4 py-2 text-text hover:bg-surface-hover"
       >
         Logout
       </button>

@@ -11,11 +11,11 @@ function VenueCreate() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-10">
+    <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Create venue</h1>
-          <Link to="/venues" className="text-sm text-blue-600 hover:underline">
+          <h1 className="text-2xl font-semibold text-text">Create venue</h1>
+          <Link to="/venues" className="text-sm text-accent hover:text-accent-hover hover:underline">
             Back to venues
           </Link>
         </div>

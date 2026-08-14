@@ -85,16 +85,16 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-10">
+    <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Your profile</h1>
-          <Link to="/dashboard" className="text-sm text-blue-600 hover:underline">
+          <h1 className="text-2xl font-semibold text-text">Your profile</h1>
+          <Link to="/dashboard" className="text-sm text-accent hover:text-accent-hover hover:underline">
             Back to dashboard
           </Link>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
         <ProfileDetails profile={profile} onSave={handleSaveDetails} />
 

@@ -31,17 +31,17 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
-      <h2 className="text-xl font-semibold text-gray-900">Knowledge Bank</h2>
-      <p className="mt-1 text-sm text-gray-500">
+    <div className="rounded-lg border border-border bg-surface p-6">
+      <h2 className="text-xl font-semibold text-text">Knowledge Bank</h2>
+      <p className="mt-1 text-sm text-text-faint">
         Informal know-how, e.g. "Japanese Whiskey," "Wine," "Beer Brewing."
       </p>
       {!profile && (
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-text-faint">
           Complete your profile details above before adding knowledge areas.
         </p>
       )}
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       {profile && (
         <div className="mt-4">
@@ -60,14 +60,14 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
         {knowledgeAreas.map((area) => (
           <span
             key={area.id}
-            className="flex items-center gap-2 rounded-full border border-emerald-600 bg-emerald-600 px-4 py-1.5 text-sm text-white"
+            className="flex items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 py-1.5 text-sm text-accent"
           >
             {area.name}
             <button
               type="button"
               disabled={removing === area.name}
               onClick={() => handleRemove(area.name)}
-              className="text-white/80 hover:text-white disabled:opacity-50"
+              className="text-accent/70 hover:text-accent disabled:opacity-50"
               aria-label={`Remove ${area.name}`}
             >
               ×
@@ -75,7 +75,7 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
           </span>
         ))}
         {profile && knowledgeAreas.length === 0 && (
-          <p className="text-sm text-gray-500">No knowledge areas added yet.</p>
+          <p className="text-sm text-text-faint">No knowledge areas added yet.</p>
         )}
       </div>
     </div>

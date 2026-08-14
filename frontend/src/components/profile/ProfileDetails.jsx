@@ -36,38 +36,38 @@ function ProfileDetails({ profile, onSave }) {
 
   if (!editing) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow">
+      <div className="rounded-lg border border-border bg-surface p-6">
         <div className="flex items-start justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Profile details</h2>
+          <h2 className="text-xl font-semibold text-text">Profile details</h2>
           <button
             onClick={() => setEditing(true)}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-accent hover:text-accent-hover hover:underline"
           >
             Edit
           </button>
         </div>
         <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <dt className="text-sm text-gray-500">Name</dt>
-            <dd className="text-gray-900">
+            <dt className="text-sm text-text-faint">Name</dt>
+            <dd className="text-text">
               {[profile.firstName, profile.lastName].filter(Boolean).join(' ')}
             </dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500">Professional title</dt>
-            <dd className="text-gray-900">{profile.professionalTitle}</dd>
+            <dt className="text-sm text-text-faint">Professional title</dt>
+            <dd className="text-text">{profile.professionalTitle}</dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500">City</dt>
-            <dd className="text-gray-900">{profile.city?.name || '—'}</dd>
+            <dt className="text-sm text-text-faint">City</dt>
+            <dd className="text-text">{profile.city?.name || '—'}</dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500">Right to work</dt>
-            <dd className="text-gray-900">{profile.rightToWork ? 'Yes' : 'No'}</dd>
+            <dt className="text-sm text-text-faint">Right to work</dt>
+            <dd className="text-text">{profile.rightToWork ? 'Yes' : 'No'}</dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500">Cultural identity / background</dt>
-            <dd className="text-gray-900">{profile.culturalIdentity || '—'}</dd>
+            <dt className="text-sm text-text-faint">Cultural identity / background</dt>
+            <dd className="text-text">{profile.culturalIdentity || '—'}</dd>
           </div>
         </dl>
       </div>
@@ -75,48 +75,48 @@ function ProfileDetails({ profile, onSave }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg bg-white p-6 shadow">
-      <h2 className="text-xl font-semibold text-gray-900">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-6">
+      <h2 className="text-xl font-semibold text-text">
         {profile ? 'Edit profile details' : 'Complete your profile'}
       </h2>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           First name
           <input
             type="text"
             required
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-gray-700">
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
           Last name (optional)
           <input
             type="text"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
           />
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
         Professional title
         <input
           type="text"
           required
           value={professionalTitle}
           onChange={(e) => setProfessionalTitle(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
         City
         <SearchCombobox
           fetchOptions={api.fetchCities}
@@ -127,23 +127,23 @@ function ProfileDetails({ profile, onSave }) {
         />
       </label>
 
-      <label className="flex items-center gap-2 text-sm text-gray-700">
+      <label className="flex items-center gap-2 text-sm text-text-muted">
         <input
           type="checkbox"
           checked={rightToWork}
           onChange={(e) => setRightToWork(e.target.checked)}
-          className="h-4 w-4"
+          className="h-4 w-4 accent-accent"
         />
         I have the right to work
       </label>
 
-      <label className="flex flex-col gap-1 text-sm text-gray-700">
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
         Cultural identity / background (optional)
         <textarea
           value={culturalIdentity}
           onChange={(e) => setCulturalIdentity(e.target.value)}
           rows={3}
-          className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
         />
       </label>
 
@@ -151,7 +151,7 @@ function ProfileDetails({ profile, onSave }) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-accent px-4 py-2 font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? 'Saving...' : 'Save'}
         </button>
@@ -159,7 +159,7 @@ function ProfileDetails({ profile, onSave }) {
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+            className="rounded border border-border-strong px-4 py-2 text-text-muted hover:bg-surface-hover"
           >
             Cancel
           </button>

@@ -29,10 +29,10 @@ function VenueDetail() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="min-h-screen bg-bg px-4 py-10">
         <div className="mx-auto max-w-2xl">
-          <p className="text-sm text-red-600">{error}</p>
-          <Link to="/venues" className="text-sm text-blue-600 hover:underline">
+          <p className="text-sm text-danger">{error}</p>
+          <Link to="/venues" className="text-sm text-accent hover:text-accent-hover hover:underline">
             Back to venues
           </Link>
         </div>
@@ -41,11 +41,11 @@ function VenueDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-10">
+    <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Venue</h1>
-          <Link to="/venues" className="text-sm text-blue-600 hover:underline">
+          <h1 className="text-2xl font-semibold text-text">Venue</h1>
+          <Link to="/venues" className="text-sm text-accent hover:text-accent-hover hover:underline">
             Back to venues
           </Link>
         </div>
@@ -53,17 +53,17 @@ function VenueDetail() {
         {editing ? (
           <VenueForm initial={venue} onSubmit={handleSave} onCancel={() => setEditing(false)} />
         ) : (
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg border border-border bg-surface p-6">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">{venue.name}</h2>
+                <h2 className="text-xl font-semibold text-text">{venue.name}</h2>
                 <div className="mt-1">
                   <VerificationBadge status={venue.verificationStatus} />
                 </div>
               </div>
               <button
                 onClick={() => setEditing(true)}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-accent hover:text-accent-hover hover:underline"
               >
                 Edit
               </button>
@@ -71,25 +71,25 @@ function VenueDetail() {
 
             <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <dt className="text-sm text-gray-500">Location</dt>
-                <dd className="text-gray-900">
+                <dt className="text-sm text-text-faint">Location</dt>
+                <dd className="text-text">
                   {[venue.city?.name, venue.state, venue.country].filter(Boolean).join(', ') || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Type</dt>
-                <dd className="text-gray-900">{venue.venueType || '—'}</dd>
+                <dt className="text-sm text-text-faint">Type</dt>
+                <dd className="text-text">{venue.venueType || '—'}</dd>
               </div>
             </dl>
 
             <div className="mt-4">
-              <dt className="text-sm text-gray-500">Specialties</dt>
+              <dt className="text-sm text-text-faint">Specialties</dt>
               <dd className="mt-2 flex flex-wrap gap-2">
-                {venue.specialties.length === 0 && <span className="text-gray-900">—</span>}
+                {venue.specialties.length === 0 && <span className="text-text">—</span>}
                 {venue.specialties.map((s) => (
                   <span
                     key={s.id}
-                    className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700"
+                    className="rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-sm text-accent"
                   >
                     {s.name}
                   </span>

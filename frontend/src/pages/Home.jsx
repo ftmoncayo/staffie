@@ -13,16 +13,16 @@ function Home() {
   }, [])
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50">
-      <h1 className="text-4xl font-semibold text-gray-900">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg">
+      <h1 className="text-4xl font-semibold text-text">
         Staffie MVP — Hello World
       </h1>
-      <p className="text-lg text-gray-600">Backend status: {status}</p>
+      <p className="text-lg text-text-muted">Backend status: {status}</p>
       <div className="flex gap-4">
-        <Link to="/login" className="text-blue-600 hover:underline">
+        <Link to="/login" className="text-accent hover:text-accent-hover hover:underline">
           Log in
         </Link>
-        <Link to="/signup" className="text-blue-600 hover:underline">
+        <Link to="/signup" className="text-accent hover:text-accent-hover hover:underline">
           Sign up
         </Link>
       </div>

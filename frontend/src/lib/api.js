@@ -32,6 +32,16 @@ async function request(path, options = {}) {
   return data
 }
 
+function authRequest(path, options = {}) {
+  return request(path, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      ...options.headers,
+    },
+  })
+}
+
 export function signup(email, password) {
   return request('/api/auth/signup', {
     method: 'POST',
@@ -49,5 +59,69 @@ export function login(email, password) {
 export function fetchMe(token) {
   return request('/api/auth/me', {
     headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export function fetchProfile() {
+  return authRequest('/api/profile')
+}
+
+export function saveProfile(profile) {
+  return authRequest('/api/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profile),
+  })
+}
+
+export function addSkill(name) {
+  return authRequest('/api/profile/skills', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function removeSkill(name) {
+  return authRequest(`/api/profile/skills/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  })
+}
+
+export function createExperience(entry) {
+  return authRequest('/api/profile/experience', {
+    method: 'POST',
+    body: JSON.stringify(entry),
+  })
+}
+
+export function updateExperience(id, entry) {
+  return authRequest(`/api/profile/experience/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(entry),
+  })
+}
+
+export function deleteExperience(id) {
+  return authRequest(`/api/profile/experience/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export function createCertification(entry) {
+  return authRequest('/api/profile/certifications', {
+    method: 'POST',
+    body: JSON.stringify(entry),
+  })
+}
+
+export function updateCertification(id, entry) {
+  return authRequest(`/api/profile/certifications/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(entry),
+  })
+}
+
+export function deleteCertification(id) {
+  return authRequest(`/api/profile/certifications/${id}`, {
+    method: 'DELETE',
   })
 }

@@ -117,7 +117,7 @@ function ProfileDetails({ profile, onSave }) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm text-text-muted">
-        City
+        City (e.g. Melbourne, Sydney, London)
         <SearchCombobox
           fetchOptions={api.fetchCities}
           onCreate={api.createCity}

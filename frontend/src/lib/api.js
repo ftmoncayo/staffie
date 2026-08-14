@@ -152,6 +152,20 @@ export async function createCity(name) {
   return data.city
 }
 
+export async function fetchSuburbs(cityId, search) {
+  const params = new URLSearchParams({ cityId, search: search || '' })
+  const data = await authRequest(`/api/suburbs?${params.toString()}`)
+  return data.suburbs
+}
+
+export async function createSuburb(cityId, name) {
+  const data = await authRequest('/api/suburbs', {
+    method: 'POST',
+    body: JSON.stringify({ name, cityId }),
+  })
+  return data.suburb
+}
+
 export async function fetchSkillOptions(search) {
   const data = await authRequest(`/api/skills?search=${encodeURIComponent(search || '')}`)
   return data.skills

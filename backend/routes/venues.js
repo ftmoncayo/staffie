@@ -7,6 +7,7 @@ router.use(requireAuth)
 
 const venueInclude = {
   city: true,
+  suburb: true,
   venueType: true,
   specialties: true,
 }
@@ -26,6 +27,20 @@ async function validateSpecialtyIds(specialtyIds) {
 
 function optionalString(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+async function validateSuburbId(suburbId, cityId) {
+  if (typeof suburbId !== 'string' || !suburbId.trim()) {
+    return { ok: true, suburbId: null }
+  }
+  const suburb = await prisma.suburb.findUnique({ where: { id: suburbId.trim() } })
+  if (!suburb) {
+    return { ok: false, error: 'Selected suburb was not found' }
+  }
+  if (cityId && suburb.cityId !== cityId) {
+    return { ok: false, error: 'Selected suburb does not belong to the selected city' }
+  }
+  return { ok: true, suburbId: suburb.id }
 }
 
 async function canEditVenue(userId, venueId) {
@@ -87,7 +102,7 @@ router.get('/venues/:id', async (req, res) => {
 })
 
 router.post('/venues', async (req, res) => {
-  const { name, cityId, state, country, venueTypeId, specialtyIds } = req.body || {}
+  const { name, cityId, suburbId, state, country, venueTypeId, specialtyIds } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Venue name is required' })
@@ -100,6 +115,11 @@ router.post('/venues', async (req, res) => {
       return res.status(400).json({ error: 'Selected city was not found' })
     }
     validatedCityId = city.id
+  }
+
+  const suburbResult = await validateSuburbId(suburbId, validatedCityId)
+  if (!suburbResult.ok) {
+    return res.status(400).json({ error: suburbResult.error })
   }
 
   let validatedVenueTypeId = null
@@ -117,6 +137,7 @@ router.post('/venues', async (req, res) => {
     data: {
       name: name.trim(),
       cityId: validatedCityId,
+      suburbId: suburbResult.suburbId,
       state: optionalString(state),
       country: optionalString(country),
       venueTypeId: validatedVenueTypeId,
@@ -135,7 +156,7 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
     return res.status(404).json({ error: 'Venue not found' })
   }
 
-  const { name, cityId, state, country, venueTypeId, specialtyIds } = req.body || {}
+  const { name, cityId, suburbId, state, country, venueTypeId, specialtyIds } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Venue name is required' })
@@ -148,6 +169,11 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
       return res.status(400).json({ error: 'Selected city was not found' })
     }
     validatedCityId = city.id
+  }
+
+  const suburbResult = await validateSuburbId(suburbId, validatedCityId)
+  if (!suburbResult.ok) {
+    return res.status(400).json({ error: suburbResult.error })
   }
 
   let validatedVenueTypeId = null
@@ -166,6 +192,7 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
     data: {
       name: name.trim(),
       cityId: validatedCityId,
+      suburbId: suburbResult.suburbId,
       state: optionalString(state),
       country: optionalString(country),
       venueTypeId: validatedVenueTypeId,

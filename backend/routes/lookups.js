@@ -138,4 +138,44 @@ router.post('/venue-types', async (req, res) => {
   res.status(201).json({ venueType })
 })
 
+// --- Suburbs (scoped to a city) ---
+
+router.get('/suburbs', async (req, res) => {
+  const cityId = typeof req.query.cityId === 'string' ? req.query.cityId.trim() : ''
+  if (!cityId) {
+    return res.status(400).json({ error: 'cityId is required' })
+  }
+
+  const suburbs = await prisma.suburb.findMany({
+    where: { cityId, ...searchFilter(getSearch(req)) },
+    orderBy: { name: 'asc' },
+    take: SEARCH_LIMIT,
+  })
+  res.json({ suburbs })
+})
+
+router.post('/suburbs', async (req, res) => {
+  const { name, cityId } = req.body || {}
+
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Suburb name is required' })
+  }
+  if (typeof cityId !== 'string' || !cityId.trim()) {
+    return res.status(400).json({ error: 'cityId is required' })
+  }
+
+  const city = await prisma.city.findUnique({ where: { id: cityId.trim() } })
+  if (!city) {
+    return res.status(400).json({ error: 'Selected city was not found' })
+  }
+
+  const trimmedName = name.trim()
+  const suburb = await prisma.suburb.upsert({
+    where: { name_cityId: { name: trimmedName, cityId: city.id } },
+    create: { name: trimmedName, cityId: city.id },
+    update: {},
+  })
+  res.status(201).json({ suburb })
+})
+
 module.exports = router

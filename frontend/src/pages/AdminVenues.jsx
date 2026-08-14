@@ -57,7 +57,9 @@ function AdminVenues() {
                   {venue.name}
                 </Link>
                 <p className="text-sm text-text-faint">
-                  {[venue.city?.name, venue.state, venue.country].filter(Boolean).join(', ') || '—'}
+                  {[venue.suburb?.name, venue.city?.name, venue.state, venue.country]
+                    .filter(Boolean)
+                    .join(', ') || '—'}
                 </p>
               </div>
               <button

@@ -51,6 +51,17 @@ model City {
   name     String    @unique
   profiles Profile[]
   venues   Venue[]
+  suburbs  Suburb[]
+}
+
+model Suburb {
+  id     String  @id @default(uuid())
+  name   String
+  cityId String
+  city   City    @relation(fields: [cityId], references: [id])
+  venues Venue[]
+
+  @@unique([name, cityId])
 }
 
 model Skill {
@@ -87,6 +98,8 @@ model Venue {
   name               String
   cityId             String?
   city               City?                   @relation(fields: [cityId], references: [id])
+  suburbId           String?
+  suburb             Suburb?                 @relation(fields: [suburbId], references: [id])
   state              String?
   country            String?
   venueTypeId        String?

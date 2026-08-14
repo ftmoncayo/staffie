@@ -54,7 +54,7 @@ function VenueDetail() {
         </div>
 
         {editing ? (
-          <VenueForm initial={venue} onSubmit={handleSave} onCancel={() => setEditing(false)} />
+          <VenueForm initial={venue} isEditing onSubmit={handleSave} onCancel={() => setEditing(false)} />
         ) : (
           <div className="rounded-lg border border-border bg-surface p-6">
             <div className="flex items-start justify-between">
@@ -78,7 +78,9 @@ function VenueDetail() {
               <div>
                 <dt className="text-sm text-text-faint">Location</dt>
                 <dd className="text-text">
-                  {[venue.city?.name, venue.state, venue.country].filter(Boolean).join(', ') || '—'}
+                  {[venue.suburb?.name, venue.city?.name, venue.state, venue.country]
+                    .filter(Boolean)
+                    .join(', ') || '—'}
                 </dd>
               </div>
               <div>

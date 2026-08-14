@@ -58,6 +58,17 @@ router.get('/skills', async (req, res) => {
   res.json({ skills })
 })
 
+// --- Knowledge areas ---
+
+router.get('/knowledge-areas', async (req, res) => {
+  const knowledgeAreas = await prisma.knowledgeArea.findMany({
+    where: searchFilter(getSearch(req)),
+    orderBy: { name: 'asc' },
+    take: SEARCH_LIMIT,
+  })
+  res.json({ knowledgeAreas })
+})
+
 // --- Certification types ---
 
 router.get('/certification-types', async (req, res) => {

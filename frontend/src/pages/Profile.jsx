@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
 import ProfileDetails from '../components/profile/ProfileDetails'
 import SkillsEditor from '../components/profile/SkillsEditor'
+import KnowledgeAreaEditor from '../components/profile/KnowledgeAreaEditor'
 import ExperienceEditor from '../components/profile/ExperienceEditor'
 import CertificationsEditor from '../components/profile/CertificationsEditor'
 
@@ -36,6 +37,16 @@ function Profile() {
 
   async function handleRemoveSkill(name) {
     await api.removeSkill(name)
+    await refresh()
+  }
+
+  async function handleAddKnowledgeArea(name) {
+    await api.addKnowledgeArea(name)
+    await refresh()
+  }
+
+  async function handleRemoveKnowledgeArea(name) {
+    await api.removeKnowledgeArea(name)
     await refresh()
   }
 
@@ -88,6 +99,12 @@ function Profile() {
         <ProfileDetails profile={profile} onSave={handleSaveDetails} />
 
         <SkillsEditor profile={profile} onAdd={handleAddSkill} onRemove={handleRemoveSkill} />
+
+        <KnowledgeAreaEditor
+          profile={profile}
+          onAdd={handleAddKnowledgeArea}
+          onRemove={handleRemoveKnowledgeArea}
+        />
 
         <ExperienceEditor
           profile={profile}

@@ -86,6 +86,19 @@ export function removeSkill(name) {
   })
 }
 
+export function addKnowledgeArea(name) {
+  return authRequest('/api/profile/knowledge-areas', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function removeKnowledgeArea(name) {
+  return authRequest(`/api/profile/knowledge-areas/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  })
+}
+
 export function createExperience(entry) {
   return authRequest('/api/profile/experience', {
     method: 'POST',
@@ -142,6 +155,13 @@ export async function createCity(name) {
 export async function fetchSkillOptions(search) {
   const data = await authRequest(`/api/skills?search=${encodeURIComponent(search || '')}`)
   return data.skills
+}
+
+export async function fetchKnowledgeAreaOptions(search) {
+  const data = await authRequest(
+    `/api/knowledge-areas?search=${encodeURIComponent(search || '')}`,
+  )
+  return data.knowledgeAreas
 }
 
 export async function fetchCertificationTypes(search) {

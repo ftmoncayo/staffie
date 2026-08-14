@@ -8,6 +8,7 @@ router.use(requireAuth)
 const profileInclude = {
   city: true,
   skills: true,
+  knowledgeAreas: true,
   experiences: { orderBy: { startDate: 'desc' } },
   certifications: {
     orderBy: { issueDate: 'desc' },
@@ -113,6 +114,44 @@ router.delete('/skills/:name', requireProfile, async (req, res) => {
     await prisma.profile.update({
       where: { id: req.profile.id },
       data: { skills: { disconnect: { id: skill.id } } },
+    })
+  }
+  const profile = await getOwnedProfile(req.userId)
+  res.json({ profile })
+})
+
+// --- Knowledge areas ---
+
+router.post('/knowledge-areas', requireProfile, async (req, res) => {
+  const { name } = req.body || {}
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Knowledge area name is required' })
+  }
+  const trimmed = name.trim()
+
+  const knowledgeArea = await prisma.knowledgeArea.upsert({
+    where: { name: trimmed },
+    create: { name: trimmed },
+    update: {},
+  })
+
+  await prisma.profile.update({
+    where: { id: req.profile.id },
+    data: { knowledgeAreas: { connect: { id: knowledgeArea.id } } },
+  })
+
+  const profile = await getOwnedProfile(req.userId)
+  res.json({ profile })
+})
+
+router.delete('/knowledge-areas/:name', requireProfile, async (req, res) => {
+  const knowledgeArea = await prisma.knowledgeArea.findUnique({
+    where: { name: req.params.name },
+  })
+  if (knowledgeArea) {
+    await prisma.profile.update({
+      where: { id: req.profile.id },
+      data: { knowledgeAreas: { disconnect: { id: knowledgeArea.id } } },
     })
   }
   const profile = await getOwnedProfile(req.userId)

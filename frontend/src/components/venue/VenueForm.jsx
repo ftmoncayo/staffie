@@ -7,7 +7,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
   const [city, setCity] = useState(initial?.city || null)
   const [state, setState] = useState(initial?.state || '')
   const [country, setCountry] = useState(initial?.country || '')
-  const [venueType, setVenueType] = useState(initial?.venueType || '')
+  const [venueType, setVenueType] = useState(initial?.venueType || null)
   const [specialties, setSpecialties] = useState(initial?.specialties || [])
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -32,7 +32,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
         cityId: city?.id || null,
         state,
         country,
-        venueType,
+        venueTypeId: venueType?.id || null,
         specialtyIds: specialties.map((s) => s.id),
       })
     } catch (err) {
@@ -72,10 +72,10 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
         <label className="flex flex-col gap-1 text-sm text-text-muted">
           Venue type (optional)
           <SearchCombobox
-            fetchOptions={api.fetchVenueTypeOptions}
-            onCreate={async (typedName) => ({ id: typedName, name: typedName })}
-            onSelect={(item) => setVenueType(item.name)}
-            initialQuery={venueType}
+            fetchOptions={api.fetchVenueTypes}
+            onCreate={api.createVenueType}
+            onSelect={setVenueType}
+            initialQuery={venueType?.name || ''}
             placeholder="e.g. Bar, Restaurant, Hotel..."
           />
         </label>

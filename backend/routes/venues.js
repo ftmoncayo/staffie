@@ -7,6 +7,7 @@ router.use(requireAuth)
 
 const venueInclude = {
   city: true,
+  venueType: true,
   specialties: true,
 }
 
@@ -67,7 +68,7 @@ router.get('/venues/:id', async (req, res) => {
 })
 
 router.post('/venues', async (req, res) => {
-  const { name, cityId, state, country, venueType, specialtyIds } = req.body || {}
+  const { name, cityId, state, country, venueTypeId, specialtyIds } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Venue name is required' })
@@ -82,6 +83,15 @@ router.post('/venues', async (req, res) => {
     validatedCityId = city.id
   }
 
+  let validatedVenueTypeId = null
+  if (typeof venueTypeId === 'string' && venueTypeId.trim()) {
+    const venueType = await prisma.venueType.findUnique({ where: { id: venueTypeId.trim() } })
+    if (!venueType) {
+      return res.status(400).json({ error: 'Selected venue type was not found' })
+    }
+    validatedVenueTypeId = venueType.id
+  }
+
   const validSpecialtyIds = await validateSpecialtyIds(parseSpecialtyIds(specialtyIds))
 
   const venue = await prisma.venue.create({
@@ -90,7 +100,7 @@ router.post('/venues', async (req, res) => {
       cityId: validatedCityId,
       state: optionalString(state),
       country: optionalString(country),
-      venueType: optionalString(venueType),
+      venueTypeId: validatedVenueTypeId,
       createdByUserId: req.userId,
       specialties: { connect: validSpecialtyIds.map((id) => ({ id })) },
     },
@@ -106,7 +116,7 @@ router.put('/venues/:id', async (req, res) => {
     return res.status(404).json({ error: 'Venue not found' })
   }
 
-  const { name, cityId, state, country, venueType, specialtyIds } = req.body || {}
+  const { name, cityId, state, country, venueTypeId, specialtyIds } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Venue name is required' })
@@ -121,6 +131,15 @@ router.put('/venues/:id', async (req, res) => {
     validatedCityId = city.id
   }
 
+  let validatedVenueTypeId = null
+  if (typeof venueTypeId === 'string' && venueTypeId.trim()) {
+    const venueType = await prisma.venueType.findUnique({ where: { id: venueTypeId.trim() } })
+    if (!venueType) {
+      return res.status(400).json({ error: 'Selected venue type was not found' })
+    }
+    validatedVenueTypeId = venueType.id
+  }
+
   const validSpecialtyIds = await validateSpecialtyIds(parseSpecialtyIds(specialtyIds))
 
   const venue = await prisma.venue.update({
@@ -130,7 +149,7 @@ router.put('/venues/:id', async (req, res) => {
       cityId: validatedCityId,
       state: optionalString(state),
       country: optionalString(country),
-      venueType: optionalString(venueType),
+      venueTypeId: validatedVenueTypeId,
       specialties: { set: validSpecialtyIds.map((id) => ({ id })) },
     },
     include: venueInclude,

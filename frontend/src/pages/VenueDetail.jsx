@@ -78,7 +78,7 @@ function VenueDetail() {
               </div>
               <div>
                 <dt className="text-sm text-text-faint">Type</dt>
-                <dd className="text-text">{venue.venueType || '—'}</dd>
+                <dd className="text-text">{venue.venueType?.name || '—'}</dd>
               </div>
             </dl>
 

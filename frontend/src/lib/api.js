@@ -208,13 +208,17 @@ export async function fetchVenueOptions(search) {
   return venues.map((v) => ({ id: v.id, name: v.name }))
 }
 
-export async function fetchVenueTypeOptions(search) {
-  const venues = await fetchVenues({})
-  const types = [...new Set(venues.map((v) => v.venueType).filter(Boolean))]
-  const filtered = search
-    ? types.filter((t) => t.toLowerCase().includes(search.toLowerCase()))
-    : types
-  return filtered.map((t) => ({ id: t, name: t }))
+export async function fetchVenueTypes(search) {
+  const data = await authRequest(`/api/venue-types?search=${encodeURIComponent(search || '')}`)
+  return data.venueTypes
+}
+
+export async function createVenueType(name) {
+  const data = await authRequest('/api/venue-types', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.venueType
 }
 
 export async function fetchVenue(id) {

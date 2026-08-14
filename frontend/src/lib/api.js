@@ -125,3 +125,36 @@ export function deleteCertification(id) {
     method: 'DELETE',
   })
 }
+
+export async function fetchCities(search) {
+  const data = await authRequest(`/api/cities?search=${encodeURIComponent(search || '')}`)
+  return data.cities
+}
+
+export async function createCity(name) {
+  const data = await authRequest('/api/cities', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.city
+}
+
+export async function fetchSkillOptions(search) {
+  const data = await authRequest(`/api/skills?search=${encodeURIComponent(search || '')}`)
+  return data.skills
+}
+
+export async function fetchCertificationTypes(search) {
+  const data = await authRequest(
+    `/api/certification-types?search=${encodeURIComponent(search || '')}`,
+  )
+  return data.certificationTypes
+}
+
+export async function createCertificationType(name) {
+  const data = await authRequest('/api/certification-types', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.certificationType
+}

@@ -6,9 +6,13 @@ const router = express.Router()
 router.use(requireAuth)
 
 const profileInclude = {
+  city: true,
   skills: true,
   experiences: { orderBy: { startDate: 'desc' } },
-  certifications: { orderBy: { issueDate: 'desc' } },
+  certifications: {
+    orderBy: { issueDate: 'desc' },
+    include: { certificationType: true },
+  },
 }
 
 function getOwnedProfile(userId) {
@@ -35,8 +39,12 @@ router.get('/', async (req, res) => {
 })
 
 router.put('/', async (req, res) => {
-  const { city, professionalTitle, rightToWork, culturalIdentity } = req.body || {}
+  const { firstName, lastName, cityId, professionalTitle, rightToWork, culturalIdentity } =
+    req.body || {}
 
+  if (typeof firstName !== 'string' || !firstName.trim()) {
+    return res.status(400).json({ error: 'First name is required' })
+  }
   if (typeof professionalTitle !== 'string' || !professionalTitle.trim()) {
     return res.status(400).json({ error: 'Professional title is required' })
   }
@@ -44,10 +52,21 @@ router.put('/', async (req, res) => {
     return res.status(400).json({ error: 'Right to work status is required' })
   }
 
+  let validatedCityId = null
+  if (typeof cityId === 'string' && cityId.trim()) {
+    const city = await prisma.city.findUnique({ where: { id: cityId.trim() } })
+    if (!city) {
+      return res.status(400).json({ error: 'Selected city was not found' })
+    }
+    validatedCityId = city.id
+  }
+
   const data = {
+    firstName: firstName.trim(),
+    lastName: typeof lastName === 'string' && lastName.trim() ? lastName.trim() : null,
+    cityId: validatedCityId,
     professionalTitle: professionalTitle.trim(),
     rightToWork,
-    city: typeof city === 'string' && city.trim() ? city.trim() : null,
     culturalIdentity:
       typeof culturalIdentity === 'string' && culturalIdentity.trim()
         ? culturalIdentity.trim()
@@ -203,10 +222,17 @@ router.delete('/experience/:id', requireProfile, async (req, res) => {
 // --- Certifications ---
 
 router.post('/certifications', requireProfile, async (req, res) => {
-  const { name, issueDate, expiryDate } = req.body || {}
+  const { certificationTypeId, issueDate, expiryDate } = req.body || {}
 
-  if (typeof name !== 'string' || !name.trim()) {
-    return res.status(400).json({ error: 'Certification name is required' })
+  if (typeof certificationTypeId !== 'string' || !certificationTypeId.trim()) {
+    return res.status(400).json({ error: 'Certification type is required' })
+  }
+
+  const certificationType = await prisma.certificationType.findUnique({
+    where: { id: certificationTypeId.trim() },
+  })
+  if (!certificationType) {
+    return res.status(400).json({ error: 'Selected certification type was not found' })
   }
 
   const parsedIssue = parseDate(issueDate)
@@ -225,10 +251,11 @@ router.post('/certifications', requireProfile, async (req, res) => {
   const certification = await prisma.certification.create({
     data: {
       profileId: req.profile.id,
-      name: name.trim(),
+      certificationTypeId: certificationType.id,
       issueDate: parsedIssue,
       expiryDate: parsedExpiry,
     },
+    include: { certificationType: true },
   })
 
   res.status(201).json({ certification })
@@ -242,10 +269,17 @@ router.put('/certifications/:id', requireProfile, async (req, res) => {
     return res.status(404).json({ error: 'Certification not found' })
   }
 
-  const { name, issueDate, expiryDate } = req.body || {}
+  const { certificationTypeId, issueDate, expiryDate } = req.body || {}
 
-  if (typeof name !== 'string' || !name.trim()) {
-    return res.status(400).json({ error: 'Certification name is required' })
+  if (typeof certificationTypeId !== 'string' || !certificationTypeId.trim()) {
+    return res.status(400).json({ error: 'Certification type is required' })
+  }
+
+  const certificationType = await prisma.certificationType.findUnique({
+    where: { id: certificationTypeId.trim() },
+  })
+  if (!certificationType) {
+    return res.status(400).json({ error: 'Selected certification type was not found' })
   }
 
   const parsedIssue = parseDate(issueDate)
@@ -264,10 +298,11 @@ router.put('/certifications/:id', requireProfile, async (req, res) => {
   const certification = await prisma.certification.update({
     where: { id: existing.id },
     data: {
-      name: name.trim(),
+      certificationTypeId: certificationType.id,
       issueDate: parsedIssue,
       expiryDate: parsedExpiry,
     },
+    include: { certificationType: true },
   })
 
   res.json({ certification })

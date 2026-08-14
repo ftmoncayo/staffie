@@ -1,33 +1,32 @@
 import { useState } from 'react'
-
-const PREDEFINED_SKILLS = [
-  'Bartending',
-  'Barista',
-  'Front of House',
-  'Kitchen Hand',
-  'Waitstaff',
-  'Management',
-]
+import * as api from '../../lib/api'
+import SearchCombobox from '../SearchCombobox'
 
 function SkillsEditor({ profile, onAdd, onRemove }) {
   const [error, setError] = useState('')
-  const [pending, setPending] = useState('')
+  const [removing, setRemoving] = useState('')
 
-  const selected = new Set((profile?.skills || []).map((s) => s.name))
+  const skills = profile?.skills || []
+  const selectedNames = skills.map((s) => s.name)
 
-  async function toggle(name) {
+  async function handleSelect(item) {
     setError('')
-    setPending(name)
     try {
-      if (selected.has(name)) {
-        await onRemove(name)
-      } else {
-        await onAdd(name)
-      }
+      await onAdd(item.name)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleRemove(name) {
+    setError('')
+    setRemoving(name)
+    try {
+      await onRemove(name)
     } catch (err) {
       setError(err.message)
     } finally {
-      setPending('')
+      setRemoving('')
     }
   }
 
@@ -40,25 +39,41 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
         </p>
       )}
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+      {profile && (
+        <div className="mt-4">
+          <SearchCombobox
+            fetchOptions={api.fetchSkillOptions}
+            onCreate={async (name) => ({ id: name, name })}
+            onSelect={handleSelect}
+            excludeNames={selectedNames}
+            clearOnSelect
+            placeholder="Search or add a skill..."
+          />
+        </div>
+      )}
+
       <div className="mt-4 flex flex-wrap gap-2">
-        {PREDEFINED_SKILLS.map((name) => {
-          const isSelected = selected.has(name)
-          return (
+        {skills.map((skill) => (
+          <span
+            key={skill.id}
+            className="flex items-center gap-2 rounded-full border border-blue-600 bg-blue-600 px-4 py-1.5 text-sm text-white"
+          >
+            {skill.name}
             <button
-              key={name}
               type="button"
-              disabled={!profile || pending === name}
-              onClick={() => toggle(name)}
-              className={`rounded-full border px-4 py-1.5 text-sm disabled:opacity-50 ${
-                isSelected
-                  ? 'border-blue-600 bg-blue-600 text-white'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+              disabled={removing === skill.name}
+              onClick={() => handleRemove(skill.name)}
+              className="text-white/80 hover:text-white disabled:opacity-50"
+              aria-label={`Remove ${skill.name}`}
             >
-              {name}
+              ×
             </button>
-          )
-        })}
+          </span>
+        ))}
+        {profile && skills.length === 0 && (
+          <p className="text-sm text-gray-500">No skills added yet.</p>
+        )}
       </div>
     </div>
   )

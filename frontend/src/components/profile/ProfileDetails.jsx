@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import * as api from '../../lib/api'
+import SearchCombobox from '../SearchCombobox'
 
 function ProfileDetails({ profile, onSave }) {
   const [editing, setEditing] = useState(!profile)
-  const [city, setCity] = useState(profile?.city || '')
+  const [firstName, setFirstName] = useState(profile?.firstName || '')
+  const [lastName, setLastName] = useState(profile?.lastName || '')
+  const [city, setCity] = useState(profile?.city || null)
   const [professionalTitle, setProfessionalTitle] = useState(profile?.professionalTitle || '')
   const [rightToWork, setRightToWork] = useState(profile?.rightToWork ?? false)
   const [culturalIdentity, setCulturalIdentity] = useState(profile?.culturalIdentity || '')
@@ -14,7 +18,14 @@ function ProfileDetails({ profile, onSave }) {
     setError('')
     setSubmitting(true)
     try {
-      await onSave({ city, professionalTitle, rightToWork, culturalIdentity })
+      await onSave({
+        firstName,
+        lastName,
+        cityId: city?.id || null,
+        professionalTitle,
+        rightToWork,
+        culturalIdentity,
+      })
       setEditing(false)
     } catch (err) {
       setError(err.message)
@@ -37,12 +48,18 @@ function ProfileDetails({ profile, onSave }) {
         </div>
         <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
+            <dt className="text-sm text-gray-500">Name</dt>
+            <dd className="text-gray-900">
+              {[profile.firstName, profile.lastName].filter(Boolean).join(' ')}
+            </dd>
+          </div>
+          <div>
             <dt className="text-sm text-gray-500">Professional title</dt>
             <dd className="text-gray-900">{profile.professionalTitle}</dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">City</dt>
-            <dd className="text-gray-900">{profile.city || '—'}</dd>
+            <dd className="text-gray-900">{profile.city?.name || '—'}</dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">Right to work</dt>
@@ -65,6 +82,29 @@ function ProfileDetails({ profile, onSave }) {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm text-gray-700">
+          First name
+          <input
+            type="text"
+            required
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-gray-700">
+          Last name (optional)
+          <input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          />
+        </label>
+      </div>
+
       <label className="flex flex-col gap-1 text-sm text-gray-700">
         Professional title
         <input
@@ -78,11 +118,12 @@ function ProfileDetails({ profile, onSave }) {
 
       <label className="flex flex-col gap-1 text-sm text-gray-700">
         City
-        <input
-          type="text"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+        <SearchCombobox
+          fetchOptions={api.fetchCities}
+          onCreate={api.createCity}
+          onSelect={setCity}
+          initialQuery={city?.name || ''}
+          placeholder="Search for a city..."
         />
       </label>
 

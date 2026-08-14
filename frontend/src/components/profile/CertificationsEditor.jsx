@@ -1,6 +1,6 @@
 import { useState } from 'react'
-
-const emptyForm = { name: '', issueDate: '', expiryDate: '' }
+import * as api from '../../lib/api'
+import SearchCombobox from '../SearchCombobox'
 
 function formatDate(value) {
   if (!value) return ''
@@ -8,16 +8,22 @@ function formatDate(value) {
 }
 
 function CertificationForm({ initial, onSubmit, onCancel }) {
-  const [form, setForm] = useState(initial || emptyForm)
+  const [certificationType, setCertificationType] = useState(initial?.certificationType || null)
+  const [issueDate, setIssueDate] = useState(initial?.issueDate || '')
+  const [expiryDate, setExpiryDate] = useState(initial?.expiryDate || '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    if (!certificationType) {
+      setError('Certification type is required')
+      return
+    }
     setSubmitting(true)
     try {
-      await onSubmit(form)
+      await onSubmit({ certificationTypeId: certificationType.id, issueDate, expiryDate })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -32,12 +38,12 @@ function CertificationForm({ initial, onSubmit, onCancel }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm text-gray-700">
           Name
-          <input
-            type="text"
-            required
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          <SearchCombobox
+            fetchOptions={api.fetchCertificationTypes}
+            onCreate={api.createCertificationType}
+            onSelect={setCertificationType}
+            initialQuery={certificationType?.name || ''}
+            placeholder="Search or add a certification..."
           />
         </label>
         <label className="flex flex-col gap-1 text-sm text-gray-700">
@@ -45,8 +51,8 @@ function CertificationForm({ initial, onSubmit, onCancel }) {
           <input
             type="date"
             required
-            value={form.issueDate}
-            onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
+            value={issueDate}
+            onChange={(e) => setIssueDate(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
           />
         </label>
@@ -54,8 +60,8 @@ function CertificationForm({ initial, onSubmit, onCancel }) {
           Expiry date (optional)
           <input
             type="date"
-            value={form.expiryDate}
-            onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+            value={expiryDate}
+            onChange={(e) => setExpiryDate(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
           />
         </label>
@@ -126,7 +132,7 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
             <CertificationForm
               key={cert.id}
               initial={{
-                name: cert.name,
+                certificationType: cert.certificationType,
                 issueDate: formatDate(cert.issueDate),
                 expiryDate: formatDate(cert.expiryDate),
               }}
@@ -139,7 +145,7 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
           ) : (
             <div key={cert.id} className="flex items-start justify-between rounded border border-gray-200 p-4">
               <div>
-                <p className="font-medium text-gray-900">{cert.name}</p>
+                <p className="font-medium text-gray-900">{cert.certificationType?.name}</p>
                 <p className="text-sm text-gray-500">
                   Issued {formatDate(cert.issueDate)}
                   {cert.expiryDate ? ` · Expires ${formatDate(cert.expiryDate)}` : ''}

@@ -24,7 +24,10 @@ model Profile {
   id                String   @id @default(uuid())
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  city              String?
+  firstName         String
+  lastName          String?
+  cityId            String?
+  city              City?    @relation(fields: [cityId], references: [id])
   professionalTitle String
   rightToWork       Boolean
   culturalIdentity  String?
@@ -34,6 +37,12 @@ model Profile {
   skills         Skill[]
   experiences    Experience[]
   certifications Certification[]
+}
+
+model City {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  profiles Profile[]
 }
 
 model Skill {
@@ -53,11 +62,18 @@ model Experience {
   isCurrent Boolean   @default(false)
 }
 
+model CertificationType {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  certifications Certification[]
+}
+
 model Certification {
-  id         String    @id @default(uuid())
-  profileId  String
-  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  name       String
-  issueDate  DateTime
-  expiryDate DateTime?
+  id                  String            @id @default(uuid())
+  profileId           String
+  profile             Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  certificationTypeId String
+  certificationType   CertificationType @relation(fields: [certificationTypeId], references: [id])
+  issueDate           DateTime
+  expiryDate          DateTime?
 }

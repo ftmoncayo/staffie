@@ -59,17 +59,33 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-border p-4">
       {error && <p className="text-sm text-danger">{error}</p>}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Venue
-          <SearchCombobox
-            fetchOptions={api.fetchVenueOptions}
-            onCreate={handleVenueCreateRequest}
-            onSelect={(venue) => setForm({ ...form, venue })}
-            initialQuery={form.venue?.name || ''}
-            placeholder="Search or add a venue..."
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
+        Venue
+        <SearchCombobox
+          fetchOptions={api.fetchVenueOptions}
+          onCreate={handleVenueCreateRequest}
+          onSelect={(venue) => setForm({ ...form, venue })}
+          initialQuery={form.venue?.name || ''}
+          placeholder="Search or add a venue..."
+        />
+      </label>
+
+      {newVenueName !== null && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-text-muted">
+            Add details for the new venue "{newVenueName}" (optional, but locks in once created):
+          </p>
+          <VenueForm
+            initial={{ name: newVenueName }}
+            submitLabel="Create venue"
+            onSubmit={handleNewVenueSubmit}
+            onCancel={handleNewVenueCancel}
+            standalone={false}
           />
-        </label>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm text-text-muted">
           Role title
           <input
@@ -101,21 +117,6 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
           />
         </label>
       </div>
-
-      {newVenueName !== null && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-text-muted">
-            Add details for the new venue "{newVenueName}" (optional, but locks in once created):
-          </p>
-          <VenueForm
-            initial={{ name: newVenueName }}
-            submitLabel="Create venue"
-            onSubmit={handleNewVenueSubmit}
-            onCancel={handleNewVenueCancel}
-            standalone={false}
-          />
-        </div>
-      )}
 
       <label className="flex items-center gap-2 text-sm text-text-muted">
         <input

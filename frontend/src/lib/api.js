@@ -272,3 +272,16 @@ export function removeVenueManager(venueId, userId) {
     method: 'DELETE',
   })
 }
+
+export async function fetchAdminUsers() {
+  const data = await authRequest('/api/admin/users')
+  return data.users
+}
+
+export async function updateUserFlags(userId, flags) {
+  const data = await authRequest(`/api/admin/users/${userId}/flags`, {
+    method: 'PUT',
+    body: JSON.stringify(flags),
+  })
+  return data.user
+}

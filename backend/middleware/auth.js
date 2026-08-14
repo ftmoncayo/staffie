@@ -26,4 +26,12 @@ async function requireAdmin(req, res, next) {
   next()
 }
 
-module.exports = { requireAuth, requireAdmin }
+async function requireAdminOrVenueAdmin(req, res, next) {
+  const user = await prisma.user.findUnique({ where: { id: req.userId } })
+  if (!user || (!user.isAdmin && !user.isVenueAdmin)) {
+    return res.status(403).json({ error: 'Admin or venue admin access required' })
+  }
+  next()
+}
+
+module.exports = { requireAuth, requireAdmin, requireAdminOrVenueAdmin }

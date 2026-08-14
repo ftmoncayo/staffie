@@ -25,6 +25,11 @@ function Dashboard() {
           Admin
         </Link>
       )}
+      {user?.isAdmin && (
+        <Link to="/admin/users" className="text-accent hover:text-accent-hover hover:underline">
+          Users
+        </Link>
+      )}
       <button
         onClick={handleLogout}
         className="rounded border border-border-strong bg-surface px-4 py-2 text-text hover:bg-surface-hover"

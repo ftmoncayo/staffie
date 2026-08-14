@@ -8,6 +8,7 @@ import VenueDirectory from './pages/VenueDirectory'
 import VenueCreate from './pages/VenueCreate'
 import VenueDetail from './pages/VenueDetail'
 import AdminVenues from './pages/AdminVenues'
+import AdminUsers from './pages/AdminUsers'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 
@@ -62,6 +63,14 @@ function App() {
         element={
           <AdminRoute>
             <AdminVenues />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <AdminRoute>
+            <AdminUsers />
           </AdminRoute>
         }
       />

@@ -1,6 +1,6 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
-const { requireAuth, requireAdmin } = require('../middleware/auth')
+const { requireAuth, requireAdmin, requireAdminOrVenueAdmin } = require('../middleware/auth')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -30,7 +30,7 @@ function optionalString(value) {
 
 async function canEditVenue(userId, venueId) {
   const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (user?.isAdmin) return true
+  if (user?.isAdmin || user?.isVenueAdmin) return true
 
   const manager = await prisma.venueManager.findUnique({
     where: { venueId_userId: { venueId, userId } },
@@ -177,7 +177,7 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
   res.json({ venue })
 })
 
-router.put('/venues/:id/verify', requireAdmin, async (req, res) => {
+router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
   const existing = await prisma.venue.findUnique({ where: { id: req.params.id } })
   if (!existing) {
     return res.status(404).json({ error: 'Venue not found' })

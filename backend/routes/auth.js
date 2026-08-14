@@ -36,7 +36,10 @@ router.post('/signup', async (req, res) => {
   })
 
   const token = signToken(user)
-  res.status(201).json({ token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin } })
+  res.status(201).json({
+    token,
+    user: { id: user.id, email: user.email, isAdmin: user.isAdmin, isVenueAdmin: user.isVenueAdmin },
+  })
 })
 
 router.post('/login', async (req, res) => {
@@ -60,7 +63,10 @@ router.post('/login', async (req, res) => {
   }
 
   const token = signToken(user)
-  res.json({ token, user: { id: user.id, email: user.email, isAdmin: user.isAdmin } })
+  res.json({
+    token,
+    user: { id: user.id, email: user.email, isAdmin: user.isAdmin, isVenueAdmin: user.isVenueAdmin },
+  })
 })
 
 router.get('/me', requireAuth, async (req, res) => {
@@ -68,7 +74,13 @@ router.get('/me', requireAuth, async (req, res) => {
   if (!user) {
     return res.status(404).json({ error: 'User not found' })
   }
-  res.json({ id: user.id, email: user.email, isAdmin: user.isAdmin, createdAt: user.createdAt })
+  res.json({
+    id: user.id,
+    email: user.email,
+    isAdmin: user.isAdmin,
+    isVenueAdmin: user.isVenueAdmin,
+    createdAt: user.createdAt,
+  })
 })
 
 module.exports = router

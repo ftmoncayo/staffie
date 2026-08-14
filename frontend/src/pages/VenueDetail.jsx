@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import * as api from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import VenueForm from '../components/venue/VenueForm'
 import VerificationBadge from '../components/venue/VerificationBadge'
+import VenueManagersPanel from '../components/venue/VenueManagersPanel'
 
 function VenueDetail() {
   const { id } = useParams()
+  const { user } = useAuth()
   const [venue, setVenue] = useState(null)
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -61,12 +64,14 @@ function VenueDetail() {
                   <VerificationBadge status={venue.verificationStatus} />
                 </div>
               </div>
-              <button
-                onClick={() => setEditing(true)}
-                className="text-sm text-accent hover:text-accent-hover hover:underline"
-              >
-                Edit
-              </button>
+              {venue.canEdit && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="text-sm text-accent hover:text-accent-hover hover:underline"
+                >
+                  Edit
+                </button>
+              )}
             </div>
 
             <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -98,6 +103,8 @@ function VenueDetail() {
             </div>
           </div>
         )}
+
+        {user?.isAdmin && <VenueManagersPanel venueId={id} />}
       </div>
     </div>
   )

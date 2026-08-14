@@ -248,3 +248,27 @@ export async function verifyVenue(id) {
   })
   return data.venue
 }
+
+export async function fetchUsers(search) {
+  const data = await authRequest(`/api/users?search=${encodeURIComponent(search || '')}`)
+  return data.users
+}
+
+export async function fetchVenueManagers(venueId) {
+  const data = await authRequest(`/api/venues/${venueId}/managers`)
+  return data.managers
+}
+
+export async function addVenueManager(venueId, userId) {
+  const data = await authRequest(`/api/venues/${venueId}/managers`, {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  })
+  return data.manager
+}
+
+export function removeVenueManager(venueId, userId) {
+  return authRequest(`/api/venues/${venueId}/managers/${userId}`, {
+    method: 'DELETE',
+  })
+}

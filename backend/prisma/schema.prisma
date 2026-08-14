@@ -20,6 +20,9 @@ model User {
   createdAt    DateTime @default(now())
   profile      Profile?
   venues       Venue[]
+
+  managedVenues         VenueManager[] @relation("VenueManagerUser")
+  assignedVenueManagers VenueManager[] @relation("VenueManagerAssignedBy")
 }
 
 model Profile {
@@ -94,6 +97,20 @@ model Venue {
 
   specialties VenueSpecialty[]
   experiences Experience[]
+  managers    VenueManager[]
+}
+
+model VenueManager {
+  id               String   @id @default(uuid())
+  venueId          String
+  venue            Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User     @relation("VenueManagerUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedByUserId String
+  assignedByUser   User     @relation("VenueManagerAssignedBy", fields: [assignedByUserId], references: [id])
+  assignedAt       DateTime @default(now())
+
+  @@unique([venueId, userId])
 }
 
 model VenueSpecialty {

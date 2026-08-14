@@ -10,6 +10,7 @@ function SearchCombobox({
   initialQuery = '',
   clearOnSelect = false,
   excludeNames = [],
+  allowCreate = true,
 }) {
   const [query, setQuery] = useState(initialQuery)
   const [options, setOptions] = useState([])
@@ -110,7 +111,7 @@ function SearchCombobox({
                 {item.name}
               </button>
             ))}
-          {!loading && trimmedQuery && !exactMatch && (
+          {!loading && trimmedQuery && !exactMatch && allowCreate && (
             <button
               type="button"
               disabled={creating}
@@ -122,6 +123,9 @@ function SearchCombobox({
           )}
           {!loading && visibleOptions.length === 0 && !trimmedQuery && (
             <p className="px-3 py-2 text-sm text-text-faint">Start typing to search</p>
+          )}
+          {!loading && visibleOptions.length === 0 && trimmedQuery && !allowCreate && (
+            <p className="px-3 py-2 text-sm text-text-faint">No matches found</p>
           )}
         </div>
       )}

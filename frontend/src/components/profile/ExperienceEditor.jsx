@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import VenueForm from '../venue/VenueForm'
 
 const emptyForm = { venue: null, roleTitle: '', startDate: '', endDate: '', isCurrent: false }
 
@@ -14,6 +15,28 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
   const [form, setForm] = useState(initial || emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [newVenueName, setNewVenueName] = useState(null)
+  const pendingVenueRef = useRef(null)
+
+  function handleVenueCreateRequest(name) {
+    setNewVenueName(name)
+    return new Promise((resolve, reject) => {
+      pendingVenueRef.current = { resolve, reject }
+    })
+  }
+
+  async function handleNewVenueSubmit(data) {
+    const venue = await api.createVenue(data)
+    setNewVenueName(null)
+    pendingVenueRef.current?.resolve(venue)
+    pendingVenueRef.current = null
+  }
+
+  function handleNewVenueCancel() {
+    setNewVenueName(null)
+    pendingVenueRef.current?.reject(new Error('Venue creation cancelled'))
+    pendingVenueRef.current = null
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -41,14 +64,11 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
           Venue
           <SearchCombobox
             fetchOptions={api.fetchVenueOptions}
-            onCreate={(name) => api.createVenue({ name })}
+            onCreate={handleVenueCreateRequest}
             onSelect={(venue) => setForm({ ...form, venue })}
             initialQuery={form.venue?.name || ''}
             placeholder="Search or add a venue..."
           />
-          <Link to="/venues/new" className="text-xs text-accent hover:text-accent-hover hover:underline">
-            + Create a full venue profile
-          </Link>
         </label>
         <label className="flex flex-col gap-1 text-sm text-text-muted">
           Role title
@@ -81,6 +101,21 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
           />
         </label>
       </div>
+
+      {newVenueName !== null && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-text-muted">
+            Add details for the new venue "{newVenueName}" (optional, but locks in once created):
+          </p>
+          <VenueForm
+            initial={{ name: newVenueName }}
+            submitLabel="Create venue"
+            onSubmit={handleNewVenueSubmit}
+            onCancel={handleNewVenueCancel}
+            standalone={false}
+          />
+        </div>
+      )}
 
       <label className="flex items-center gap-2 text-sm text-text-muted">
         <input

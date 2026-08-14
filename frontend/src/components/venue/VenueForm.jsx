@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 
-function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
+function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalone = true }) {
   const [name, setName] = useState(initial?.name || '')
   const [city, setCity] = useState(initial?.city || null)
   const [state, setState] = useState(initial?.state || '')
@@ -23,7 +23,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
+    e?.preventDefault()
     setError('')
     setSubmitting(true)
     try {
@@ -42,8 +42,13 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
     }
   }
 
+  const Wrapper = standalone ? 'form' : 'div'
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-6">
+    <Wrapper
+      {...(standalone ? { onSubmit: handleSubmit } : {})}
+      className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-6"
+    >
       {error && <p className="text-sm text-danger">{error}</p>}
 
       <label className="flex flex-col gap-1 text-sm text-text-muted">
@@ -133,7 +138,8 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
 
       <div className="flex gap-3">
         <button
-          type="submit"
+          type={standalone ? 'submit' : 'button'}
+          onClick={standalone ? undefined : handleSubmit}
           disabled={submitting}
           className="rounded bg-accent px-4 py-2 font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
         >
@@ -149,7 +155,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
           </button>
         )}
       </div>
-    </form>
+    </Wrapper>
   )
 }
 

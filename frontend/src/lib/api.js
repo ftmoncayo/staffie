@@ -56,6 +56,20 @@ export function login(email, password) {
   })
 }
 
+export function forgotPassword(email) {
+  return request('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export function resetPassword(token, password) {
+  return request('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  })
+}
+
 export function fetchMe(token) {
   return request('/api/auth/me', {
     headers: { Authorization: `Bearer ${token}` },

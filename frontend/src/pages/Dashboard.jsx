@@ -20,6 +20,12 @@ function Dashboard() {
       <Link to="/venues" className="text-accent hover:text-accent-hover hover:underline">
         Venues
       </Link>
+      <Link to="/discover" className="text-accent hover:text-accent-hover hover:underline">
+        Discover people
+      </Link>
+      <Link to="/connections/requests" className="text-accent hover:text-accent-hover hover:underline">
+        Connection requests
+      </Link>
       {user?.isAdmin && (
         <Link to="/admin/venues" className="text-accent hover:text-accent-hover hover:underline">
           Admin

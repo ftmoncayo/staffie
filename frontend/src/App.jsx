@@ -11,6 +11,8 @@ import VenueCreate from './pages/VenueCreate'
 import VenueDetail from './pages/VenueDetail'
 import AdminVenues from './pages/AdminVenues'
 import AdminUsers from './pages/AdminUsers'
+import DiscoverPeople from './pages/DiscoverPeople'
+import ConnectionRequests from './pages/ConnectionRequests'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 
@@ -59,6 +61,22 @@ function App() {
         element={
           <ProtectedRoute>
             <VenueDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/discover"
+        element={
+          <ProtectedRoute>
+            <DiscoverPeople />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/connections/requests"
+        element={
+          <ProtectedRoute>
+            <ConnectionRequests />
           </ProtectedRoute>
         }
       />

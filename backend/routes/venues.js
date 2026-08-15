@@ -221,6 +221,32 @@ router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
   res.json({ venue: { ...venue, canEdit } })
 })
 
+router.get('/venues/:id/workers', async (req, res) => {
+  const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!venue) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  const experiences = await prisma.experience.findMany({
+    where: { venueId: venue.id },
+    include: { profile: { include: { user: true, city: true } } },
+    distinct: ['profileId'],
+  })
+
+  const workers = experiences.map((e) => ({
+    id: e.profile.user.id,
+    email: e.profile.user.email,
+    profile: {
+      firstName: e.profile.firstName,
+      lastName: e.profile.lastName,
+      professionalTitle: e.profile.professionalTitle,
+      city: e.profile.city,
+    },
+  }))
+
+  res.json({ workers })
+})
+
 // --- Venue managers (admin-only) ---
 
 router.get('/venues/:id/managers', requireAdmin, async (req, res) => {

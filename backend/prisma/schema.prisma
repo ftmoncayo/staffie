@@ -25,6 +25,28 @@ model User {
   managedVenues         VenueManager[]       @relation("VenueManagerUser")
   assignedVenueManagers VenueManager[]       @relation("VenueManagerAssignedBy")
   passwordResetTokens   PasswordResetToken[]
+
+  sentConnectionRequests     ConnectionRequest[] @relation("ConnectionRequestFrom")
+  receivedConnectionRequests ConnectionRequest[] @relation("ConnectionRequestTo")
+}
+
+enum ConnectionRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model ConnectionRequest {
+  id          String                  @id @default(uuid())
+  fromUserId  String
+  fromUser    User                    @relation("ConnectionRequestFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId    String
+  toUser      User                    @relation("ConnectionRequestTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  status      ConnectionRequestStatus @default(PENDING)
+  createdAt   DateTime                @default(now())
+  respondedAt DateTime?
+
+  @@unique([fromUserId, toUserId])
 }
 
 model PasswordResetToken {

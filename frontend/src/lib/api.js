@@ -301,6 +301,42 @@ export function removeVenueManager(venueId, userId) {
   })
 }
 
+export async function fetchVenueWorkers(venueId) {
+  const data = await authRequest(`/api/venues/${venueId}/workers`)
+  return data.workers
+}
+
+export async function discoverPeople(lens) {
+  const data = await authRequest(`/api/discover/people?lens=${encodeURIComponent(lens)}`)
+  return data.people
+}
+
+export async function requestConnection(toUserId) {
+  const data = await authRequest('/api/connections/request', {
+    method: 'POST',
+    body: JSON.stringify({ toUserId }),
+  })
+  return data.request
+}
+
+export async function fetchConnectionRequests() {
+  const data = await authRequest('/api/connections/requests')
+  return data.requests
+}
+
+export function acceptConnectionRequest(id) {
+  return authRequest(`/api/connections/requests/${id}/accept`, { method: 'PUT' })
+}
+
+export function declineConnectionRequest(id) {
+  return authRequest(`/api/connections/requests/${id}/decline`, { method: 'PUT' })
+}
+
+export async function fetchConnections() {
+  const data = await authRequest('/api/connections')
+  return data.connections
+}
+
 export async function fetchAdminUsers() {
   const data = await authRequest('/api/admin/users')
   return data.users

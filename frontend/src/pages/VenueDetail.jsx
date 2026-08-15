@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import VenueForm from '../components/venue/VenueForm'
 import VerificationBadge from '../components/venue/VerificationBadge'
 import VenueManagersPanel from '../components/venue/VenueManagersPanel'
+import VenueWorkers from '../components/venue/VenueWorkers'
 import Tag from '../components/Tag'
 
 function VenueDetail() {
@@ -101,6 +102,8 @@ function VenueDetail() {
             </div>
           </div>
         )}
+
+        <VenueWorkers venueId={id} />
 
         {user?.isAdmin && <VenueManagersPanel venueId={id} />}
       </div>

@@ -6,6 +6,7 @@ import SkillsEditor from '../components/profile/SkillsEditor'
 import KnowledgeAreaEditor from '../components/profile/KnowledgeAreaEditor'
 import ExperienceEditor from '../components/profile/ExperienceEditor'
 import CertificationsEditor from '../components/profile/CertificationsEditor'
+import ConnectionsList from '../components/profile/ConnectionsList'
 
 function Profile() {
   const [profile, setProfile] = useState(null)
@@ -121,6 +122,8 @@ function Profile() {
           onUpdate={handleUpdateCertification}
           onDelete={handleDeleteCertification}
         />
+
+        <ConnectionsList />
       </div>
     </div>
   )

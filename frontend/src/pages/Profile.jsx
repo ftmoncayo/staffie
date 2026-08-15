@@ -103,6 +103,8 @@ function Profile() {
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
+        <ProfileDetails profile={profile} onSave={handleSaveDetails} />
+
         <AboutSection
           about={profile?.about}
           canEdit={Boolean(profile)}
@@ -110,11 +112,9 @@ function Profile() {
           emptyMessage={
             profile
               ? 'Add an introduction to tell people about yourself.'
-              : 'Complete your profile details below before adding an introduction.'
+              : 'Complete your profile details above before adding an introduction.'
           }
         />
-
-        <ProfileDetails profile={profile} onSave={handleSaveDetails} />
 
         <SkillsEditor profile={profile} onAdd={handleAddSkill} onRemove={handleRemoveSkill} />
 

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import AboutSection from '../components/AboutSection'
 import ConnectionButton from '../components/ConnectionButton'
 import Tag from '../components/Tag'
+import PersonCard from '../components/PersonCard'
 
 function formatDate(value) {
   if (!value) return ''
@@ -78,7 +79,13 @@ function PublicProfile() {
     <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-text">{name}</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-text">{name}</h1>
+            <p className="text-sm text-text-faint">
+              {data.mutualConnections.length} connection{data.mutualConnections.length === 1 ? '' : 's'} in
+              common, {data.sharedVenuesCount} venue{data.sharedVenuesCount === 1 ? '' : 's'} in common
+            </p>
+          </div>
           <Link to="/discover" className="text-sm text-accent hover:text-accent-hover hover:underline">
             Back to discover
           </Link>
@@ -102,8 +109,6 @@ function PublicProfile() {
           )}
         </div>
 
-        <AboutSection about={profile.about} canEdit={false} emptyMessage="Nothing here yet." />
-
         <div className="rounded-lg border border-border bg-surface p-6">
           <h2 className="text-xl font-semibold text-text">Profile details</h2>
           <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -121,6 +126,8 @@ function PublicProfile() {
             </div>
           </dl>
         </div>
+
+        <AboutSection about={profile.about} canEdit={false} emptyMessage="Nothing here yet." />
 
         <div className="rounded-lg border border-border bg-surface p-6">
           <h2 className="text-xl font-semibold text-text">Skills</h2>
@@ -181,6 +188,18 @@ function PublicProfile() {
             ))}
             {profile.certifications.length === 0 && (
               <p className="text-sm text-text-faint">No certifications added yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-surface p-6">
+          <h2 className="text-xl font-semibold text-text">Connections in common</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {data.mutualConnections.map((person) => (
+              <PersonCard key={person.id} person={person} />
+            ))}
+            {data.mutualConnections.length === 0 && (
+              <p className="text-sm text-text-faint">No connections in common yet.</p>
             )}
           </div>
         </div>

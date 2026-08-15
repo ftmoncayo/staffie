@@ -2,7 +2,11 @@ const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
 const { sanitize } = require('../lib/sanitizeHtml')
-const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
+const {
+  buildConnectionStatusMap,
+  connectionStatusFor,
+  buildConnectionsAdjacency,
+} = require('../lib/connectionStatus')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -119,10 +123,43 @@ router.get('/:userId', async (req, res) => {
 
   const statusMap = await buildConnectionStatusMap(req.userId)
 
+  const adjacency = await buildConnectionsAdjacency()
+  const myConnections = adjacency.get(req.userId) || new Set()
+  const theirConnections = adjacency.get(profile.userId) || new Set()
+  const mutualConnectionIds = [...myConnections].filter((id) => theirConnections.has(id))
+
+  const mutualConnectionUsers = mutualConnectionIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: mutualConnectionIds } },
+        include: { profile: { include: { city: true } } },
+      })
+    : []
+
+  const myProfile = await prisma.profile.findUnique({
+    where: { userId: req.userId },
+    include: { experiences: { select: { venueId: true } } },
+  })
+  const myVenueIds = new Set((myProfile?.experiences || []).map((e) => e.venueId))
+  const theirVenueIds = new Set(profile.experiences.map((e) => e.venueId))
+  const sharedVenuesCount = [...theirVenueIds].filter((id) => myVenueIds.has(id)).length
+
   res.json({
     profile: { ...profile, about: sanitize(profile.about) },
     isSelf: profile.userId === req.userId,
     ...connectionStatusFor(statusMap, profile.userId),
+    mutualConnections: mutualConnectionUsers.map((u) => ({
+      id: u.id,
+      email: u.email,
+      profile: u.profile
+        ? {
+            firstName: u.profile.firstName,
+            lastName: u.profile.lastName,
+            professionalTitle: u.profile.professionalTitle,
+            city: u.profile.city,
+          }
+        : null,
+    })),
+    sharedVenuesCount,
   })
 })
 

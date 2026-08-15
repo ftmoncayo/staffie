@@ -1,16 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
 import ActivityItem from '../components/ActivityItem'
+import PostItem from '../components/PostItem'
 import PersonCard from '../components/PersonCard'
 import ConnectionButton from '../components/ConnectionButton'
+import SearchCombobox from '../components/SearchCombobox'
 
 function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [activities, setActivities] = useState([])
   const [suggestions, setSuggestions] = useState([])
+  const [posts, setPosts] = useState([])
+  const [cityFilter, setCityFilter] = useState(null)
+  const [postContent, setPostContent] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [postError, setPostError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -23,7 +30,22 @@ function Dashboard() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
+
+    api
+      .fetchProfile()
+      .then((data) => {
+        if (data.profile?.city) setCityFilter(data.profile.city)
+      })
+      .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!cityFilter) {
+      setPosts([])
+      return
+    }
+    api.fetchPosts(cityFilter.id).then(setPosts).catch((err) => setError(err.message))
+  }, [cityFilter])
 
   function handleLogout() {
     logout()
@@ -50,6 +72,47 @@ function Dashboard() {
     await api.declineConnectionRequest(person.connectionRequestId)
     updateSuggestion(person.id, { connectionStatus: 'none', connectionRequestId: null })
   }
+
+  async function handleCreatePost(e) {
+    e.preventDefault()
+    if (!postContent.trim()) return
+    setPostError('')
+    setPosting(true)
+    try {
+      await api.createPost(postContent.trim())
+      setPostContent('')
+      if (cityFilter) {
+        setPosts(await api.fetchPosts(cityFilter.id))
+      }
+    } catch (err) {
+      setPostError(err.message)
+    } finally {
+      setPosting(false)
+    }
+  }
+
+  async function handleDeletePost(id) {
+    await api.deletePost(id)
+    setPosts((prev) => prev.filter((p) => p.id !== id))
+  }
+
+  const feedItems = useMemo(() => {
+    const favouritedActivities = activities
+      .filter((a) => a.favourited)
+      .map((a) => ({ kind: 'activity', id: `activity-${a.id}`, createdAt: a.createdAt, data: a }))
+
+    const restActivities = activities
+      .filter((a) => !a.favourited)
+      .map((a) => ({ kind: 'activity', id: `activity-${a.id}`, createdAt: a.createdAt, data: a }))
+
+    const postItems = posts.map((p) => ({ kind: 'post', id: `post-${p.id}`, createdAt: p.createdAt, data: p }))
+
+    const rest = [...restActivities, ...postItems].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    )
+
+    return [...favouritedActivities, ...rest]
+  }, [activities, posts])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
@@ -83,6 +146,41 @@ function Dashboard() {
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
+        <form
+          onSubmit={handleCreatePost}
+          className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-6"
+        >
+          {postError && <p className="text-sm text-danger">{postError}</p>}
+          <textarea
+            value={postContent}
+            onChange={(e) => setPostContent(e.target.value)}
+            placeholder="Share a notice with your city..."
+            rows={3}
+            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+          />
+          <div className="flex items-center justify-between gap-4">
+            <label className="flex items-center gap-2 text-sm text-text-muted">
+              City
+              <div className="w-56">
+                <SearchCombobox
+                  fetchOptions={api.fetchCities}
+                  onSelect={setCityFilter}
+                  allowCreate={false}
+                  initialQuery={cityFilter?.name || ''}
+                  placeholder="Search for a city..."
+                />
+              </div>
+            </label>
+            <button
+              type="submit"
+              disabled={posting || !postContent.trim()}
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+            >
+              {posting ? 'Posting...' : 'Post'}
+            </button>
+          </div>
+        </form>
+
         {suggestions.length > 0 && (
           <div className="rounded-lg border border-border bg-surface p-6">
             <h2 className="text-xl font-semibold text-text">People you might know</h2>
@@ -103,14 +201,24 @@ function Dashboard() {
 
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Activity</h2>
-          {!loading && activities.length === 0 && (
+          {!loading && feedItems.length === 0 && (
             <p className="text-sm text-text-faint">
-              No activity yet. Connect with people and follow venues or businesses to see updates here.
+              No activity yet. Connect with people, follow venues or businesses, or post a notice to
+              see updates here.
             </p>
           )}
-          {activities.map((activity) => (
-            <ActivityItem key={activity.id} activity={activity} />
-          ))}
+          {feedItems.map((item) =>
+            item.kind === 'post' ? (
+              <PostItem
+                key={item.id}
+                post={item.data}
+                canDelete={Boolean(user?.isAdmin)}
+                onDelete={handleDeletePost}
+              />
+            ) : (
+              <ActivityItem key={item.id} activity={item.data} />
+            ),
+          )}
         </div>
       </div>
     </div>

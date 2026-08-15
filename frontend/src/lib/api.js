@@ -472,6 +472,25 @@ export function fetchFeed() {
   return authRequest('/api/feed')
 }
 
+export async function fetchPosts(cityId) {
+  const params = new URLSearchParams()
+  if (cityId) params.set('cityId', cityId)
+  const data = await authRequest(`/api/posts?${params.toString()}`)
+  return data.posts
+}
+
+export async function createPost(content) {
+  const data = await authRequest('/api/posts', {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })
+  return data.post
+}
+
+export function deletePost(id) {
+  return authRequest(`/api/posts/${id}`, { method: 'DELETE' })
+}
+
 export async function fetchAdminUsers() {
   const data = await authRequest('/api/admin/users')
   return data.users

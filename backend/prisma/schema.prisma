@@ -38,6 +38,7 @@ model User {
   businessFollows          BusinessFollow[]
 
   activities Activity[]
+  posts      Post[]
 }
 
 enum ActivityType {
@@ -129,6 +130,17 @@ model City {
   profiles Profile[]
   venues   Venue[]
   suburbs  Suburb[]
+  posts    Post[]
+}
+
+model Post {
+  id           String   @id @default(uuid())
+  authorUserId String
+  authorUser   User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  content      String
+  cityId       String?
+  city         City?    @relation(fields: [cityId], references: [id])
+  createdAt    DateTime @default(now())
 }
 
 model Suburb {

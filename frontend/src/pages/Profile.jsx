@@ -7,6 +7,7 @@ import KnowledgeAreaEditor from '../components/profile/KnowledgeAreaEditor'
 import ExperienceEditor from '../components/profile/ExperienceEditor'
 import CertificationsEditor from '../components/profile/CertificationsEditor'
 import ConnectionsList from '../components/profile/ConnectionsList'
+import AboutSection from '../components/AboutSection'
 
 function Profile() {
   const [profile, setProfile] = useState(null)
@@ -81,6 +82,11 @@ function Profile() {
     await refresh()
   }
 
+  async function handleSaveAbout(about) {
+    const updated = await api.saveProfileAbout(about)
+    setProfile(updated)
+  }
+
   if (loading) {
     return null
   }
@@ -96,6 +102,17 @@ function Profile() {
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
+
+        <AboutSection
+          about={profile?.about}
+          canEdit={Boolean(profile)}
+          onSave={handleSaveAbout}
+          emptyMessage={
+            profile
+              ? 'Add an introduction to tell people about yourself.'
+              : 'Complete your profile details below before adding an introduction.'
+          }
+        />
 
         <ProfileDetails profile={profile} onSave={handleSaveDetails} />
 

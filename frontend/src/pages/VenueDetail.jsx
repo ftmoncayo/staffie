@@ -7,6 +7,7 @@ import VerificationBadge from '../components/venue/VerificationBadge'
 import VenueManagersPanel from '../components/venue/VenueManagersPanel'
 import VenueWorkers from '../components/venue/VenueWorkers'
 import Tag from '../components/Tag'
+import AboutSection from '../components/AboutSection'
 
 function VenueDetail() {
   const { id } = useParams()
@@ -28,6 +29,11 @@ function VenueDetail() {
     const updated = await api.updateVenue(id, data)
     setVenue(updated)
     setEditing(false)
+  }
+
+  async function handleSaveAbout(about) {
+    const updated = await api.saveVenueAbout(id, about)
+    setVenue(updated)
   }
 
   if (loading) return null
@@ -54,6 +60,15 @@ function VenueDetail() {
             Back to venues
           </Link>
         </div>
+
+        <AboutSection
+          about={venue.about}
+          canEdit={venue.canEdit}
+          onSave={handleSaveAbout}
+          emptyMessage={
+            venue.canEdit ? 'Add an introduction for this venue.' : 'No introduction added yet.'
+          }
+        />
 
         {editing ? (
           <VenueForm initial={venue} isEditing onSubmit={handleSave} onCancel={() => setEditing(false)} />

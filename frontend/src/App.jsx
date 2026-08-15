@@ -6,6 +6,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
+import PublicProfile from './pages/PublicProfile'
 import VenueDirectory from './pages/VenueDirectory'
 import VenueCreate from './pages/VenueCreate'
 import VenueDetail from './pages/VenueDetail'
@@ -37,6 +38,14 @@ function App() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/:userId"
+        element={
+          <ProtectedRoute>
+            <PublicProfile />
           </ProtectedRoute>
         }
       />

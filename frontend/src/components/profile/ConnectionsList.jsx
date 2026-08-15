@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
 
 function personName(profile) {
@@ -32,7 +33,12 @@ function ConnectionsList() {
       <div className="mt-4 flex flex-col gap-2">
         {connections.map((c) => (
           <div key={c.id} className="rounded border border-border px-3 py-2">
-            <p className="text-sm text-text">{personName(c.profile) || c.email}</p>
+            <Link
+              to={`/profile/${c.id}`}
+              className="text-sm text-text hover:text-accent hover:underline"
+            >
+              {personName(c.profile) || c.email}
+            </Link>
             {c.profile?.professionalTitle && (
               <p className="text-sm text-text-faint">{c.profile.professionalTitle}</p>
             )}

@@ -87,6 +87,18 @@ export function saveProfile(profile) {
   })
 }
 
+export async function saveProfileAbout(about) {
+  const data = await authRequest('/api/profile/about', {
+    method: 'PUT',
+    body: JSON.stringify({ about }),
+  })
+  return data.profile
+}
+
+export function fetchPublicProfile(userId) {
+  return authRequest(`/api/profile/${userId}`)
+}
+
 export function addSkill(name) {
   return authRequest('/api/profile/skills', {
     method: 'POST',
@@ -303,7 +315,15 @@ export function removeVenueManager(venueId, userId) {
 
 export async function fetchVenueWorkers(venueId) {
   const data = await authRequest(`/api/venues/${venueId}/workers`)
-  return data.workers
+  return data
+}
+
+export async function saveVenueAbout(venueId, about) {
+  const data = await authRequest(`/api/venues/${venueId}/about`, {
+    method: 'PUT',
+    body: JSON.stringify({ about }),
+  })
+  return data.venue
 }
 
 export async function discoverPeople(lens) {

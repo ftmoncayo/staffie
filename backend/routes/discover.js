@@ -1,29 +1,10 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
+const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
 
 const router = express.Router()
 router.use(requireAuth)
-
-async function buildConnectionStatusMap(userId) {
-  const requests = await prisma.connectionRequest.findMany({
-    where: { OR: [{ fromUserId: userId }, { toUserId: userId }] },
-  })
-
-  const statusByUserId = new Map()
-  for (const r of requests) {
-    const otherId = r.fromUserId === userId ? r.toUserId : r.fromUserId
-    if (r.status === 'ACCEPTED') {
-      statusByUserId.set(otherId, { status: 'connected' })
-    } else if (r.status === 'PENDING') {
-      statusByUserId.set(otherId, {
-        status: r.fromUserId === userId ? 'pending-sent' : 'pending-received',
-        requestId: r.id,
-      })
-    }
-  }
-  return statusByUserId
-}
 
 function formatProfile(profile) {
   return {
@@ -55,16 +36,12 @@ router.get('/discover/people', async (req, res) => {
       orderBy: { firstName: 'asc' },
     })
 
-    const people = profiles.map((p) => {
-      const connection = statusByUserId.get(p.userId)
-      return {
-        id: p.user.id,
-        email: p.user.email,
-        profile: formatProfile(p),
-        connectionStatus: connection?.status || 'none',
-        connectionRequestId: connection?.requestId || null,
-      }
-    })
+    const people = profiles.map((p) => ({
+      id: p.user.id,
+      email: p.user.email,
+      profile: formatProfile(p),
+      ...connectionStatusFor(statusByUserId, p.userId),
+    }))
 
     return res.json({ lens, people })
   }
@@ -86,7 +63,6 @@ router.get('/discover/people', async (req, res) => {
   })
 
   const people = profiles.map((p) => {
-    const connection = statusByUserId.get(p.userId)
     const sharedSkills = p.skills.filter((s) => mySkillIds.has(s.id)).length
     const sharedKnowledgeAreas = p.knowledgeAreas.filter((k) => myKnowledgeAreaIds.has(k.id)).length
     const theirVenueIds = new Set(p.experiences.map((e) => e.venueId))
@@ -96,8 +72,7 @@ router.get('/discover/people', async (req, res) => {
       id: p.user.id,
       email: p.user.email,
       profile: formatProfile(p),
-      connectionStatus: connection?.status || 'none',
-      connectionRequestId: connection?.requestId || null,
+      ...connectionStatusFor(statusByUserId, p.userId),
       shared: {
         skills: sharedSkills,
         knowledgeAreas: sharedKnowledgeAreas,

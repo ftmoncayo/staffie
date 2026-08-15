@@ -1,6 +1,8 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth, requireAdmin, requireAdminOrVenueAdmin } = require('../middleware/auth')
+const { sanitize } = require('../lib/sanitizeHtml')
+const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -10,6 +12,10 @@ const venueInclude = {
   suburb: true,
   venueType: true,
   specialties: true,
+}
+
+function mapVenue(venue) {
+  return venue ? { ...venue, about: sanitize(venue.about) } : venue
 }
 
 function parseSpecialtyIds(specialtyIds) {
@@ -86,7 +92,7 @@ router.get('/venues', async (req, res) => {
     orderBy: sort === 'name_asc' ? { name: 'asc' } : { createdAt: 'desc' },
   })
 
-  res.json({ venues })
+  res.json({ venues: venues.map(mapVenue) })
 })
 
 router.get('/venues/:id', async (req, res) => {
@@ -98,7 +104,7 @@ router.get('/venues/:id', async (req, res) => {
     return res.status(404).json({ error: 'Venue not found' })
   }
   const canEdit = await canEditVenue(req.userId, venue.id)
-  res.json({ venue: { ...venue, canEdit } })
+  res.json({ venue: { ...mapVenue(venue), canEdit } })
 })
 
 router.post('/venues', async (req, res) => {
@@ -147,7 +153,7 @@ router.post('/venues', async (req, res) => {
     include: venueInclude,
   })
 
-  res.status(201).json({ venue })
+  res.status(201).json({ venue: mapVenue(venue) })
 })
 
 router.put('/venues/:id', requireVenueEditor, async (req, res) => {
@@ -202,7 +208,7 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
   })
 
   const canEdit = await canEditVenue(req.userId, venue.id)
-  res.json({ venue: { ...venue, canEdit } })
+  res.json({ venue: { ...mapVenue(venue), canEdit } })
 })
 
 router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
@@ -218,7 +224,25 @@ router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
   })
 
   const canEdit = await canEditVenue(req.userId, venue.id)
-  res.json({ venue: { ...venue, canEdit } })
+  res.json({ venue: { ...mapVenue(venue), canEdit } })
+})
+
+router.put('/venues/:id/about', requireVenueEditor, async (req, res) => {
+  const existing = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!existing) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  const { about } = req.body || {}
+
+  const venue = await prisma.venue.update({
+    where: { id: existing.id },
+    data: { about: sanitize(about) },
+    include: venueInclude,
+  })
+
+  const canEdit = await canEditVenue(req.userId, venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit } })
 })
 
 router.get('/venues/:id/workers', async (req, res) => {
@@ -230,21 +254,52 @@ router.get('/venues/:id/workers', async (req, res) => {
   const experiences = await prisma.experience.findMany({
     where: { venueId: venue.id },
     include: { profile: { include: { user: true, city: true } } },
-    distinct: ['profileId'],
+    orderBy: { startDate: 'desc' },
   })
 
-  const workers = experiences.map((e) => ({
-    id: e.profile.user.id,
-    email: e.profile.user.email,
-    profile: {
-      firstName: e.profile.firstName,
-      lastName: e.profile.lastName,
-      professionalTitle: e.profile.professionalTitle,
-      city: e.profile.city,
-    },
-  }))
+  const byProfile = new Map()
+  for (const exp of experiences) {
+    if (!byProfile.has(exp.profileId)) byProfile.set(exp.profileId, [])
+    byProfile.get(exp.profileId).push(exp)
+  }
 
-  res.json({ workers })
+  const statusMap = await buildConnectionStatusMap(req.userId)
+
+  const current = []
+  const previous = []
+
+  for (const exps of byProfile.values()) {
+    const currentExp = exps.find((e) => e.isCurrent || !e.endDate)
+    const mostRecent = exps.reduce((latest, e) =>
+      !latest || (e.endDate && (!latest.endDate || e.endDate > latest.endDate)) ? e : latest,
+    exps[0])
+    const chosen = currentExp || mostRecent
+
+    const worker = {
+      id: chosen.profile.user.id,
+      email: chosen.profile.user.email,
+      profile: {
+        firstName: chosen.profile.firstName,
+        lastName: chosen.profile.lastName,
+        professionalTitle: chosen.profile.professionalTitle,
+        city: chosen.profile.city,
+      },
+      roleTitle: chosen.roleTitle,
+      ...connectionStatusFor(statusMap, chosen.profile.user.id),
+      isSelf: chosen.profile.user.id === req.userId,
+    }
+
+    if (currentExp) {
+      current.push(worker)
+    } else {
+      previous.push({ ...worker, endDate: chosen.endDate })
+    }
+  }
+
+  current.sort((a, b) => (a.profile.firstName || '').localeCompare(b.profile.firstName || ''))
+  previous.sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
+
+  res.json({ current, previous })
 })
 
 // --- Venue managers (admin-only) ---

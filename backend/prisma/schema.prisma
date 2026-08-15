@@ -70,6 +70,7 @@ model Profile {
   professionalTitle String
   rightToWork       Boolean
   culturalIdentity  String?
+  about             String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -138,6 +139,7 @@ model Venue {
   venueTypeId        String?
   venueType          VenueType?              @relation(fields: [venueTypeId], references: [id])
   verificationStatus VenueVerificationStatus @default(UNVERIFIED)
+  about              String?
   createdByUserId    String
   createdByUser      User                    @relation(fields: [createdByUserId], references: [id])
   createdAt          DateTime                @default(now())

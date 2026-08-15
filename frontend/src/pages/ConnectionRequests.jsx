@@ -70,9 +70,12 @@ function ConnectionRequests() {
               className="flex items-center justify-between rounded-lg border border-border bg-surface p-4"
             >
               <div>
-                <p className="font-medium text-text">
+                <Link
+                  to={`/profile/${request.fromUser.id}`}
+                  className="font-medium text-text hover:text-accent hover:underline"
+                >
                   {personName(request.fromUser.profile) || request.fromUser.email}
-                </p>
+                </Link>
                 {request.fromUser.profile?.professionalTitle && (
                   <p className="text-sm text-text-muted">{request.fromUser.profile.professionalTitle}</p>
                 )}

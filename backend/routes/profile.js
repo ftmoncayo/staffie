@@ -1,6 +1,8 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
+const { sanitize } = require('../lib/sanitizeHtml')
+const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -19,8 +21,9 @@ const profileInclude = {
   },
 }
 
-function getOwnedProfile(userId) {
-  return prisma.profile.findUnique({ where: { userId }, include: profileInclude })
+async function getOwnedProfile(userId) {
+  const profile = await prisma.profile.findUnique({ where: { userId }, include: profileInclude })
+  return profile ? { ...profile, about: sanitize(profile.about) } : profile
 }
 
 function parseDate(value) {
@@ -85,6 +88,36 @@ router.put('/', async (req, res) => {
 
   const profile = await getOwnedProfile(req.userId)
   res.json({ profile })
+})
+
+router.put('/about', requireProfile, async (req, res) => {
+  const { about } = req.body || {}
+
+  await prisma.profile.update({
+    where: { id: req.profile.id },
+    data: { about: sanitize(about) },
+  })
+
+  const profile = await getOwnedProfile(req.userId)
+  res.json({ profile })
+})
+
+router.get('/:userId', async (req, res) => {
+  const profile = await prisma.profile.findUnique({
+    where: { userId: req.params.userId },
+    include: profileInclude,
+  })
+  if (!profile) {
+    return res.status(404).json({ error: 'Profile not found' })
+  }
+
+  const statusMap = await buildConnectionStatusMap(req.userId)
+
+  res.json({
+    profile: { ...profile, about: sanitize(profile.about) },
+    isSelf: profile.userId === req.userId,
+    ...connectionStatusFor(statusMap, profile.userId),
+  })
 })
 
 // --- Skills ---

@@ -1,0 +1,178 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import * as api from '../lib/api'
+import { useAuth } from '../context/AuthContext'
+import AboutSection from '../components/AboutSection'
+import ConnectionButton from '../components/ConnectionButton'
+import Tag from '../components/Tag'
+
+function formatDate(value) {
+  if (!value) return ''
+  return value.slice(0, 10)
+}
+
+function PublicProfile() {
+  const { userId } = useParams()
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (userId === user?.id) {
+      navigate('/profile', { replace: true })
+      return
+    }
+    setLoading(true)
+    setError('')
+    api
+      .fetchPublicProfile(userId)
+      .then(setData)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [userId, user?.id, navigate])
+
+  async function handleConnect() {
+    const request = await api.requestConnection(userId)
+    setData((prev) => ({
+      ...prev,
+      connectionStatus: request.status === 'PENDING' ? 'pending-sent' : prev.connectionStatus,
+    }))
+  }
+
+  async function handleAccept() {
+    await api.acceptConnectionRequest(data.connectionRequestId)
+    setData((prev) => ({ ...prev, connectionStatus: 'connected' }))
+  }
+
+  async function handleDecline() {
+    await api.declineConnectionRequest(data.connectionRequestId)
+    setData((prev) => ({ ...prev, connectionStatus: 'none', connectionRequestId: null }))
+  }
+
+  if (loading) return null
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-bg px-4 py-10">
+        <div className="mx-auto max-w-2xl">
+          <p className="text-sm text-danger">{error}</p>
+          <Link to="/discover" className="text-sm text-accent hover:text-accent-hover hover:underline">
+            Back to discover
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const { profile } = data
+  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ')
+
+  return (
+    <div className="min-h-screen bg-bg px-4 py-10">
+      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-text">{name}</h1>
+          <Link to="/discover" className="text-sm text-accent hover:text-accent-hover hover:underline">
+            Back to discover
+          </Link>
+        </div>
+
+        <div>
+          <ConnectionButton
+            status={data.connectionStatus}
+            onConnect={handleConnect}
+            onAccept={handleAccept}
+            onDecline={handleDecline}
+          />
+        </div>
+
+        <AboutSection about={profile.about} canEdit={false} emptyMessage="Nothing here yet." />
+
+        <div className="rounded-lg border border-border bg-surface p-6">
+          <h2 className="text-xl font-semibold text-text">Profile details</h2>
+          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm text-text-faint">Professional title</dt>
+              <dd className="text-text">{profile.professionalTitle}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-text-faint">City</dt>
+              <dd className="text-text">{profile.city?.name || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-text-faint">Cultural identity / background</dt>
+              <dd className="text-text">{profile.culturalIdentity || '—'}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="rounded-lg border border-border bg-surface p-6">
+          <h2 className="text-xl font-semibold text-text">Skills</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {profile.skills.map((skill) => (
+              <Tag key={skill.id}>{skill.name}</Tag>
+            ))}
+            {profile.skills.length === 0 && <p className="text-sm text-text-faint">No skills added yet.</p>}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-surface p-6">
+          <h2 className="text-xl font-semibold text-text">Knowledge Bank</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {profile.knowledgeAreas.map((area) => (
+              <Tag key={area.id}>{area.name}</Tag>
+            ))}
+            {profile.knowledgeAreas.length === 0 && (
+              <p className="text-sm text-text-faint">No knowledge areas added yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-surface p-6">
+          <h2 className="text-xl font-semibold text-text">Experience</h2>
+          <div className="mt-4 flex flex-col gap-3">
+            {profile.experiences.map((exp) => (
+              <div key={exp.id} className="rounded border border-border p-4">
+                <p className="font-medium text-text">{exp.roleTitle}</p>
+                <Link
+                  to={`/venues/${exp.venue.id}`}
+                  className="text-sm text-accent hover:text-accent-hover hover:underline"
+                >
+                  {exp.venue.name}
+                </Link>
+                <p className="text-sm text-text-faint">
+                  {formatDate(exp.startDate)} – {exp.isCurrent ? 'Current' : formatDate(exp.endDate) || '—'}
+                </p>
+              </div>
+            ))}
+            {profile.experiences.length === 0 && (
+              <p className="text-sm text-text-faint">No experience added yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-surface p-6">
+          <h2 className="text-xl font-semibold text-text">Certifications</h2>
+          <div className="mt-4 flex flex-col gap-3">
+            {profile.certifications.map((cert) => (
+              <div key={cert.id} className="rounded border border-border p-4">
+                <p className="font-medium text-text">{cert.certificationType?.name}</p>
+                <p className="text-sm text-text-faint">
+                  Issued {formatDate(cert.issueDate)}
+                  {cert.expiryDate ? ` · Expires ${formatDate(cert.expiryDate)}` : ''}
+                </p>
+              </div>
+            ))}
+            {profile.certifications.length === 0 && (
+              <p className="text-sm text-text-faint">No certifications added yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default PublicProfile

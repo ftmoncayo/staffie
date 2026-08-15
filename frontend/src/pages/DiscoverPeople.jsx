@@ -104,7 +104,12 @@ function DiscoverPeople() {
           {people.map((person) => (
             <div key={person.id} className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
               <div>
-                <h2 className="font-semibold text-text">{personName(person.profile) || person.email}</h2>
+                <Link
+                  to={`/profile/${person.id}`}
+                  className="font-semibold text-text hover:text-accent hover:underline"
+                >
+                  {personName(person.profile) || person.email}
+                </Link>
                 <p className="text-sm text-text-muted">{person.profile.professionalTitle}</p>
                 <p className="text-sm text-text-faint">{person.profile.city?.name || 'No city set'}</p>
               </div>

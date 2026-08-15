@@ -66,15 +66,6 @@ function VenueDetail() {
           </Link>
         </div>
 
-        <AboutSection
-          about={venue.about}
-          canEdit={venue.canEdit}
-          onSave={handleSaveAbout}
-          emptyMessage={
-            venue.canEdit ? 'Add an introduction for this venue.' : 'No introduction added yet.'
-          }
-        />
-
         {editing ? (
           <VenueForm initial={venue} isEditing onSubmit={handleSave} onCancel={() => setEditing(false)} />
         ) : (
@@ -135,6 +126,15 @@ function VenueDetail() {
             </div>
           </div>
         )}
+
+        <AboutSection
+          about={venue.about}
+          canEdit={venue.canEdit}
+          onSave={handleSaveAbout}
+          emptyMessage={
+            venue.canEdit ? 'Add an introduction for this venue.' : 'No introduction added yet.'
+          }
+        />
 
         <VenueWorkers venueId={id} />
 

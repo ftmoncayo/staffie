@@ -371,6 +371,10 @@ export async function unfollowVenue(venueId) {
   return data.isFollowing
 }
 
+export function favouriteVenue(venueId) {
+  return authRequest(`/api/venues/${venueId}/favourite`, { method: 'PUT' })
+}
+
 export async function fetchBusinessCategories(search) {
   const data = await authRequest(
     `/api/business-categories?search=${encodeURIComponent(search || '')}`,
@@ -441,6 +445,10 @@ export async function unfollowBusiness(id) {
   return data.isFollowing
 }
 
+export function favouriteBusiness(id) {
+  return authRequest(`/api/businesses/${id}/favourite`, { method: 'PUT' })
+}
+
 export async function fetchBusinessManagers(businessId) {
   const data = await authRequest(`/api/businesses/${businessId}/managers`)
   return data.managers
@@ -458,6 +466,10 @@ export function removeBusinessManager(businessId, userId) {
   return authRequest(`/api/businesses/${businessId}/managers/${userId}`, {
     method: 'DELETE',
   })
+}
+
+export function fetchFeed() {
+  return authRequest('/api/feed')
 }
 
 export async function fetchAdminUsers() {

@@ -86,6 +86,8 @@ router.put('/', async (req, res) => {
     update: data,
   })
 
+  await prisma.activity.create({ data: { type: 'PROFILE_UPDATED', actorUserId: req.userId } })
+
   const profile = await getOwnedProfile(req.userId)
   res.json({ profile })
 })
@@ -237,6 +239,8 @@ router.post('/experience', requireProfile, async (req, res) => {
     include: { venue: { include: { city: true } } },
   })
 
+  await prisma.activity.create({ data: { type: 'EXPERIENCE_ADDED', actorUserId: req.userId } })
+
   res.status(201).json({ experience })
 })
 
@@ -340,6 +344,8 @@ router.post('/certifications', requireProfile, async (req, res) => {
     },
     include: { certificationType: true },
   })
+
+  await prisma.activity.create({ data: { type: 'CERTIFICATION_ADDED', actorUserId: req.userId } })
 
   res.status(201).json({ certification })
 })

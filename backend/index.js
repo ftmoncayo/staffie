@@ -9,6 +9,7 @@ const businessesRouter = require('./routes/businesses')
 const usersRouter = require('./routes/users')
 const connectionsRouter = require('./routes/connections')
 const discoverRouter = require('./routes/discover')
+const feedRouter = require('./routes/feed')
 
 const app = express()
 const port = process.env.PORT || 3001
@@ -28,6 +29,7 @@ app.use('/api', businessesRouter)
 app.use('/api', usersRouter)
 app.use('/api', connectionsRouter)
 app.use('/api', discoverRouter)
+app.use('/api', feedRouter)
 
 app.listen(port, () => {
   console.log(`Backend listening on port ${port}`)

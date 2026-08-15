@@ -231,6 +231,8 @@ router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
     include: venueInclude,
   })
 
+  await prisma.activity.create({ data: { type: 'VENUE_VERIFIED', venueId: venue.id } })
+
   const canEdit = await canEditVenue(req.userId, venue.id)
   res.json({ venue: { ...mapVenue(venue), canEdit } })
 })
@@ -334,6 +336,25 @@ router.delete('/venues/:id/follow', async (req, res) => {
   await prisma.venueFollow.deleteMany({ where: { userId: req.userId, venueId: venue.id } })
 
   res.json({ isFollowing: false })
+})
+
+router.put('/venues/:id/favourite', async (req, res) => {
+  const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!venue) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  const existing = await prisma.venueFollow.findUnique({
+    where: { userId_venueId: { userId: req.userId, venueId: venue.id } },
+  })
+
+  const follow = await prisma.venueFollow.upsert({
+    where: { userId_venueId: { userId: req.userId, venueId: venue.id } },
+    create: { userId: req.userId, venueId: venue.id, isFavourite: true },
+    update: { isFavourite: !existing?.isFavourite },
+  })
+
+  res.json({ isFollowing: true, isFavourite: follow.isFavourite })
 })
 
 // --- Venue managers (admin-only) ---

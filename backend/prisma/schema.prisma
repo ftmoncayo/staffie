@@ -36,15 +36,39 @@ model User {
   managedBusinesses        BusinessManager[] @relation("BusinessManagerUser")
   assignedBusinessManagers BusinessManager[] @relation("BusinessManagerAssignedBy")
   businessFollows          BusinessFollow[]
+
+  activities Activity[]
+}
+
+enum ActivityType {
+  CONNECTION_MADE
+  EXPERIENCE_ADDED
+  CERTIFICATION_ADDED
+  PROFILE_UPDATED
+  VENUE_VERIFIED
+  BUSINESS_VERIFIED
+}
+
+model Activity {
+  id          String       @id @default(uuid())
+  type        ActivityType
+  actorUserId String?
+  actorUser   User?        @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+  venueId     String?
+  venue       Venue?       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  businessId  String?
+  business    Business?    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
 }
 
 model VenueFollow {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  venueId   String
-  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venueId     String
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  isFavourite Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   @@unique([userId, venueId])
 }
@@ -167,6 +191,7 @@ model Venue {
   experiences Experience[]
   managers    VenueManager[]
   followers   VenueFollow[]
+  activities  Activity[]
 }
 
 model VenueManager {
@@ -232,8 +257,9 @@ model Business {
   createdByUser      User                       @relation(fields: [createdByUserId], references: [id])
   createdAt          DateTime                   @default(now())
 
-  managers  BusinessManager[]
-  followers BusinessFollow[]
+  managers   BusinessManager[]
+  followers  BusinessFollow[]
+  activities Activity[]
 }
 
 model BusinessManager {
@@ -250,12 +276,13 @@ model BusinessManager {
 }
 
 model BusinessFollow {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  isFavourite Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   @@unique([userId, businessId])
 }

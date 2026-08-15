@@ -38,7 +38,12 @@ function BusinessDetail() {
     const isFollowing = business.isFollowing
       ? await api.unfollowBusiness(id)
       : await api.followBusiness(id)
-    setBusiness((prev) => ({ ...prev, isFollowing }))
+    setBusiness((prev) => ({ ...prev, isFollowing, isFavourite: isFollowing ? prev.isFavourite : false }))
+  }
+
+  async function handleToggleFavourite() {
+    const result = await api.favouriteBusiness(id)
+    setBusiness((prev) => ({ ...prev, isFollowing: result.isFollowing, isFavourite: result.isFavourite }))
   }
 
   if (loading) return null
@@ -93,6 +98,18 @@ function BusinessDetail() {
                   }
                 >
                   {business.isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleFavourite}
+                  aria-label={business.isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                  className={
+                    business.isFavourite
+                      ? 'rounded border border-accent px-3 py-1.5 text-sm text-accent'
+                      : 'rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover'
+                  }
+                >
+                  {business.isFavourite ? '★ Favourited' : '☆ Favourite'}
                 </button>
                 {business.canEdit && (
                   <button

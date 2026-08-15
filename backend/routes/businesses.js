@@ -148,6 +148,8 @@ router.put('/businesses/:id/verify', requireAdmin, async (req, res) => {
     include: businessInclude,
   })
 
+  await prisma.activity.create({ data: { type: 'BUSINESS_VERIFIED', businessId: business.id } })
+
   const canEdit = await canEditBusiness(req.userId, business.id)
   res.json({ business: { ...mapBusiness(business), canEdit } })
 })
@@ -194,6 +196,25 @@ router.delete('/businesses/:id/follow', async (req, res) => {
   await prisma.businessFollow.deleteMany({ where: { userId: req.userId, businessId: business.id } })
 
   res.json({ isFollowing: false })
+})
+
+router.put('/businesses/:id/favourite', async (req, res) => {
+  const business = await prisma.business.findUnique({ where: { id: req.params.id } })
+  if (!business) {
+    return res.status(404).json({ error: 'Business not found' })
+  }
+
+  const existing = await prisma.businessFollow.findUnique({
+    where: { userId_businessId: { userId: req.userId, businessId: business.id } },
+  })
+
+  const follow = await prisma.businessFollow.upsert({
+    where: { userId_businessId: { userId: req.userId, businessId: business.id } },
+    create: { userId: req.userId, businessId: business.id, isFavourite: true },
+    update: { isFavourite: !existing?.isFavourite },
+  })
+
+  res.json({ isFollowing: true, isFavourite: follow.isFavourite })
 })
 
 // --- Business managers (admin-only) ---

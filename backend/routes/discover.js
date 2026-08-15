@@ -19,47 +19,23 @@ function formatProfile(profile) {
   }
 }
 
-router.get('/discover/people', async (req, res) => {
-  const lens = req.query.lens === 'common' ? 'common' : 'near'
-
+async function getCommonGroundPeople(userId) {
   const myProfile = await prisma.profile.findUnique({
-    where: { userId: req.userId },
+    where: { userId },
     include: { skills: true, knowledgeAreas: true, experiences: { select: { venueId: true } } },
   })
 
-  const statusByUserId = await buildConnectionStatusMap(req.userId)
+  const statusByUserId = await buildConnectionStatusMap(userId)
 
-  if (lens === 'near') {
-    if (!myProfile?.cityId) {
-      return res.json({ lens, people: [] })
-    }
-
-    const profiles = await prisma.profile.findMany({
-      where: { cityId: myProfile.cityId, userId: { not: req.userId } },
-      include: { user: true, city: true },
-      orderBy: { firstName: 'asc' },
-    })
-
-    const people = profiles.map((p) => ({
-      id: p.user.id,
-      email: p.user.email,
-      profile: formatProfile(p),
-      ...connectionStatusFor(statusByUserId, p.userId),
-    }))
-
-    return res.json({ lens, people })
-  }
-
-  // lens === 'common'
   const mySkillIds = new Set((myProfile?.skills || []).map((s) => s.id))
   const myKnowledgeAreaIds = new Set((myProfile?.knowledgeAreas || []).map((k) => k.id))
   const myVenueIds = new Set((myProfile?.experiences || []).map((e) => e.venueId))
 
   const adjacency = await buildConnectionsAdjacency()
-  const myConnections = adjacency.get(req.userId) || new Set()
+  const myConnections = adjacency.get(userId) || new Set()
 
   const profiles = await prisma.profile.findMany({
-    where: { userId: { not: req.userId } },
+    where: { userId: { not: userId } },
     include: {
       user: true,
       city: true,
@@ -94,7 +70,39 @@ router.get('/discover/people', async (req, res) => {
 
   people.sort((a, b) => b.shared.total - a.shared.total)
 
+  return people
+}
+
+router.get('/discover/people', async (req, res) => {
+  const lens = req.query.lens === 'common' ? 'common' : 'near'
+
+  if (lens === 'common') {
+    const people = await getCommonGroundPeople(req.userId)
+    return res.json({ lens, people })
+  }
+
+  const myProfile = await prisma.profile.findUnique({ where: { userId: req.userId } })
+  if (!myProfile?.cityId) {
+    return res.json({ lens, people: [] })
+  }
+
+  const statusByUserId = await buildConnectionStatusMap(req.userId)
+
+  const profiles = await prisma.profile.findMany({
+    where: { cityId: myProfile.cityId, userId: { not: req.userId } },
+    include: { user: true, city: true },
+    orderBy: { firstName: 'asc' },
+  })
+
+  const people = profiles.map((p) => ({
+    id: p.user.id,
+    email: p.user.email,
+    profile: formatProfile(p),
+    ...connectionStatusFor(statusByUserId, p.userId),
+  }))
+
   res.json({ lens, people })
 })
 
 module.exports = router
+module.exports.getCommonGroundPeople = getCommonGroundPeople

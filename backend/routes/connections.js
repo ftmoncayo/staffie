@@ -85,10 +85,20 @@ async function respondToRequest(req, res, status) {
     return res.status(409).json({ error: 'This request has already been responded to' })
   }
 
+  const respondedAt = new Date()
   const request = await prisma.connectionRequest.update({
     where: { id: existing.id },
-    data: { status, respondedAt: new Date() },
+    data: { status, respondedAt },
   })
+
+  if (status === 'ACCEPTED') {
+    await prisma.activity.createMany({
+      data: [
+        { type: 'CONNECTION_MADE', actorUserId: existing.fromUserId, createdAt: respondedAt },
+        { type: 'CONNECTION_MADE', actorUserId: existing.toUserId, createdAt: respondedAt },
+      ],
+    })
+  }
 
   res.json({ request })
 }

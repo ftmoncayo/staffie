@@ -38,7 +38,12 @@ function VenueDetail() {
 
   async function handleToggleFollow() {
     const isFollowing = venue.isFollowing ? await api.unfollowVenue(id) : await api.followVenue(id)
-    setVenue((prev) => ({ ...prev, isFollowing }))
+    setVenue((prev) => ({ ...prev, isFollowing, isFavourite: isFollowing ? prev.isFavourite : false }))
+  }
+
+  async function handleToggleFavourite() {
+    const result = await api.favouriteVenue(id)
+    setVenue((prev) => ({ ...prev, isFollowing: result.isFollowing, isFavourite: result.isFavourite }))
   }
 
   if (loading) return null
@@ -88,6 +93,18 @@ function VenueDetail() {
                   }
                 >
                   {venue.isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleFavourite}
+                  aria-label={venue.isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                  className={
+                    venue.isFavourite
+                      ? 'rounded border border-accent px-3 py-1.5 text-sm text-accent'
+                      : 'rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover'
+                  }
+                >
+                  {venue.isFavourite ? '★ Favourited' : '☆ Favourite'}
                 </button>
                 {venue.canEdit && (
                   <button

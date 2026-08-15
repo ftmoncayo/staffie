@@ -14,98 +14,111 @@ import AdminVenues from './pages/AdminVenues'
 import AdminUsers from './pages/AdminUsers'
 import DiscoverPeople from './pages/DiscoverPeople'
 import ConnectionRequests from './pages/ConnectionRequests'
+import Connections from './pages/Connections'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
+import TopNav from './components/TopNav'
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile/:userId"
-        element={
-          <ProtectedRoute>
-            <PublicProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/venues"
-        element={
-          <ProtectedRoute>
-            <VenueDirectory />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/venues/new"
-        element={
-          <ProtectedRoute>
-            <VenueCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/venues/:id"
-        element={
-          <ProtectedRoute>
-            <VenueDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/discover"
-        element={
-          <ProtectedRoute>
-            <DiscoverPeople />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/connections/requests"
-        element={
-          <ProtectedRoute>
-            <ConnectionRequests />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/venues"
-        element={
-          <AdminRoute>
-            <AdminVenues />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/users"
-        element={
-          <AdminRoute>
-            <AdminUsers />
-          </AdminRoute>
-        }
-      />
-    </Routes>
+    <>
+      <TopNav />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/:userId"
+          element={
+            <ProtectedRoute>
+              <PublicProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/venues"
+          element={
+            <ProtectedRoute>
+              <VenueDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/venues/new"
+          element={
+            <ProtectedRoute>
+              <VenueCreate />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/venues/:id"
+          element={
+            <ProtectedRoute>
+              <VenueDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/discover"
+          element={
+            <ProtectedRoute>
+              <DiscoverPeople />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/connections"
+          element={
+            <ProtectedRoute>
+              <Connections />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/connections/requests"
+          element={
+            <ProtectedRoute>
+              <ConnectionRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/venues"
+          element={
+            <AdminRoute>
+              <AdminVenues />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminUsers />
+            </AdminRoute>
+          }
+        />
+      </Routes>
+    </>
   )
 }
 

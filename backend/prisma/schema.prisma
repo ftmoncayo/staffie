@@ -28,6 +28,19 @@ model User {
 
   sentConnectionRequests     ConnectionRequest[] @relation("ConnectionRequestFrom")
   receivedConnectionRequests ConnectionRequest[] @relation("ConnectionRequestTo")
+
+  venueFollows VenueFollow[]
+}
+
+model VenueFollow {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venueId   String
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, venueId])
 }
 
 enum ConnectionRequestStatus {
@@ -147,6 +160,7 @@ model Venue {
   specialties VenueSpecialty[]
   experiences Experience[]
   managers    VenueManager[]
+  followers   VenueFollow[]
 }
 
 model VenueManager {

@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
 import ConnectionButton from '../components/ConnectionButton'
-
-function personName(profile) {
-  return [profile.firstName, profile.lastName].filter(Boolean).join(' ')
-}
+import PersonCard from '../components/PersonCard'
 
 function sharedSummary(shared) {
   if (!shared) return null
@@ -15,6 +12,9 @@ function sharedSummary(shared) {
     parts.push(`${shared.knowledgeAreas} shared knowledge area${shared.knowledgeAreas === 1 ? '' : 's'}`)
   }
   if (shared.venues > 0) parts.push(`${shared.venues} shared venue${shared.venues === 1 ? '' : 's'}`)
+  if (shared.connections > 0) {
+    parts.push(`${shared.connections} mutual connection${shared.connections === 1 ? '' : 's'}`)
+  }
   return parts.length > 0 ? parts.join(', ') : 'Nothing in common yet'
 }
 
@@ -60,9 +60,14 @@ function DiscoverPeople() {
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-text">Discover people</h1>
-          <Link to="/dashboard" className="text-sm text-accent hover:text-accent-hover hover:underline">
-            Back to dashboard
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/connections" className="text-sm text-accent hover:text-accent-hover hover:underline">
+              My connections
+            </Link>
+            <Link to="/dashboard" className="text-sm text-accent hover:text-accent-hover hover:underline">
+              Back to dashboard
+            </Link>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -102,31 +107,18 @@ function DiscoverPeople() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {people.map((person) => (
-            <div key={person.id} className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
-              <div>
-                <Link
-                  to={`/profile/${person.id}`}
-                  className="font-semibold text-text hover:text-accent hover:underline"
-                >
-                  {personName(person.profile) || person.email}
-                </Link>
-                <p className="text-sm text-text-muted">{person.profile.professionalTitle}</p>
-                <p className="text-sm text-text-faint">{person.profile.city?.name || 'No city set'}</p>
-              </div>
-
-              {lens === 'common' && (
-                <p className="text-sm text-text-faint">{sharedSummary(person.shared)}</p>
-              )}
-
-              <div>
-                <ConnectionButton
-                  status={person.connectionStatus}
-                  onConnect={() => handleConnect(person)}
-                  onAccept={() => handleAccept(person)}
-                  onDecline={() => handleDecline(person)}
-                />
-              </div>
-            </div>
+            <PersonCard
+              key={person.id}
+              person={person}
+              extra={lens === 'common' ? sharedSummary(person.shared) : null}
+            >
+              <ConnectionButton
+                status={person.connectionStatus}
+                onConnect={() => handleConnect(person)}
+                onAccept={() => handleAccept(person)}
+                onDecline={() => handleDecline(person)}
+              />
+            </PersonCard>
           ))}
         </div>
       </div>

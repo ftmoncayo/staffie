@@ -59,6 +59,13 @@ async function canEditVenue(userId, venueId) {
   return Boolean(manager)
 }
 
+async function isFollowingVenue(userId, venueId) {
+  const follow = await prisma.venueFollow.findUnique({
+    where: { userId_venueId: { userId, venueId } },
+  })
+  return Boolean(follow)
+}
+
 async function requireVenueEditor(req, res, next) {
   const allowed = await canEditVenue(req.userId, req.params.id)
   if (!allowed) {
@@ -104,7 +111,8 @@ router.get('/venues/:id', async (req, res) => {
     return res.status(404).json({ error: 'Venue not found' })
   }
   const canEdit = await canEditVenue(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit } })
+  const isFollowing = await isFollowingVenue(req.userId, venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isFollowing } })
 })
 
 router.post('/venues', async (req, res) => {
@@ -300,6 +308,32 @@ router.get('/venues/:id/workers', async (req, res) => {
   previous.sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
 
   res.json({ current, previous })
+})
+
+router.post('/venues/:id/follow', async (req, res) => {
+  const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!venue) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  await prisma.venueFollow.upsert({
+    where: { userId_venueId: { userId: req.userId, venueId: venue.id } },
+    create: { userId: req.userId, venueId: venue.id },
+    update: {},
+  })
+
+  res.status(201).json({ isFollowing: true })
+})
+
+router.delete('/venues/:id/follow', async (req, res) => {
+  const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!venue) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  await prisma.venueFollow.deleteMany({ where: { userId: req.userId, venueId: venue.id } })
+
+  res.json({ isFollowing: false })
 })
 
 // --- Venue managers (admin-only) ---

@@ -1,7 +1,11 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
-const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
+const {
+  buildConnectionStatusMap,
+  connectionStatusFor,
+  buildConnectionsAdjacency,
+} = require('../lib/connectionStatus')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -51,6 +55,9 @@ router.get('/discover/people', async (req, res) => {
   const myKnowledgeAreaIds = new Set((myProfile?.knowledgeAreas || []).map((k) => k.id))
   const myVenueIds = new Set((myProfile?.experiences || []).map((e) => e.venueId))
 
+  const adjacency = await buildConnectionsAdjacency()
+  const myConnections = adjacency.get(req.userId) || new Set()
+
   const profiles = await prisma.profile.findMany({
     where: { userId: { not: req.userId } },
     include: {
@@ -67,6 +74,8 @@ router.get('/discover/people', async (req, res) => {
     const sharedKnowledgeAreas = p.knowledgeAreas.filter((k) => myKnowledgeAreaIds.has(k.id)).length
     const theirVenueIds = new Set(p.experiences.map((e) => e.venueId))
     const sharedVenues = [...theirVenueIds].filter((id) => myVenueIds.has(id)).length
+    const theirConnections = adjacency.get(p.userId) || new Set()
+    const mutualConnections = [...myConnections].filter((id) => theirConnections.has(id)).length
 
     return {
       id: p.user.id,
@@ -77,7 +86,8 @@ router.get('/discover/people', async (req, res) => {
         skills: sharedSkills,
         knowledgeAreas: sharedKnowledgeAreas,
         venues: sharedVenues,
-        total: sharedSkills + sharedKnowledgeAreas + sharedVenues,
+        connections: mutualConnections,
+        total: sharedSkills + sharedKnowledgeAreas + sharedVenues + mutualConnections,
       },
     }
   })

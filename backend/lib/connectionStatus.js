@@ -28,4 +28,19 @@ function connectionStatusFor(statusByUserId, otherUserId) {
   }
 }
 
-module.exports = { buildConnectionStatusMap, connectionStatusFor }
+async function buildConnectionsAdjacency() {
+  const accepted = await prisma.connectionRequest.findMany({ where: { status: 'ACCEPTED' } })
+
+  const adjacency = new Map()
+  function link(a, b) {
+    if (!adjacency.has(a)) adjacency.set(a, new Set())
+    adjacency.get(a).add(b)
+  }
+  for (const r of accepted) {
+    link(r.fromUserId, r.toUserId)
+    link(r.toUserId, r.fromUserId)
+  }
+  return adjacency
+}
+
+module.exports = { buildConnectionStatusMap, connectionStatusFor, buildConnectionsAdjacency }

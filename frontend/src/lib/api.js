@@ -357,6 +357,20 @@ export async function fetchConnections() {
   return data.connections
 }
 
+export function removeConnection(userId) {
+  return authRequest(`/api/connections/${userId}`, { method: 'DELETE' })
+}
+
+export async function followVenue(venueId) {
+  const data = await authRequest(`/api/venues/${venueId}/follow`, { method: 'POST' })
+  return data.isFollowing
+}
+
+export async function unfollowVenue(venueId) {
+  const data = await authRequest(`/api/venues/${venueId}/follow`, { method: 'DELETE' })
+  return data.isFollowing
+}
+
 export async function fetchAdminUsers() {
   const data = await authRequest('/api/admin/users')
   return data.users

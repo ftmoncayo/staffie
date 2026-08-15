@@ -36,6 +36,11 @@ function VenueDetail() {
     setVenue(updated)
   }
 
+  async function handleToggleFollow() {
+    const isFollowing = venue.isFollowing ? await api.unfollowVenue(id) : await api.followVenue(id)
+    setVenue((prev) => ({ ...prev, isFollowing }))
+  }
+
   if (loading) return null
 
   if (error) {
@@ -81,14 +86,27 @@ function VenueDetail() {
                   <VerificationBadge status={venue.verificationStatus} />
                 </div>
               </div>
-              {venue.canEdit && (
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setEditing(true)}
-                  className="text-sm text-accent hover:text-accent-hover hover:underline"
+                  type="button"
+                  onClick={handleToggleFollow}
+                  className={
+                    venue.isFollowing
+                      ? 'rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover'
+                      : 'rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-text hover:bg-accent-hover'
+                  }
                 >
-                  Edit
+                  {venue.isFollowing ? 'Unfollow' : 'Follow'}
                 </button>
-              )}
+                {venue.canEdit && (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="text-sm text-accent hover:text-accent-hover hover:underline"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             </div>
 
             <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">

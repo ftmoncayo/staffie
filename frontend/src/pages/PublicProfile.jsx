@@ -51,6 +51,11 @@ function PublicProfile() {
     setData((prev) => ({ ...prev, connectionStatus: 'none', connectionRequestId: null }))
   }
 
+  async function handleRemove() {
+    await api.removeConnection(userId)
+    setData((prev) => ({ ...prev, connectionStatus: 'none', connectionRequestId: null }))
+  }
+
   if (loading) return null
 
   if (error) {
@@ -79,13 +84,22 @@ function PublicProfile() {
           </Link>
         </div>
 
-        <div>
+        <div className="flex items-center gap-3">
           <ConnectionButton
             status={data.connectionStatus}
             onConnect={handleConnect}
             onAccept={handleAccept}
             onDecline={handleDecline}
           />
+          {data.connectionStatus === 'connected' && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="text-sm text-danger hover:underline"
+            >
+              Remove connection
+            </button>
+          )}
         </div>
 
         <AboutSection about={profile.about} canEdit={false} emptyMessage="Nothing here yet." />

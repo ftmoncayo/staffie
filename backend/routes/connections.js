@@ -113,4 +113,22 @@ router.get('/connections', async (req, res) => {
   res.json({ connections: users.map(formatUser) })
 })
 
+router.delete('/connections/:userId', async (req, res) => {
+  const existing = await prisma.connectionRequest.findFirst({
+    where: {
+      status: 'ACCEPTED',
+      OR: [
+        { fromUserId: req.userId, toUserId: req.params.userId },
+        { fromUserId: req.params.userId, toUserId: req.userId },
+      ],
+    },
+  })
+  if (!existing) {
+    return res.status(404).json({ error: 'Connection not found' })
+  }
+
+  await prisma.connectionRequest.delete({ where: { id: existing.id } })
+  res.status(204).end()
+})
+
 module.exports = router

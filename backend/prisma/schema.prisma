@@ -30,6 +30,12 @@ model User {
   receivedConnectionRequests ConnectionRequest[] @relation("ConnectionRequestTo")
 
   venueFollows VenueFollow[]
+
+  businesses Business[]
+
+  managedBusinesses        BusinessManager[] @relation("BusinessManagerUser")
+  assignedBusinessManagers BusinessManager[] @relation("BusinessManagerAssignedBy")
+  businessFollows          BusinessFollow[]
 }
 
 model VenueFollow {
@@ -202,4 +208,54 @@ model Certification {
   certificationType   CertificationType @relation(fields: [certificationTypeId], references: [id])
   issueDate           DateTime
   expiryDate          DateTime?
+}
+
+model BusinessCategory {
+  id         String     @id @default(uuid())
+  name       String     @unique
+  businesses Business[]
+}
+
+enum BusinessVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+}
+
+model Business {
+  id                 String                     @id @default(uuid())
+  name               String
+  categoryId         String?
+  category           BusinessCategory?          @relation(fields: [categoryId], references: [id])
+  about              String?
+  verificationStatus BusinessVerificationStatus @default(UNVERIFIED)
+  createdByUserId    String
+  createdByUser      User                       @relation(fields: [createdByUserId], references: [id])
+  createdAt          DateTime                   @default(now())
+
+  managers  BusinessManager[]
+  followers BusinessFollow[]
+}
+
+model BusinessManager {
+  id               String   @id @default(uuid())
+  businessId       String
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User     @relation("BusinessManagerUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedByUserId String
+  assignedByUser   User     @relation("BusinessManagerAssignedBy", fields: [assignedByUserId], references: [id])
+  assignedAt       DateTime @default(now())
+
+  @@unique([businessId, userId])
+}
+
+model BusinessFollow {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, businessId])
 }

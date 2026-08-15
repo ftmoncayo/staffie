@@ -6,6 +6,7 @@ const links = [
   { to: '/profile', label: 'Profile' },
   { to: '/discover', label: 'People' },
   { to: '/venues', label: 'Venues' },
+  { to: '/businesses', label: 'Businesses' },
 ]
 
 function TopNav() {

@@ -10,7 +10,11 @@ import PublicProfile from './pages/PublicProfile'
 import VenueDirectory from './pages/VenueDirectory'
 import VenueCreate from './pages/VenueCreate'
 import VenueDetail from './pages/VenueDetail'
+import BusinessDirectory from './pages/BusinessDirectory'
+import BusinessCreate from './pages/BusinessCreate'
+import BusinessDetail from './pages/BusinessDetail'
 import AdminVenues from './pages/AdminVenues'
+import AdminBusinesses from './pages/AdminBusinesses'
 import AdminUsers from './pages/AdminUsers'
 import DiscoverPeople from './pages/DiscoverPeople'
 import ConnectionRequests from './pages/ConnectionRequests'
@@ -78,6 +82,30 @@ function App() {
           }
         />
         <Route
+          path="/businesses"
+          element={
+            <ProtectedRoute>
+              <BusinessDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/businesses/new"
+          element={
+            <ProtectedRoute>
+              <BusinessCreate />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/businesses/:id"
+          element={
+            <ProtectedRoute>
+              <BusinessDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/discover"
           element={
             <ProtectedRoute>
@@ -106,6 +134,14 @@ function App() {
           element={
             <AdminRoute>
               <AdminVenues />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/businesses"
+          element={
+            <AdminRoute>
+              <AdminBusinesses />
             </AdminRoute>
           }
         />

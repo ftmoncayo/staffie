@@ -371,6 +371,95 @@ export async function unfollowVenue(venueId) {
   return data.isFollowing
 }
 
+export async function fetchBusinessCategories(search) {
+  const data = await authRequest(
+    `/api/business-categories?search=${encodeURIComponent(search || '')}`,
+  )
+  return data.businessCategories
+}
+
+export async function createBusinessCategory(name) {
+  const data = await authRequest('/api/business-categories', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.businessCategory
+}
+
+export async function fetchBusinesses({ search, sort, status } = {}) {
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  if (sort) params.set('sort', sort)
+  if (status) params.set('status', status)
+  const data = await authRequest(`/api/businesses?${params.toString()}`)
+  return data.businesses
+}
+
+export async function fetchBusiness(id) {
+  const data = await authRequest(`/api/businesses/${id}`)
+  return data.business
+}
+
+export async function createBusiness(business) {
+  const data = await authRequest('/api/businesses', {
+    method: 'POST',
+    body: JSON.stringify(business),
+  })
+  return data.business
+}
+
+export async function updateBusiness(id, business) {
+  const data = await authRequest(`/api/businesses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(business),
+  })
+  return data.business
+}
+
+export async function verifyBusiness(id) {
+  const data = await authRequest(`/api/businesses/${id}/verify`, {
+    method: 'PUT',
+  })
+  return data.business
+}
+
+export async function saveBusinessAbout(id, about) {
+  const data = await authRequest(`/api/businesses/${id}/about`, {
+    method: 'PUT',
+    body: JSON.stringify({ about }),
+  })
+  return data.business
+}
+
+export async function followBusiness(id) {
+  const data = await authRequest(`/api/businesses/${id}/follow`, { method: 'POST' })
+  return data.isFollowing
+}
+
+export async function unfollowBusiness(id) {
+  const data = await authRequest(`/api/businesses/${id}/follow`, { method: 'DELETE' })
+  return data.isFollowing
+}
+
+export async function fetchBusinessManagers(businessId) {
+  const data = await authRequest(`/api/businesses/${businessId}/managers`)
+  return data.managers
+}
+
+export async function addBusinessManager(businessId, userId) {
+  const data = await authRequest(`/api/businesses/${businessId}/managers`, {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  })
+  return data.manager
+}
+
+export function removeBusinessManager(businessId, userId) {
+  return authRequest(`/api/businesses/${businessId}/managers/${userId}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function fetchAdminUsers() {
   const data = await authRequest('/api/admin/users')
   return data.users

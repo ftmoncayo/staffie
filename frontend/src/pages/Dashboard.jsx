@@ -32,6 +32,11 @@ function Dashboard() {
         </Link>
       )}
       {user?.isAdmin && (
+        <Link to="/admin/businesses" className="text-accent hover:text-accent-hover hover:underline">
+          Unverified businesses
+        </Link>
+      )}
+      {user?.isAdmin && (
         <Link to="/admin/users" className="text-accent hover:text-accent-hover hover:underline">
           Users
         </Link>

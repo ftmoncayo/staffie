@@ -19,6 +19,15 @@ function formatProfile(profile) {
   }
 }
 
+// Priority order for common-ground ranking: shared venues, then shared
+// connections, then shared skills, then shared knowledge areas.
+function compareShared(a, b) {
+  if (b.shared.venues !== a.shared.venues) return b.shared.venues - a.shared.venues
+  if (b.shared.connections !== a.shared.connections) return b.shared.connections - a.shared.connections
+  if (b.shared.skills !== a.shared.skills) return b.shared.skills - a.shared.skills
+  return b.shared.knowledgeAreas - a.shared.knowledgeAreas
+}
+
 async function getCommonGroundPeople(userId) {
   const myProfile = await prisma.profile.findUnique({
     where: { userId },
@@ -45,30 +54,32 @@ async function getCommonGroundPeople(userId) {
     },
   })
 
-  const people = profiles.map((p) => {
-    const sharedSkills = p.skills.filter((s) => mySkillIds.has(s.id)).length
-    const sharedKnowledgeAreas = p.knowledgeAreas.filter((k) => myKnowledgeAreaIds.has(k.id)).length
-    const theirVenueIds = new Set(p.experiences.map((e) => e.venueId))
-    const sharedVenues = [...theirVenueIds].filter((id) => myVenueIds.has(id)).length
-    const theirConnections = adjacency.get(p.userId) || new Set()
-    const mutualConnections = [...myConnections].filter((id) => theirConnections.has(id)).length
+  const people = profiles
+    .map((p) => {
+      const sharedSkills = p.skills.filter((s) => mySkillIds.has(s.id)).length
+      const sharedKnowledgeAreas = p.knowledgeAreas.filter((k) => myKnowledgeAreaIds.has(k.id)).length
+      const theirVenueIds = new Set(p.experiences.map((e) => e.venueId))
+      const sharedVenues = [...theirVenueIds].filter((id) => myVenueIds.has(id)).length
+      const theirConnections = adjacency.get(p.userId) || new Set()
+      const mutualConnections = [...myConnections].filter((id) => theirConnections.has(id)).length
 
-    return {
-      id: p.user.id,
-      email: p.user.email,
-      profile: formatProfile(p),
-      ...connectionStatusFor(statusByUserId, p.userId),
-      shared: {
-        skills: sharedSkills,
-        knowledgeAreas: sharedKnowledgeAreas,
-        venues: sharedVenues,
-        connections: mutualConnections,
-        total: sharedSkills + sharedKnowledgeAreas + sharedVenues + mutualConnections,
-      },
-    }
-  })
+      return {
+        id: p.user.id,
+        email: p.user.email,
+        profile: formatProfile(p),
+        ...connectionStatusFor(statusByUserId, p.userId),
+        shared: {
+          venues: sharedVenues,
+          connections: mutualConnections,
+          skills: sharedSkills,
+          knowledgeAreas: sharedKnowledgeAreas,
+          total: sharedSkills + sharedKnowledgeAreas + sharedVenues + mutualConnections,
+        },
+      }
+    })
+    .filter((person) => person.connectionStatus !== 'connected')
 
-  people.sort((a, b) => b.shared.total - a.shared.total)
+  people.sort(compareShared)
 
   return people
 }
@@ -94,15 +105,18 @@ router.get('/discover/people', async (req, res) => {
     orderBy: { firstName: 'asc' },
   })
 
-  const people = profiles.map((p) => ({
-    id: p.user.id,
-    email: p.user.email,
-    profile: formatProfile(p),
-    ...connectionStatusFor(statusByUserId, p.userId),
-  }))
+  const people = profiles
+    .map((p) => ({
+      id: p.user.id,
+      email: p.user.email,
+      profile: formatProfile(p),
+      ...connectionStatusFor(statusByUserId, p.userId),
+    }))
+    .filter((person) => person.connectionStatus !== 'connected')
 
   res.json({ lens, people })
 })
 
 module.exports = router
 module.exports.getCommonGroundPeople = getCommonGroundPeople
+module.exports.compareShared = compareShared

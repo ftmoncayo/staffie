@@ -1,13 +1,16 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
-const { getCommonGroundPeople } = require('./discover')
+const { getCommonGroundPeople, compareShared } = require('./discover')
 
 const router = express.Router()
 router.use(requireAuth)
 
 const SUGGESTION_LIMIT = 5
 const ACTIVITY_LIMIT = 50
+const SIGNUP_LIMIT = 20
+
+const zeroShared = { skills: 0, knowledgeAreas: 0, venues: 0, connections: 0, total: 0 }
 
 function formatActor(user) {
   if (!user) return null
@@ -53,7 +56,7 @@ router.get('/feed', async (req, res) => {
 
   const activities = orConditions.length
     ? await prisma.activity.findMany({
-        where: { OR: orConditions },
+        where: { type: { not: 'SIGNUP' }, OR: orConditions },
         include: {
           actorUser: { include: { profile: { include: { city: true } } } },
           venue: { select: { id: true, name: true } },
@@ -118,9 +121,34 @@ router.get('/feed', async (req, res) => {
   const favouritedFeed = feed.filter((a) => a.favourited)
   const restFeed = feed.filter((a) => !a.favourited)
 
-  const suggestions = (await getCommonGroundPeople(req.userId)).slice(0, SUGGESTION_LIMIT)
+  const commonGroundPeople = await getCommonGroundPeople(req.userId)
+  const sharedByUserId = new Map(commonGroundPeople.map((p) => [p.id, p.shared]))
 
-  res.json({ activities: [...favouritedFeed, ...restFeed], suggestions })
+  const signupActivitiesRaw = await prisma.activity.findMany({
+    where: { type: 'SIGNUP', actorUserId: { not: req.userId } },
+    include: { actorUser: { include: { profile: { include: { city: true } } } } },
+    orderBy: { createdAt: 'desc' },
+    take: SIGNUP_LIMIT,
+  })
+
+  const signupFeed = signupActivitiesRaw
+    .map((a) => ({
+      id: a.id,
+      type: a.type,
+      createdAt: a.createdAt,
+      favourited: false,
+      actor: formatActor(a.actorUser),
+      counterpart: null,
+      venue: null,
+      business: null,
+      shared: sharedByUserId.get(a.actorUserId) || zeroShared,
+    }))
+    .sort((a, b) => compareShared(a, b) || new Date(b.createdAt) - new Date(a.createdAt))
+    .map(({ shared, ...rest }) => rest)
+
+  const suggestions = commonGroundPeople.slice(0, SUGGESTION_LIMIT)
+
+  res.json({ activities: [...favouritedFeed, ...signupFeed, ...restFeed], suggestions })
 })
 
 module.exports = router

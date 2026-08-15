@@ -32,6 +32,17 @@ function activityContent(activity) {
   const { type, actor, counterpart, venue, business } = activity
 
   switch (type) {
+    case 'SIGNUP': {
+      const title = actor?.profile?.professionalTitle
+      const cityName = actor?.profile?.city?.name
+      return (
+        <>
+          <ActorLink user={actor} /> joined Staffie
+          {title ? ` as a ${title}` : ''}
+          {cityName ? ` in ${cityName}` : ''}
+        </>
+      )
+    }
     case 'CONNECTION_MADE':
       return (
         <>

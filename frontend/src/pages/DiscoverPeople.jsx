@@ -64,9 +64,6 @@ function DiscoverPeople() {
             <Link to="/connections" className="text-sm text-accent hover:text-accent-hover hover:underline">
               My connections
             </Link>
-            <Link to="/dashboard" className="text-sm text-accent hover:text-accent-hover hover:underline">
-              Back to dashboard
-            </Link>
           </div>
         </div>
 

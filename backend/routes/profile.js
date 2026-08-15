@@ -80,13 +80,17 @@ router.put('/', async (req, res) => {
         : null,
   }
 
+  const existingProfile = await prisma.profile.findUnique({ where: { userId: req.userId } })
+
   await prisma.profile.upsert({
     where: { userId: req.userId },
     create: { userId: req.userId, ...data },
     update: data,
   })
 
-  await prisma.activity.create({ data: { type: 'PROFILE_UPDATED', actorUserId: req.userId } })
+  await prisma.activity.create({
+    data: { type: existingProfile ? 'PROFILE_UPDATED' : 'SIGNUP', actorUserId: req.userId },
+  })
 
   const profile = await getOwnedProfile(req.userId)
   res.json({ profile })

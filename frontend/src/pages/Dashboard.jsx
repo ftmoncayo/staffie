@@ -97,12 +97,15 @@ function Dashboard() {
   }
 
   const feedItems = useMemo(() => {
-    const favouritedActivities = activities
-      .filter((a) => a.favourited)
+    // Favourited and SIGNUP activities are already placed in priority order by the
+    // backend (favourited-entity activity first, then common-ground-ranked signups) -
+    // preserve that order rather than re-sorting it in with everything else.
+    const pinnedActivities = activities
+      .filter((a) => a.favourited || a.type === 'SIGNUP')
       .map((a) => ({ kind: 'activity', id: `activity-${a.id}`, createdAt: a.createdAt, data: a }))
 
     const restActivities = activities
-      .filter((a) => !a.favourited)
+      .filter((a) => !a.favourited && a.type !== 'SIGNUP')
       .map((a) => ({ kind: 'activity', id: `activity-${a.id}`, createdAt: a.createdAt, data: a }))
 
     const postItems = posts.map((p) => ({ kind: 'post', id: `post-${p.id}`, createdAt: p.createdAt, data: p }))
@@ -111,7 +114,7 @@ function Dashboard() {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     )
 
-    return [...favouritedActivities, ...rest]
+    return [...pinnedActivities, ...rest]
   }, [activities, posts])
 
   return (
@@ -183,7 +186,7 @@ function Dashboard() {
 
         {suggestions.length > 0 && (
           <div className="rounded-lg border border-border bg-surface p-6">
-            <h2 className="text-xl font-semibold text-text">People you might know</h2>
+            <h2 className="text-xl font-semibold text-text">Your Industry</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {suggestions.map((person) => (
                 <PersonCard key={person.id} person={person}>

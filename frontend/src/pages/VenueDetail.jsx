@@ -167,7 +167,7 @@ function VenueDetail() {
           </div>
         )}
 
-        {!venue.canEdit && (
+        {!venue.canEdit && venue.managerCount === 0 && (
           <NominateManagerButton
             label="Request to manage this venue"
             onSubmit={(message) => api.nominateVenueManager(id, message)}

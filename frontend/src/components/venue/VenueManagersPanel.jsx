@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import { displayName } from '../../lib/displayName'
 
 async function fetchUserOptions(search) {
   const users = await api.fetchUsers(search)
@@ -88,9 +89,13 @@ function VenueManagersPanel({ venueId }) {
             key={manager.id}
             className="flex items-center justify-between rounded border border-border px-3 py-2"
           >
-            <span className="text-sm text-text">
-              {manager.user.email}
-              {!manager.verified && <span className="ml-2 text-xs text-text-faint">Unverified manager</span>}
+            <span className="flex items-center gap-2 text-sm text-text">
+              {displayName(manager.user)}
+              {!manager.verified && (
+                <span className="inline-flex items-center rounded-full bg-warning-bg px-2 py-0.5 text-xs font-medium text-warning">
+                  Unverified
+                </span>
+              )}
             </span>
             <div className="flex items-center gap-3">
               {!manager.verified && (

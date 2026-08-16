@@ -158,7 +158,7 @@ function BusinessDetail() {
           </div>
         )}
 
-        {!business.canEdit && (
+        {!business.canEdit && business.managerCount === 0 && (
           <NominateManagerButton
             label="Request to manage this business"
             onSubmit={(message) => api.nominateBusinessManager(id, message)}

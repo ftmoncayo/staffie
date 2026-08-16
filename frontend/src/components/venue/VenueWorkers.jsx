@@ -87,7 +87,7 @@ function VenueWorkers({ venueId }) {
 
   return (
     <div className="rounded-lg border border-border bg-surface p-6">
-      <h2 className="text-xl font-semibold text-text">People who've worked here</h2>
+      <h2 className="text-xl font-semibold text-text">Staff</h2>
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import Modal from '../Modal'
 
 function formatDate(value) {
   if (!value) return ''
@@ -32,7 +33,7 @@ function CertificationForm({ initial, onSubmit, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-border p-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -92,6 +93,7 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
   const [editingId, setEditingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState('')
+  const editingCert = certifications.find((cert) => cert.id === editingId) || null
 
   async function handleDelete(id) {
     setError('')
@@ -127,60 +129,61 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       <div className="mt-4 flex flex-col gap-3">
-        {certifications.map((cert) =>
-          editingId === cert.id ? (
-            <CertificationForm
-              key={cert.id}
-              initial={{
-                certificationType: cert.certificationType,
-                issueDate: formatDate(cert.issueDate),
-                expiryDate: formatDate(cert.expiryDate),
-              }}
-              onCancel={() => setEditingId(null)}
-              onSubmit={async (data) => {
-                await onUpdate(cert.id, data)
-                setEditingId(null)
-              }}
-            />
-          ) : (
-            <div key={cert.id} className="flex items-start justify-between rounded border border-border p-4">
-              <div>
-                <p className="font-medium text-text">{cert.certificationType?.name}</p>
-                <p className="text-sm text-text-faint">
-                  Issued {formatDate(cert.issueDate)}
-                  {cert.expiryDate ? ` · Expires ${formatDate(cert.expiryDate)}` : ''}
-                </p>
-              </div>
-              <div className="flex gap-3 text-sm">
-                <button onClick={() => setEditingId(cert.id)} className="text-accent hover:text-accent-hover hover:underline">
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(cert.id)}
-                  disabled={deletingId === cert.id}
-                  className="text-danger hover:underline disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              </div>
+        {certifications.map((cert) => (
+          <div key={cert.id} className="flex items-start justify-between rounded border border-border p-4">
+            <div>
+              <p className="font-medium text-text">{cert.certificationType?.name}</p>
+              <p className="text-sm text-text-faint">
+                Issued {formatDate(cert.issueDate)}
+                {cert.expiryDate ? ` · Expires ${formatDate(cert.expiryDate)}` : ''}
+              </p>
             </div>
-          ),
-        )}
+            <div className="flex gap-3 text-sm">
+              <button onClick={() => setEditingId(cert.id)} className="text-accent hover:text-accent-hover hover:underline">
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(cert.id)}
+                disabled={deletingId === cert.id}
+                className="text-danger hover:underline disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
 
-        {adding && (
-          <CertificationForm
-            onCancel={() => setAdding(false)}
-            onSubmit={async (data) => {
-              await onCreate(data)
-              setAdding(false)
-            }}
-          />
-        )}
-
-        {certifications.length === 0 && !adding && profile && (
+        {certifications.length === 0 && profile && (
           <p className="text-sm text-text-faint">No certifications added yet.</p>
         )}
       </div>
+
+      <Modal open={adding} onClose={() => setAdding(false)} title="Add certification">
+        <CertificationForm
+          onCancel={() => setAdding(false)}
+          onSubmit={async (data) => {
+            await onCreate(data)
+            setAdding(false)
+          }}
+        />
+      </Modal>
+
+      <Modal open={editingId != null} onClose={() => setEditingId(null)} title="Edit certification">
+        {editingCert && (
+          <CertificationForm
+            initial={{
+              certificationType: editingCert.certificationType,
+              issueDate: formatDate(editingCert.issueDate),
+              expiryDate: formatDate(editingCert.expiryDate),
+            }}
+            onCancel={() => setEditingId(null)}
+            onSubmit={async (data) => {
+              await onUpdate(editingCert.id, data)
+              setEditingId(null)
+            }}
+          />
+        )}
+      </Modal>
     </div>
   )
 }

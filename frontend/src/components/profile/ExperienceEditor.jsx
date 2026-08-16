@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 import VenueForm from '../venue/VenueForm'
+import Modal from '../Modal'
 
 const emptyForm = { venue: null, roleTitle: '', startDate: '', endDate: '', isCurrent: false }
 
@@ -56,96 +57,96 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-border p-4">
-      {error && <p className="text-sm text-danger">{error}</p>}
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        {error && <p className="text-sm text-danger">{error}</p>}
 
-      <label className="flex flex-col gap-1 text-sm text-text-muted">
-        Venue
-        <SearchCombobox
-          fetchOptions={api.fetchVenueOptions}
-          onCreate={handleVenueCreateRequest}
-          onSelect={(venue) => setForm({ ...form, venue })}
-          initialQuery={form.venue?.name || ''}
-          placeholder="Search or add a venue..."
-        />
-      </label>
-
-      {newVenueName !== null && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-text-muted">
-            This venue doesn't exist yet — it'll be created with the details you enter, but will be
-            locked from editing until it's verified by an admin or confirmed by its manager.
-          </p>
-          <VenueForm
-            initial={{ name: newVenueName }}
-            submitLabel="Create venue"
-            onSubmit={handleNewVenueSubmit}
-            onCancel={handleNewVenueCancel}
-            standalone={false}
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
+          Venue
+          <SearchCombobox
+            fetchOptions={api.fetchVenueOptions}
+            onCreate={handleVenueCreateRequest}
+            onSelect={(venue) => setForm({ ...form, venue })}
+            initialQuery={form.venue?.name || ''}
+            placeholder="Search or add a venue..."
           />
+        </label>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm text-text-muted">
+            Role title
+            <input
+              type="text"
+              required
+              value={form.roleTitle}
+              onChange={(e) => setForm({ ...form, roleTitle: e.target.value })}
+              className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-text-muted">
+            Start date
+            <input
+              type="date"
+              required
+              value={form.startDate}
+              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+              className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-text-muted">
+            End date
+            <input
+              type="date"
+              disabled={form.isCurrent}
+              value={form.endDate}
+              onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+              className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent disabled:bg-surface disabled:text-text-faint"
+            />
+          </label>
         </div>
-      )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Role title
+        <label className="flex items-center gap-2 text-sm text-text-muted">
           <input
-            type="text"
-            required
-            value={form.roleTitle}
-            onChange={(e) => setForm({ ...form, roleTitle: e.target.value })}
-            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+            type="checkbox"
+            checked={form.isCurrent}
+            onChange={(e) => setForm({ ...form, isCurrent: e.target.checked, endDate: '' })}
+            className="h-4 w-4 accent-accent"
           />
+          I currently work here
         </label>
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Start date
-          <input
-            type="date"
-            required
-            value={form.startDate}
-            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          End date
-          <input
-            type="date"
-            disabled={form.isCurrent}
-            value={form.endDate}
-            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent disabled:bg-surface disabled:text-text-faint"
-          />
-        </label>
-      </div>
 
-      <label className="flex items-center gap-2 text-sm text-text-muted">
-        <input
-          type="checkbox"
-          checked={form.isCurrent}
-          onChange={(e) => setForm({ ...form, isCurrent: e.target.checked, endDate: '' })}
-          className="h-4 w-4 accent-accent"
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+          >
+            {submitting ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded border border-border-strong px-4 py-2 text-sm text-text-muted hover:bg-surface-hover"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <Modal open={newVenueName !== null} onClose={handleNewVenueCancel} title="Create venue">
+        <p className="mb-3 text-sm text-text-muted">
+          This venue doesn't exist yet — it'll be created with the details you enter, but will be
+          locked from editing until it's verified by an admin or confirmed by its manager.
+        </p>
+        <VenueForm
+          initial={{ name: newVenueName || '' }}
+          submitLabel="Create venue"
+          onSubmit={handleNewVenueSubmit}
+          onCancel={handleNewVenueCancel}
+          standalone={false}
         />
-        I currently work here
-      </label>
-
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
-        >
-          {submitting ? 'Saving...' : 'Save'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded border border-border-strong px-4 py-2 text-sm text-text-muted hover:bg-surface-hover"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+      </Modal>
+    </>
   )
 }
 
@@ -154,6 +155,7 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete, 
   const [editingId, setEditingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState('')
+  const editingExp = experiences.find((exp) => exp.id === editingId) || null
 
   useEffect(() => {
     if (prefillVenue) setAdding(true)
@@ -193,65 +195,66 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete, 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       <div className="mt-4 flex flex-col gap-3">
-        {experiences.map((exp) =>
-          editingId === exp.id ? (
-            <ExperienceForm
-              key={exp.id}
-              initial={{
-                venue: exp.venue,
-                roleTitle: exp.roleTitle,
-                startDate: formatDate(exp.startDate),
-                endDate: formatDate(exp.endDate),
-                isCurrent: exp.isCurrent,
-              }}
-              onCancel={() => setEditingId(null)}
-              onSubmit={async (data) => {
-                await onUpdate(exp.id, data)
-                setEditingId(null)
-              }}
-            />
-          ) : (
-            <div key={exp.id} className="flex items-start justify-between rounded border border-border p-4">
-              <div>
-                <p className="font-medium text-text">{exp.roleTitle}</p>
-                <Link to={`/venues/${exp.venue.id}`} className="text-sm text-accent hover:text-accent-hover hover:underline">
-                  {exp.venue.name}
-                </Link>
-                <p className="text-sm text-text-faint">
-                  {formatDate(exp.startDate)} – {exp.isCurrent ? 'Current' : formatDate(exp.endDate) || '—'}
-                </p>
-              </div>
-              <div className="flex gap-3 text-sm">
-                <button onClick={() => setEditingId(exp.id)} className="text-accent hover:text-accent-hover hover:underline">
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(exp.id)}
-                  disabled={deletingId === exp.id}
-                  className="text-danger hover:underline disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              </div>
+        {experiences.map((exp) => (
+          <div key={exp.id} className="flex items-start justify-between rounded border border-border p-4">
+            <div>
+              <p className="font-medium text-text">{exp.roleTitle}</p>
+              <Link to={`/venues/${exp.venue.id}`} className="text-sm text-accent hover:text-accent-hover hover:underline">
+                {exp.venue.name}
+              </Link>
+              <p className="text-sm text-text-faint">
+                {formatDate(exp.startDate)} – {exp.isCurrent ? 'Current' : formatDate(exp.endDate) || '—'}
+              </p>
             </div>
-          ),
-        )}
+            <div className="flex gap-3 text-sm">
+              <button onClick={() => setEditingId(exp.id)} className="text-accent hover:text-accent-hover hover:underline">
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(exp.id)}
+                disabled={deletingId === exp.id}
+                className="text-danger hover:underline disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
 
-        {adding && (
-          <ExperienceForm
-            initial={prefillVenue ? { ...emptyForm, venue: prefillVenue } : undefined}
-            onCancel={() => setAdding(false)}
-            onSubmit={async (data) => {
-              await onCreate(data)
-              setAdding(false)
-            }}
-          />
-        )}
-
-        {experiences.length === 0 && !adding && profile && (
+        {experiences.length === 0 && profile && (
           <p className="text-sm text-text-faint">No experience added yet.</p>
         )}
       </div>
+
+      <Modal open={adding} onClose={() => setAdding(false)} title="Add experience">
+        <ExperienceForm
+          initial={prefillVenue ? { ...emptyForm, venue: prefillVenue } : undefined}
+          onCancel={() => setAdding(false)}
+          onSubmit={async (data) => {
+            await onCreate(data)
+            setAdding(false)
+          }}
+        />
+      </Modal>
+
+      <Modal open={editingId != null} onClose={() => setEditingId(null)} title="Edit experience">
+        {editingExp && (
+          <ExperienceForm
+            initial={{
+              venue: editingExp.venue,
+              roleTitle: editingExp.roleTitle,
+              startDate: formatDate(editingExp.startDate),
+              endDate: formatDate(editingExp.endDate),
+              isCurrent: editingExp.isCurrent,
+            }}
+            onCancel={() => setEditingId(null)}
+            onSubmit={async (data) => {
+              await onUpdate(editingExp.id, data)
+              setEditingId(null)
+            }}
+          />
+        )}
+      </Modal>
     </div>
   )
 }

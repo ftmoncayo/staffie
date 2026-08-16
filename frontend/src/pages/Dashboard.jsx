@@ -147,12 +147,12 @@ function Dashboard() {
             </Link>
             {(user?.isAdmin || user?.isVenueAdmin) && (
               <Link to="/admin/venues" className="text-accent hover:text-accent-hover hover:underline">
-                Unverified Venues{unverifiedVenueCount !== null ? ` (${unverifiedVenueCount})` : ''}
+                Venue Admin{unverifiedVenueCount !== null ? ` (${unverifiedVenueCount})` : ''}
               </Link>
             )}
             {user?.isAdmin && (
               <Link to="/admin/businesses" className="text-accent hover:text-accent-hover hover:underline">
-                Unverified Businesses
+                Business Admin
                 {unverifiedBusinessCount !== null ? ` (${unverifiedBusinessCount})` : ''}
               </Link>
             )}
@@ -218,24 +218,6 @@ function Dashboard() {
           </div>
         </form>
 
-        {suggestions.length > 0 && (
-          <div className="rounded-lg border border-border bg-surface p-6">
-            <h2 className="text-xl font-semibold text-text">Your Industry</h2>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {suggestions.map((person) => (
-                <PersonCard key={person.id} person={person}>
-                  <ConnectionButton
-                    status={person.connectionStatus}
-                    onConnect={() => handleConnect(person)}
-                    onAccept={() => handleAccept(person)}
-                    onDecline={() => handleDecline(person)}
-                  />
-                </PersonCard>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Activity</h2>
           {!loading && (
@@ -259,6 +241,24 @@ function Dashboard() {
             />
           )}
         </div>
+
+        {suggestions.length > 0 && (
+          <div className="rounded-lg border border-border bg-surface p-6">
+            <h2 className="text-xl font-semibold text-text">People in your industry</h2>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {suggestions.map((person) => (
+                <PersonCard key={person.id} person={person}>
+                  <ConnectionButton
+                    status={person.connectionStatus}
+                    onConnect={() => handleConnect(person)}
+                    onAccept={() => handleAccept(person)}
+                    onDecline={() => handleDecline(person)}
+                  />
+                </PersonCard>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

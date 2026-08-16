@@ -15,10 +15,13 @@ const venueInclude = {
   suburb: true,
   venueType: true,
   specialties: true,
+  _count: { select: { managers: true } },
 }
 
 function mapVenue(venue) {
-  return venue ? { ...venue, about: sanitize(venue.about) } : venue
+  if (!venue) return venue
+  const { _count, ...rest } = venue
+  return { ...rest, about: sanitize(venue.about), managerCount: _count?.managers ?? 0 }
 }
 
 function parseSpecialtyIds(specialtyIds) {
@@ -509,7 +512,7 @@ router.get('/venues/:id/managers', requireAdminOrVenueAdmin, async (req, res) =>
 
   const managers = await prisma.venueManager.findMany({
     where: { venueId: venue.id },
-    include: { user: { select: { id: true, email: true } } },
+    include: { user: { select: { id: true, email: true, profile: true } } },
     orderBy: { assignedAt: 'desc' },
   })
 

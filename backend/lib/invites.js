@@ -56,11 +56,7 @@ async function sendInvite({ inviterUserId, inviteeEmail, type, venueId = null, b
     const targetUrl = venue
       ? `${process.env.FRONTEND_URL}/venues/${venue.id}`
       : `${process.env.FRONTEND_URL}/businesses/${business.id}`
-    try {
-      await sendManagerNudgeEmail(normalizedEmail, { targetName, targetUrl })
-    } catch (err) {
-      console.error('Failed to send manager nudge email:', err)
-    }
+    await sendManagerNudgeEmail(normalizedEmail, { targetName, targetUrl })
     return { kind: 'nudge_email', message: 'This person already has a Staffie account. We emailed them a link to claim this page.' }
   }
 
@@ -78,11 +74,7 @@ async function sendInvite({ inviterUserId, inviteeEmail, type, venueId = null, b
   })
 
   const signupUrl = `${process.env.FRONTEND_URL}/signup?invite=${rawToken}`
-  try {
-    await sendInviteEmail(normalizedEmail, { type, inviterName, targetName, signupUrl })
-  } catch (err) {
-    console.error('Failed to send invite email:', err)
-  }
+  await sendInviteEmail(normalizedEmail, { type, inviterName, targetName, signupUrl })
 
   return { kind: 'invite_sent', message: 'An invite email was sent.', invite }
 }

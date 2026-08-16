@@ -13,10 +13,13 @@ const businessInclude = {
   category: true,
   country: true,
   locations: { include: { city: true } },
+  _count: { select: { managers: true } },
 }
 
 function mapBusiness(business) {
-  return business ? { ...business, about: sanitize(business.about) } : business
+  if (!business) return business
+  const { _count, ...rest } = business
+  return { ...rest, about: sanitize(business.about), managerCount: _count?.managers ?? 0 }
 }
 
 const LOCATION_SCOPES = ['SPECIFIC_CITIES', 'COUNTRY', 'GLOBAL']
@@ -404,7 +407,7 @@ router.get('/businesses/:id/managers', requireAdmin, async (req, res) => {
 
   const managers = await prisma.businessManager.findMany({
     where: { businessId: business.id },
-    include: { user: { select: { id: true, email: true } } },
+    include: { user: { select: { id: true, email: true, profile: true } } },
     orderBy: { assignedAt: 'desc' },
   })
 

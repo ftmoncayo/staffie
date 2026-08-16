@@ -8,10 +8,48 @@ router.use(requireAuth)
 
 const businessInclude = {
   category: true,
+  country: true,
+  locations: { include: { city: true } },
 }
 
 function mapBusiness(business) {
   return business ? { ...business, about: sanitize(business.about) } : business
+}
+
+const LOCATION_SCOPES = ['SPECIFIC_CITIES', 'COUNTRY', 'GLOBAL']
+
+async function resolveLocation(req, res) {
+  const { locationScope, cityIds, countryId } = req.body || {}
+  const scope = LOCATION_SCOPES.includes(locationScope) ? locationScope : 'SPECIFIC_CITIES'
+
+  if (scope === 'GLOBAL') {
+    return { ok: true, scope, countryId: null, cityIds: [] }
+  }
+
+  if (scope === 'COUNTRY') {
+    if (typeof countryId !== 'string' || !countryId.trim()) {
+      res.status(400).json({ error: 'Select a country' })
+      return { ok: false }
+    }
+    const country = await prisma.country.findUnique({ where: { id: countryId.trim() } })
+    if (!country) {
+      res.status(400).json({ error: 'Selected country was not found' })
+      return { ok: false }
+    }
+    return { ok: true, scope, countryId: country.id, cityIds: [] }
+  }
+
+  const ids = Array.isArray(cityIds) ? cityIds.filter((id) => typeof id === 'string' && id.trim()) : []
+  if (ids.length === 0) {
+    res.status(400).json({ error: 'Select at least one city' })
+    return { ok: false }
+  }
+  const cities = await prisma.city.findMany({ where: { id: { in: ids } } })
+  if (cities.length !== ids.length) {
+    res.status(400).json({ error: 'One or more selected cities were not found' })
+    return { ok: false }
+  }
+  return { ok: true, scope, countryId: null, cityIds: cities.map((c) => c.id) }
 }
 
 async function canEditBusiness(userId, businessId) {
@@ -89,12 +127,20 @@ router.post('/businesses', async (req, res) => {
     validatedCategoryId = category.id
   }
 
+  const location = await resolveLocation(req, res)
+  if (!location.ok) return
+
   const business = await prisma.business.create({
     data: {
       name: name.trim(),
       categoryId: validatedCategoryId,
       about: sanitize(about),
       createdByUserId: req.userId,
+      locationScope: location.scope,
+      countryId: location.countryId,
+      locations: location.cityIds.length
+        ? { create: location.cityIds.map((cityId) => ({ cityId })) }
+        : undefined,
     },
     include: businessInclude,
   })
@@ -123,13 +169,24 @@ router.put('/businesses/:id', requireBusinessEditor, async (req, res) => {
     validatedCategoryId = category.id
   }
 
-  const business = await prisma.business.update({
-    where: { id: existing.id },
-    data: {
-      name: name.trim(),
-      categoryId: validatedCategoryId,
-    },
-    include: businessInclude,
+  const location = await resolveLocation(req, res)
+  if (!location.ok) return
+
+  const business = await prisma.$transaction(async (tx) => {
+    await tx.businessLocation.deleteMany({ where: { businessId: existing.id } })
+    return tx.business.update({
+      where: { id: existing.id },
+      data: {
+        name: name.trim(),
+        categoryId: validatedCategoryId,
+        locationScope: location.scope,
+        countryId: location.countryId,
+        locations: location.cityIds.length
+          ? { create: location.cityIds.map((cityId) => ({ cityId })) }
+          : undefined,
+      },
+      include: businessInclude,
+    })
   })
 
   const canEdit = await canEditBusiness(req.userId, business.id)

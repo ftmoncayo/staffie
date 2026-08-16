@@ -8,6 +8,15 @@ import VerificationBadge from '../components/venue/VerificationBadge'
 import AboutSection from '../components/AboutSection'
 import NominateManagerButton from '../components/NominateManagerButton'
 
+function locationSummary(business) {
+  if (business.locationScope === 'GLOBAL') return 'Operates globally'
+  if (business.locationScope === 'COUNTRY') {
+    return business.country ? `Operates in: ${business.country.name}` : 'No country set yet'
+  }
+  const names = business.locations.map((l) => l.city.name)
+  return names.length ? `Operates in: ${names.join(', ')}` : 'No locations set yet'
+}
+
 function BusinessDetail() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -127,6 +136,10 @@ function BusinessDetail() {
               <div>
                 <dt className="text-sm text-text-faint">Category</dt>
                 <dd className="text-text">{business.category?.name || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-text-faint">Locations</dt>
+                <dd className="text-text">{locationSummary(business)}</dd>
               </div>
             </dl>
           </div>

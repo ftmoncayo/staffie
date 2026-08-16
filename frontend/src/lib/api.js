@@ -170,15 +170,28 @@ export function deleteCertification(id) {
   })
 }
 
+export async function fetchCountries(search) {
+  const data = await authRequest(`/api/countries?search=${encodeURIComponent(search || '')}`)
+  return data.countries
+}
+
+export async function createCountry(name) {
+  const data = await authRequest('/api/countries', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.country
+}
+
 export async function fetchCities(search) {
   const data = await authRequest(`/api/cities?search=${encodeURIComponent(search || '')}`)
   return data.cities
 }
 
-export async function createCity(name) {
+export async function createCity(name, countryId) {
   const data = await authRequest('/api/cities', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, countryId }),
   })
   return data.city
 }

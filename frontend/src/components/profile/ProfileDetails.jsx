@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 
@@ -7,11 +7,20 @@ function ProfileDetails({ profile, onSave }) {
   const [firstName, setFirstName] = useState(profile?.firstName || '')
   const [lastName, setLastName] = useState(profile?.lastName || '')
   const [city, setCity] = useState(profile?.city || null)
+  const [cityCountry, setCityCountry] = useState(profile?.city?.country || null)
   const [professionalTitle, setProfessionalTitle] = useState(profile?.professionalTitle || '')
   const [rightToWork, setRightToWork] = useState(profile?.rightToWork ?? false)
   const [culturalIdentity, setCulturalIdentity] = useState(profile?.culturalIdentity || '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  const handleCreateCity = useCallback(
+    (cityName) => {
+      if (!cityCountry) return Promise.reject(new Error('Select a country for the new city first'))
+      return api.createCity(cityName, cityCountry.id)
+    },
+    [cityCountry],
+  )
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -120,10 +129,21 @@ function ProfileDetails({ profile, onSave }) {
         City (e.g. Melbourne, Sydney, London)
         <SearchCombobox
           fetchOptions={api.fetchCities}
-          onCreate={api.createCity}
+          onCreate={handleCreateCity}
           onSelect={setCity}
           initialQuery={city?.name || ''}
           placeholder="Search for a city..."
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
+        City's country (only needed to add a new city)
+        <SearchCombobox
+          fetchOptions={api.fetchCountries}
+          onCreate={api.createCountry}
+          onSelect={setCityCountry}
+          initialQuery={cityCountry?.name || ''}
+          placeholder="Search for a country..."
         />
       </label>
 

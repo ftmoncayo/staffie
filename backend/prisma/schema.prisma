@@ -128,13 +128,23 @@ model Profile {
   certifications Certification[]
 }
 
+model Country {
+  id        String @id @default(uuid())
+  name      String @unique
+  cities    City[]
+  businesses Business[]
+}
+
 model City {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  profiles Profile[]
-  venues   Venue[]
-  suburbs  Suburb[]
-  posts    Post[]
+  id                String             @id @default(uuid())
+  name              String             @unique
+  countryId         String
+  country           Country            @relation(fields: [countryId], references: [id])
+  profiles          Profile[]
+  venues            Venue[]
+  suburbs           Suburb[]
+  posts             Post[]
+  businessLocations BusinessLocation[]
 }
 
 model Post {
@@ -262,6 +272,12 @@ enum BusinessVerificationStatus {
   VERIFIED
 }
 
+enum BusinessLocationScope {
+  SPECIFIC_CITIES
+  COUNTRY
+  GLOBAL
+}
+
 model Business {
   id                 String                     @id @default(uuid())
   name               String
@@ -269,6 +285,9 @@ model Business {
   category           BusinessCategory?          @relation(fields: [categoryId], references: [id])
   about              String?
   verificationStatus BusinessVerificationStatus @default(UNVERIFIED)
+  locationScope      BusinessLocationScope       @default(SPECIFIC_CITIES)
+  countryId          String?
+  country            Country?                   @relation(fields: [countryId], references: [id])
   createdByUserId    String
   createdByUser      User                       @relation(fields: [createdByUserId], references: [id])
   createdAt          DateTime                   @default(now())
@@ -276,6 +295,17 @@ model Business {
   managers   BusinessManager[]
   followers  BusinessFollow[]
   activities Activity[]
+  locations  BusinessLocation[]
+}
+
+model BusinessLocation {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  cityId     String
+  city       City     @relation(fields: [cityId], references: [id])
+
+  @@unique([businessId, cityId])
 }
 
 model BusinessManager {

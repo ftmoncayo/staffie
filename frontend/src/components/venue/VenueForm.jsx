@@ -8,6 +8,7 @@ const DEFAULT_CITY_NAME = 'Melbourne'
 function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalone = true, isEditing = false }) {
   const [name, setName] = useState(initial?.name || '')
   const [city, setCity] = useState(initial?.city || null)
+  const [cityCountry, setCityCountry] = useState(initial?.city?.country || null)
   const [suburb, setSuburb] = useState(initial?.suburb || null)
   const [state, setState] = useState(initial?.state || '')
   const [country, setCountry] = useState(initial?.country || '')
@@ -29,6 +30,14 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
     setCity(newCity)
     setSuburb(null)
   }
+
+  const handleCreateCity = useCallback(
+    (cityName) => {
+      if (!cityCountry) return Promise.reject(new Error('Select a country for the new city first'))
+      return api.createCity(cityName, cityCountry.id)
+    },
+    [cityCountry],
+  )
 
   const fetchSuburbOptions = useCallback(
     (search) => (city ? api.fetchSuburbs(city.id, search) : Promise.resolve([])),
@@ -99,10 +108,21 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
           City (e.g. Melbourne, Sydney, London)
           <SearchCombobox
             fetchOptions={api.fetchCities}
-            onCreate={api.createCity}
+            onCreate={handleCreateCity}
             onSelect={handleCityChange}
             initialQuery={city?.name || ''}
             placeholder="Search for a city..."
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
+          City's country (only needed to add a new city)
+          <SearchCombobox
+            fetchOptions={api.fetchCountries}
+            onCreate={api.createCountry}
+            onSelect={setCityCountry}
+            initialQuery={cityCountry?.name || ''}
+            placeholder="Search for a country..."
           />
         </label>
 

@@ -24,11 +24,35 @@ function validateName(req, res) {
   return name.trim()
 }
 
+// --- Countries ---
+
+router.get('/countries', async (req, res) => {
+  const countries = await prisma.country.findMany({
+    where: searchFilter(getSearch(req)),
+    orderBy: { name: 'asc' },
+    take: SEARCH_LIMIT,
+  })
+  res.json({ countries })
+})
+
+router.post('/countries', async (req, res) => {
+  const name = validateName(req, res)
+  if (!name) return
+
+  const country = await prisma.country.upsert({
+    where: { name },
+    create: { name },
+    update: {},
+  })
+  res.status(201).json({ country })
+})
+
 // --- Cities ---
 
 router.get('/cities', async (req, res) => {
   const cities = await prisma.city.findMany({
     where: searchFilter(getSearch(req)),
+    include: { country: true },
     orderBy: { name: 'asc' },
     take: SEARCH_LIMIT,
   })
@@ -36,13 +60,26 @@ router.get('/cities', async (req, res) => {
 })
 
 router.post('/cities', async (req, res) => {
-  const name = validateName(req, res)
-  if (!name) return
+  const { name, countryId } = req.body || {}
 
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Name is required' })
+  }
+  if (typeof countryId !== 'string' || !countryId.trim()) {
+    return res.status(400).json({ error: 'Select a country for this city' })
+  }
+
+  const country = await prisma.country.findUnique({ where: { id: countryId.trim() } })
+  if (!country) {
+    return res.status(400).json({ error: 'Selected country was not found' })
+  }
+
+  const trimmedName = name.trim()
   const city = await prisma.city.upsert({
-    where: { name },
-    create: { name },
+    where: { name: trimmedName },
+    create: { name: trimmedName, countryId: country.id },
     update: {},
+    include: { country: true },
   })
   res.status(201).json({ city })
 })

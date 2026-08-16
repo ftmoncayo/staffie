@@ -44,7 +44,7 @@ async function getCommonGroundPeople(userId) {
   const myConnections = adjacency.get(userId) || new Set()
 
   const profiles = await prisma.profile.findMany({
-    where: { userId: { not: userId } },
+    where: { userId: { not: userId }, user: { isBlocked: false } },
     include: {
       user: true,
       city: true,
@@ -100,7 +100,7 @@ router.get('/discover/people', async (req, res) => {
   const statusByUserId = await buildConnectionStatusMap(req.userId)
 
   const profiles = await prisma.profile.findMany({
-    where: { cityId: myProfile.cityId, userId: { not: req.userId } },
+    where: { cityId: myProfile.cityId, userId: { not: req.userId }, user: { isBlocked: false } },
     include: { user: true, city: true },
     orderBy: { firstName: 'asc' },
   })

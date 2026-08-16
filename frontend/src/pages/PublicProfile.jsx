@@ -76,6 +76,19 @@ function PublicProfile() {
     )
   }
 
+  if (data.unavailable) {
+    return (
+      <div className="min-h-screen bg-bg px-4 py-10">
+        <div className="mx-auto max-w-2xl">
+          <p className="text-sm text-text-faint">This profile is unavailable.</p>
+          <Link to="/discover" className="text-sm text-accent hover:text-accent-hover hover:underline">
+            Back to discover
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const { profile } = data
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ')
 

@@ -36,7 +36,7 @@ router.get('/posts', async (req, res) => {
   const cityId = typeof req.query.cityId === 'string' ? req.query.cityId.trim() : ''
 
   const posts = await prisma.post.findMany({
-    where: cityId ? { cityId } : undefined,
+    where: { ...(cityId ? { cityId } : {}), authorUser: { isBlocked: false } },
     include: postInclude,
     orderBy: { createdAt: 'desc' },
   })

@@ -31,6 +31,19 @@ function AdminUsers() {
     }
   }
 
+  async function handleToggleBlocked(user) {
+    setError('')
+    setUpdatingId(user.id)
+    try {
+      const updated = user.isBlocked ? await api.unblockUser(user.id) : await api.blockUser(user.id)
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, ...updated } : u)))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUpdatingId('')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -61,6 +74,7 @@ function AdminUsers() {
                 <th className="px-4 py-3 font-medium">Venue admin</th>
                 <th className="px-4 py-3 font-medium">Manages venues</th>
                 <th className="px-4 py-3 font-medium">Manages businesses</th>
+                <th className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -118,11 +132,28 @@ function AdminUsers() {
                         ))
                       : '—'}
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {user.isBlocked && <span className="text-xs text-danger">Blocked</span>}
+                      <button
+                        type="button"
+                        disabled={updatingId === user.id}
+                        onClick={() => handleToggleBlocked(user)}
+                        className={
+                          user.isBlocked
+                            ? 'rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover disabled:opacity-50'
+                            : 'rounded border border-danger px-3 py-1.5 text-sm text-danger hover:bg-danger/10 disabled:opacity-50'
+                        }
+                      >
+                        {user.isBlocked ? 'Unblock' : 'Block'}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {!loading && users.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-text-faint">
+                  <td colSpan={7} className="px-4 py-6 text-center text-text-faint">
                     No users found.
                   </td>
                 </tr>

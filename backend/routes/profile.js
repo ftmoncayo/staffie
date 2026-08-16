@@ -38,6 +38,11 @@ function parseDate(value) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+async function requesterIsAdmin(userId) {
+  const requester = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } })
+  return Boolean(requester?.isAdmin)
+}
+
 async function requireProfile(req, res, next) {
   const profile = await prisma.profile.findUnique({ where: { userId: req.userId } })
   if (!profile) {
@@ -116,6 +121,18 @@ router.put('/about', requireProfile, async (req, res) => {
 })
 
 router.get('/:userId', async (req, res) => {
+  const targetUser = await prisma.user.findUnique({
+    where: { id: req.params.userId },
+    select: { isBlocked: true },
+  })
+  if (!targetUser) {
+    return res.status(404).json({ error: 'Profile not found' })
+  }
+
+  if (targetUser.isBlocked && req.params.userId !== req.userId && !(await requesterIsAdmin(req.userId))) {
+    return res.json({ unavailable: true })
+  }
+
   const profile = await prisma.profile.findUnique({
     where: { userId: req.params.userId },
     include: profileInclude,
@@ -167,6 +184,14 @@ router.get('/:userId', async (req, res) => {
 })
 
 router.get('/:userId/activity', async (req, res) => {
+  const targetUser = await prisma.user.findUnique({
+    where: { id: req.params.userId },
+    select: { isBlocked: true },
+  })
+  if (targetUser?.isBlocked && req.params.userId !== req.userId && !(await requesterIsAdmin(req.userId))) {
+    return res.json({ activities: [] })
+  }
+
   const activities = await prisma.activity.findMany({
     where: { actorUserId: req.params.userId },
     include: { actorUser: { include: { profile: { include: { city: true } } } } },

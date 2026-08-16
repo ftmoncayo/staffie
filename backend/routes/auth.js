@@ -72,6 +72,10 @@ router.post('/login', async (req, res) => {
     return res.status(401).json(invalidMessage)
   }
 
+  if (user.isBlocked) {
+    return res.status(403).json({ error: 'This account is temporarily blocked' })
+  }
+
   const token = signToken(user)
   res.json({
     token,

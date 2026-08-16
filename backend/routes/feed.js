@@ -41,7 +41,10 @@ router.get('/feed', async (req, res) => {
 
   const activities = orConditions.length
     ? await prisma.activity.findMany({
-        where: { type: { not: 'SIGNUP' }, OR: orConditions },
+        where: {
+          type: { not: 'SIGNUP' },
+          AND: [{ OR: orConditions }, { OR: [{ actorUserId: null }, { actorUser: { isBlocked: false } }] }],
+        },
         include: {
           actorUser: { include: { profile: { include: { city: true } } } },
           venue: { select: { id: true, name: true } },
@@ -65,7 +68,7 @@ router.get('/feed', async (req, res) => {
   const sharedByUserId = new Map(commonGroundPeople.map((p) => [p.id, p.shared]))
 
   const signupActivitiesRaw = await prisma.activity.findMany({
-    where: { type: 'SIGNUP', actorUserId: { not: req.userId } },
+    where: { type: 'SIGNUP', actorUserId: { not: req.userId }, actorUser: { isBlocked: false } },
     include: { actorUser: { include: { profile: { include: { city: true } } } } },
     orderBy: { createdAt: 'desc' },
     take: SIGNUP_LIMIT,

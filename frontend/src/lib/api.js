@@ -579,3 +579,13 @@ export async function updateUserFlags(userId, flags) {
   })
   return data.user
 }
+
+export async function blockUser(userId) {
+  const data = await authRequest(`/api/admin/users/${userId}/block`, { method: 'PUT' })
+  return data.user
+}
+
+export async function unblockUser(userId) {
+  const data = await authRequest(`/api/admin/users/${userId}/unblock`, { method: 'PUT' })
+  return data.user
+}

@@ -87,6 +87,21 @@ async function isVenueManager(userId, venueId) {
   return Boolean(manager)
 }
 
+async function isVerifiedVenueManager(userId, venueId) {
+  const manager = await prisma.venueManager.findUnique({
+    where: { venueId_userId: { venueId, userId } },
+  })
+  return Boolean(manager?.verified)
+}
+
+// Admins, venue-admins, and existing verified managers of a venue can review and
+// resolve pending manager nominations for that venue.
+async function canManageVenueNominations(userId, venueId) {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (user?.isAdmin || user?.isVenueAdmin) return true
+  return isVerifiedVenueManager(userId, venueId)
+}
+
 async function requireVenueManager(req, res, next) {
   const allowed = await isVenueManager(req.userId, req.params.id)
   if (!allowed) {
@@ -134,10 +149,13 @@ router.get('/venues/:id', async (req, res) => {
   const canEdit = await canEditVenue(req.userId, venue.id)
   const isFollowing = await isFollowingVenue(req.userId, venue.id)
   const isManager = await isVenueManager(req.userId, venue.id)
+  const canManageNominations = await canManageVenueNominations(req.userId, venue.id)
   const hasExperienceHere = Boolean(
     await prisma.experience.findFirst({ where: { venueId: venue.id, profile: { userId: req.userId } } }),
   )
-  res.json({ venue: { ...mapVenue(venue), canEdit, isFollowing, isManager, hasExperienceHere } })
+  res.json({
+    venue: { ...mapVenue(venue), canEdit, isFollowing, isManager, canManageNominations, hasExperienceHere },
+  })
 })
 
 router.post('/venues', async (req, res) => {
@@ -266,7 +284,8 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
 
   const canEdit = await canEditVenue(req.userId, venue.id)
   const isManager = await isVenueManager(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit, isManager } })
+  const canManageNominations = await canManageVenueNominations(req.userId, venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isManager, canManageNominations } })
 })
 
 router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
@@ -305,7 +324,8 @@ router.put('/venues/:id/about', requireVenueEditor, async (req, res) => {
 
   const canEdit = await canEditVenue(req.userId, venue.id)
   const isManager = await isVenueManager(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit, isManager } })
+  const canManageNominations = await canManageVenueNominations(req.userId, venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isManager, canManageNominations } })
 })
 
 router.get('/venues/:id/workers', async (req, res) => {
@@ -627,6 +647,33 @@ router.get('/venues/manager-nominations/pending', requireAdminOrVenueAdmin, asyn
   })
 })
 
+router.get('/venues/:id/manager-nominations/pending', async (req, res) => {
+  const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!venue) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  const allowed = await canManageVenueNominations(req.userId, venue.id)
+  if (!allowed) {
+    return res.status(403).json({ error: 'You do not have permission to view these nominations' })
+  }
+
+  const nominations = await prisma.managerNomination.findMany({
+    where: { targetType: 'VENUE', targetId: venue.id, status: 'PENDING' },
+    include: { nomineeUser: { select: { id: true, email: true, profile: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  res.json({
+    nominations: nominations.map((n) => ({
+      id: n.id,
+      message: n.message,
+      createdAt: n.createdAt,
+      nominee: { id: n.nomineeUser.id, email: n.nomineeUser.email, name: displayName(n.nomineeUser) },
+    })),
+  })
+})
+
 router.put('/venues/manager-nominations/:nominationId/approve', async (req, res) => {
   const nomination = await prisma.managerNomination.findUnique({ where: { id: req.params.nominationId } })
   if (!nomination || nomination.targetType !== 'VENUE') {
@@ -636,11 +683,7 @@ router.put('/venues/manager-nominations/:nominationId/approve', async (req, res)
     return res.status(409).json({ error: 'Nomination has already been resolved' })
   }
 
-  const user = await prisma.user.findUnique({ where: { id: req.userId } })
-  const approverManager = await prisma.venueManager.findUnique({
-    where: { venueId_userId: { venueId: nomination.targetId, userId: req.userId } },
-  })
-  const allowed = user?.isAdmin || user?.isVenueAdmin || Boolean(approverManager?.verified)
+  const allowed = await canManageVenueNominations(req.userId, nomination.targetId)
   if (!allowed) {
     return res.status(403).json({ error: 'You do not have permission to approve this nomination' })
   }
@@ -664,13 +707,18 @@ router.put('/venues/manager-nominations/:nominationId/approve', async (req, res)
   res.json({ nomination: updated })
 })
 
-router.put('/venues/manager-nominations/:nominationId/decline', requireAdminOrVenueAdmin, async (req, res) => {
+router.put('/venues/manager-nominations/:nominationId/decline', async (req, res) => {
   const nomination = await prisma.managerNomination.findUnique({ where: { id: req.params.nominationId } })
   if (!nomination || nomination.targetType !== 'VENUE') {
     return res.status(404).json({ error: 'Nomination not found' })
   }
   if (nomination.status !== 'PENDING') {
     return res.status(409).json({ error: 'Nomination has already been resolved' })
+  }
+
+  const allowed = await canManageVenueNominations(req.userId, nomination.targetId)
+  if (!allowed) {
+    return res.status(403).json({ error: 'You do not have permission to decline this nomination' })
   }
 
   const existingManager = await prisma.venueManager.findUnique({

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import VenueForm from '../components/venue/VenueForm'
 import VerificationBadge from '../components/venue/VerificationBadge'
 import VenueManagersPanel from '../components/venue/VenueManagersPanel'
+import PendingManagerRequests from '../components/venue/PendingManagerRequests'
 import VenueWorkers from '../components/venue/VenueWorkers'
 import Tag from '../components/Tag'
 import AboutSection from '../components/AboutSection'
@@ -202,6 +203,8 @@ function VenueDetail() {
         </div>
 
         <VenueWorkers venueId={id} />
+
+        {venue.canManageNominations && <PendingManagerRequests venueId={id} />}
 
         {(user?.isAdmin || user?.isVenueAdmin) && <VenueManagersPanel venueId={id} />}
       </div>

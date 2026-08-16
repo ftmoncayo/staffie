@@ -351,6 +351,11 @@ export async function fetchVenueManagerNominations() {
   return data.nominations
 }
 
+export async function fetchVenueNominationsForVenue(venueId) {
+  const data = await authRequest(`/api/venues/${venueId}/manager-nominations/pending`)
+  return data.nominations
+}
+
 export function approveVenueManagerNomination(id) {
   return authRequest(`/api/venues/manager-nominations/${id}/approve`, { method: 'PUT' })
 }

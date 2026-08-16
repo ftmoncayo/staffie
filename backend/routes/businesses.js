@@ -171,6 +171,14 @@ router.post('/businesses', async (req, res) => {
     await prisma.businessManager.create({
       data: { businessId: business.id, userId: req.userId, assignedByUserId: req.userId, verified: false },
     })
+    await prisma.managerNomination.create({
+      data: {
+        targetType: 'BUSINESS',
+        targetId: business.id,
+        nomineeUserId: req.userId,
+        message: 'Declared themselves as manager while creating this business.',
+      },
+    })
   } else if (typeof managerEmail === 'string' && managerEmail.trim()) {
     sendInvite({
       inviterUserId: req.userId,
@@ -456,23 +464,6 @@ router.delete('/businesses/:id/managers/:userId', requireAdmin, async (req, res)
   res.status(204).end()
 })
 
-router.put('/businesses/:id/managers/:userId/confirm', requireAdmin, async (req, res) => {
-  const existingManager = await prisma.businessManager.findUnique({
-    where: { businessId_userId: { businessId: req.params.id, userId: req.params.userId } },
-  })
-  if (!existingManager) {
-    return res.status(404).json({ error: 'Manager assignment not found' })
-  }
-
-  const manager = await prisma.businessManager.update({
-    where: { id: existingManager.id },
-    data: { verified: true },
-    include: { user: { select: { id: true, email: true } } },
-  })
-
-  res.json({ manager })
-})
-
 // --- Manager nominations (self-nomination, admin approval) ---
 
 router.post('/businesses/:id/nominate-manager', async (req, res) => {
@@ -543,7 +534,9 @@ router.put('/businesses/manager-nominations/:nominationId/approve', requireAdmin
   const existingManager = await prisma.businessManager.findUnique({
     where: { businessId_userId: { businessId: nomination.targetId, userId: nomination.nomineeUserId } },
   })
-  if (!existingManager) {
+  if (existingManager) {
+    await prisma.businessManager.update({ where: { id: existingManager.id }, data: { verified: true } })
+  } else {
     await prisma.businessManager.create({
       data: { businessId: nomination.targetId, userId: nomination.nomineeUserId, assignedByUserId: req.userId },
     })
@@ -564,6 +557,13 @@ router.put('/businesses/manager-nominations/:nominationId/decline', requireAdmin
   }
   if (nomination.status !== 'PENDING') {
     return res.status(409).json({ error: 'Nomination has already been resolved' })
+  }
+
+  const existingManager = await prisma.businessManager.findUnique({
+    where: { businessId_userId: { businessId: nomination.targetId, userId: nomination.nomineeUserId } },
+  })
+  if (existingManager) {
+    await prisma.businessManager.delete({ where: { id: existingManager.id } })
   }
 
   const updated = await prisma.managerNomination.update({

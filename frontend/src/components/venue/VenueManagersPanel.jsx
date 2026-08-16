@@ -13,7 +13,6 @@ function VenueManagersPanel({ venueId }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [removingId, setRemovingId] = useState('')
-  const [confirmingId, setConfirmingId] = useState('')
 
   function refresh() {
     return api.fetchVenueManagers(venueId).then(setManagers)
@@ -45,19 +44,6 @@ function VenueManagersPanel({ venueId }) {
       setError(err.message)
     } finally {
       setRemovingId('')
-    }
-  }
-
-  async function handleConfirm(userId) {
-    setError('')
-    setConfirmingId(userId)
-    try {
-      await api.confirmVenueManager(venueId, userId)
-      await refresh()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setConfirmingId('')
     }
   }
 
@@ -98,16 +84,6 @@ function VenueManagersPanel({ venueId }) {
               )}
             </span>
             <div className="flex items-center gap-3">
-              {!manager.verified && (
-                <button
-                  type="button"
-                  disabled={confirmingId === manager.user.id}
-                  onClick={() => handleConfirm(manager.user.id)}
-                  className="text-sm text-accent hover:underline disabled:opacity-50"
-                >
-                  Confirm manager
-                </button>
-              )}
               <button
                 type="button"
                 disabled={removingId === manager.user.id}

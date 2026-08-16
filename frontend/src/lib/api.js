@@ -339,13 +339,6 @@ export function removeVenueManager(venueId, userId) {
   })
 }
 
-export async function confirmVenueManager(venueId, userId) {
-  const data = await authRequest(`/api/venues/${venueId}/managers/${userId}/confirm`, {
-    method: 'PUT',
-  })
-  return data.manager
-}
-
 export function nominateVenueManager(venueId, message) {
   return authRequest(`/api/venues/${venueId}/nominate-manager`, {
     method: 'POST',
@@ -553,13 +546,6 @@ export function removeBusinessManager(businessId, userId) {
   return authRequest(`/api/businesses/${businessId}/managers/${userId}`, {
     method: 'DELETE',
   })
-}
-
-export async function confirmBusinessManager(businessId, userId) {
-  const data = await authRequest(`/api/businesses/${businessId}/managers/${userId}/confirm`, {
-    method: 'PUT',
-  })
-  return data.manager
 }
 
 export function nominateBusinessManager(businessId, message) {

@@ -191,6 +191,14 @@ router.post('/venues', async (req, res) => {
     await prisma.venueManager.create({
       data: { venueId: venue.id, userId: req.userId, assignedByUserId: req.userId, verified: false },
     })
+    await prisma.managerNomination.create({
+      data: {
+        targetType: 'VENUE',
+        targetId: venue.id,
+        nomineeUserId: req.userId,
+        message: 'Declared themselves as manager while creating this venue.',
+      },
+    })
   } else if (typeof managerEmail === 'string' && managerEmail.trim()) {
     sendInvite({
       inviterUserId: req.userId,
@@ -561,24 +569,7 @@ router.delete('/venues/:id/managers/:userId', requireAdminOrVenueAdmin, async (r
   res.status(204).end()
 })
 
-router.put('/venues/:id/managers/:userId/confirm', requireAdminOrVenueAdmin, async (req, res) => {
-  const existingManager = await prisma.venueManager.findUnique({
-    where: { venueId_userId: { venueId: req.params.id, userId: req.params.userId } },
-  })
-  if (!existingManager) {
-    return res.status(404).json({ error: 'Manager assignment not found' })
-  }
-
-  const manager = await prisma.venueManager.update({
-    where: { id: existingManager.id },
-    data: { verified: true },
-    include: { user: { select: { id: true, email: true } } },
-  })
-
-  res.json({ manager })
-})
-
-// --- Manager nominations (self-nomination, admin or venue-admin approval) ---
+// --- Manager nominations (self-nomination, admin/venue-admin/existing-manager approval) ---
 
 router.post('/venues/:id/nominate-manager', async (req, res) => {
   const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
@@ -636,7 +627,7 @@ router.get('/venues/manager-nominations/pending', requireAdminOrVenueAdmin, asyn
   })
 })
 
-router.put('/venues/manager-nominations/:nominationId/approve', requireAdminOrVenueAdmin, async (req, res) => {
+router.put('/venues/manager-nominations/:nominationId/approve', async (req, res) => {
   const nomination = await prisma.managerNomination.findUnique({ where: { id: req.params.nominationId } })
   if (!nomination || nomination.targetType !== 'VENUE') {
     return res.status(404).json({ error: 'Nomination not found' })
@@ -645,10 +636,21 @@ router.put('/venues/manager-nominations/:nominationId/approve', requireAdminOrVe
     return res.status(409).json({ error: 'Nomination has already been resolved' })
   }
 
+  const user = await prisma.user.findUnique({ where: { id: req.userId } })
+  const approverManager = await prisma.venueManager.findUnique({
+    where: { venueId_userId: { venueId: nomination.targetId, userId: req.userId } },
+  })
+  const allowed = user?.isAdmin || user?.isVenueAdmin || Boolean(approverManager?.verified)
+  if (!allowed) {
+    return res.status(403).json({ error: 'You do not have permission to approve this nomination' })
+  }
+
   const existingManager = await prisma.venueManager.findUnique({
     where: { venueId_userId: { venueId: nomination.targetId, userId: nomination.nomineeUserId } },
   })
-  if (!existingManager) {
+  if (existingManager) {
+    await prisma.venueManager.update({ where: { id: existingManager.id }, data: { verified: true } })
+  } else {
     await prisma.venueManager.create({
       data: { venueId: nomination.targetId, userId: nomination.nomineeUserId, assignedByUserId: req.userId },
     })
@@ -669,6 +671,13 @@ router.put('/venues/manager-nominations/:nominationId/decline', requireAdminOrVe
   }
   if (nomination.status !== 'PENDING') {
     return res.status(409).json({ error: 'Nomination has already been resolved' })
+  }
+
+  const existingManager = await prisma.venueManager.findUnique({
+    where: { venueId_userId: { venueId: nomination.targetId, userId: nomination.nomineeUserId } },
+  })
+  if (existingManager) {
+    await prisma.venueManager.delete({ where: { id: existingManager.id } })
   }
 
   const updated = await prisma.managerNomination.update({

@@ -132,7 +132,7 @@ function App() {
         <Route
           path="/admin/venues"
           element={
-            <AdminRoute>
+            <AdminRoute allowVenueAdmin>
               <AdminVenues />
             </AdminRoute>
           }

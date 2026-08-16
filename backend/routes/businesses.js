@@ -277,4 +277,105 @@ router.delete('/businesses/:id/managers/:userId', requireAdmin, async (req, res)
   res.status(204).end()
 })
 
+// --- Manager nominations (self-nomination, admin approval) ---
+
+router.post('/businesses/:id/nominate-manager', async (req, res) => {
+  const business = await prisma.business.findUnique({ where: { id: req.params.id } })
+  if (!business) {
+    return res.status(404).json({ error: 'Business not found' })
+  }
+
+  const { message } = req.body || {}
+  if (typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Please include a message with your contact details' })
+  }
+
+  const alreadyManager = await prisma.businessManager.findUnique({
+    where: { businessId_userId: { businessId: business.id, userId: req.userId } },
+  })
+  if (alreadyManager) {
+    return res.status(400).json({ error: 'You already manage this business' })
+  }
+
+  const existingPending = await prisma.managerNomination.findFirst({
+    where: { targetType: 'BUSINESS', targetId: business.id, nomineeUserId: req.userId, status: 'PENDING' },
+  })
+  if (existingPending) {
+    return res.status(409).json({ error: 'You already have a pending request for this business' })
+  }
+
+  const nomination = await prisma.managerNomination.create({
+    data: { targetType: 'BUSINESS', targetId: business.id, nomineeUserId: req.userId, message: message.trim() },
+  })
+
+  res.status(201).json({ nomination })
+})
+
+router.get('/businesses/manager-nominations/pending', requireAdmin, async (req, res) => {
+  const nominations = await prisma.managerNomination.findMany({
+    where: { targetType: 'BUSINESS', status: 'PENDING' },
+    include: { nomineeUser: { select: { id: true, email: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  const businessIds = [...new Set(nominations.map((n) => n.targetId))]
+  const businesses = businessIds.length
+    ? await prisma.business.findMany({ where: { id: { in: businessIds } }, select: { id: true, name: true } })
+    : []
+  const businessById = new Map(businesses.map((b) => [b.id, b]))
+
+  res.json({
+    nominations: nominations.map((n) => ({
+      id: n.id,
+      message: n.message,
+      createdAt: n.createdAt,
+      nominee: n.nomineeUser,
+      target: businessById.get(n.targetId) || null,
+    })),
+  })
+})
+
+router.put('/businesses/manager-nominations/:nominationId/approve', requireAdmin, async (req, res) => {
+  const nomination = await prisma.managerNomination.findUnique({ where: { id: req.params.nominationId } })
+  if (!nomination || nomination.targetType !== 'BUSINESS') {
+    return res.status(404).json({ error: 'Nomination not found' })
+  }
+  if (nomination.status !== 'PENDING') {
+    return res.status(409).json({ error: 'Nomination has already been resolved' })
+  }
+
+  const existingManager = await prisma.businessManager.findUnique({
+    where: { businessId_userId: { businessId: nomination.targetId, userId: nomination.nomineeUserId } },
+  })
+  if (!existingManager) {
+    await prisma.businessManager.create({
+      data: { businessId: nomination.targetId, userId: nomination.nomineeUserId, assignedByUserId: req.userId },
+    })
+  }
+
+  const updated = await prisma.managerNomination.update({
+    where: { id: nomination.id },
+    data: { status: 'APPROVED', respondedByUserId: req.userId, respondedAt: new Date() },
+  })
+
+  res.json({ nomination: updated })
+})
+
+router.put('/businesses/manager-nominations/:nominationId/decline', requireAdmin, async (req, res) => {
+  const nomination = await prisma.managerNomination.findUnique({ where: { id: req.params.nominationId } })
+  if (!nomination || nomination.targetType !== 'BUSINESS') {
+    return res.status(404).json({ error: 'Nomination not found' })
+  }
+  if (nomination.status !== 'PENDING') {
+    return res.status(409).json({ error: 'Nomination has already been resolved' })
+  }
+
+  const updated = await prisma.managerNomination.update({
+    where: { id: nomination.id },
+    data: { status: 'DECLINED', respondedByUserId: req.userId, respondedAt: new Date() },
+  })
+
+  res.json({ nomination: updated })
+})
+
 module.exports = router

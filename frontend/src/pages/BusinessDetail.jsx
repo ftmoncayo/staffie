@@ -6,6 +6,7 @@ import BusinessForm from '../components/business/BusinessForm'
 import BusinessManagersPanel from '../components/business/BusinessManagersPanel'
 import VerificationBadge from '../components/venue/VerificationBadge'
 import AboutSection from '../components/AboutSection'
+import NominateManagerButton from '../components/NominateManagerButton'
 
 function BusinessDetail() {
   const { id } = useParams()
@@ -129,6 +130,13 @@ function BusinessDetail() {
               </div>
             </dl>
           </div>
+        )}
+
+        {!business.canEdit && (
+          <NominateManagerButton
+            label="Request to manage this business"
+            onSubmit={(message) => api.nominateBusinessManager(id, message)}
+          />
         )}
 
         <AboutSection

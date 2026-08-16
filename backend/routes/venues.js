@@ -417,4 +417,105 @@ router.delete('/venues/:id/managers/:userId', requireAdmin, async (req, res) => 
   res.status(204).end()
 })
 
+// --- Manager nominations (self-nomination, admin or venue-admin approval) ---
+
+router.post('/venues/:id/nominate-manager', async (req, res) => {
+  const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!venue) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  const { message } = req.body || {}
+  if (typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Please include a message with your contact details' })
+  }
+
+  const alreadyManager = await prisma.venueManager.findUnique({
+    where: { venueId_userId: { venueId: venue.id, userId: req.userId } },
+  })
+  if (alreadyManager) {
+    return res.status(400).json({ error: 'You already manage this venue' })
+  }
+
+  const existingPending = await prisma.managerNomination.findFirst({
+    where: { targetType: 'VENUE', targetId: venue.id, nomineeUserId: req.userId, status: 'PENDING' },
+  })
+  if (existingPending) {
+    return res.status(409).json({ error: 'You already have a pending request for this venue' })
+  }
+
+  const nomination = await prisma.managerNomination.create({
+    data: { targetType: 'VENUE', targetId: venue.id, nomineeUserId: req.userId, message: message.trim() },
+  })
+
+  res.status(201).json({ nomination })
+})
+
+router.get('/venues/manager-nominations/pending', requireAdminOrVenueAdmin, async (req, res) => {
+  const nominations = await prisma.managerNomination.findMany({
+    where: { targetType: 'VENUE', status: 'PENDING' },
+    include: { nomineeUser: { select: { id: true, email: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  const venueIds = [...new Set(nominations.map((n) => n.targetId))]
+  const venues = venueIds.length
+    ? await prisma.venue.findMany({ where: { id: { in: venueIds } }, select: { id: true, name: true } })
+    : []
+  const venueById = new Map(venues.map((v) => [v.id, v]))
+
+  res.json({
+    nominations: nominations.map((n) => ({
+      id: n.id,
+      message: n.message,
+      createdAt: n.createdAt,
+      nominee: n.nomineeUser,
+      target: venueById.get(n.targetId) || null,
+    })),
+  })
+})
+
+router.put('/venues/manager-nominations/:nominationId/approve', requireAdminOrVenueAdmin, async (req, res) => {
+  const nomination = await prisma.managerNomination.findUnique({ where: { id: req.params.nominationId } })
+  if (!nomination || nomination.targetType !== 'VENUE') {
+    return res.status(404).json({ error: 'Nomination not found' })
+  }
+  if (nomination.status !== 'PENDING') {
+    return res.status(409).json({ error: 'Nomination has already been resolved' })
+  }
+
+  const existingManager = await prisma.venueManager.findUnique({
+    where: { venueId_userId: { venueId: nomination.targetId, userId: nomination.nomineeUserId } },
+  })
+  if (!existingManager) {
+    await prisma.venueManager.create({
+      data: { venueId: nomination.targetId, userId: nomination.nomineeUserId, assignedByUserId: req.userId },
+    })
+  }
+
+  const updated = await prisma.managerNomination.update({
+    where: { id: nomination.id },
+    data: { status: 'APPROVED', respondedByUserId: req.userId, respondedAt: new Date() },
+  })
+
+  res.json({ nomination: updated })
+})
+
+router.put('/venues/manager-nominations/:nominationId/decline', requireAdminOrVenueAdmin, async (req, res) => {
+  const nomination = await prisma.managerNomination.findUnique({ where: { id: req.params.nominationId } })
+  if (!nomination || nomination.targetType !== 'VENUE') {
+    return res.status(404).json({ error: 'Nomination not found' })
+  }
+  if (nomination.status !== 'PENDING') {
+    return res.status(409).json({ error: 'Nomination has already been resolved' })
+  }
+
+  const updated = await prisma.managerNomination.update({
+    where: { id: nomination.id },
+    data: { status: 'DECLINED', respondedByUserId: req.userId, respondedAt: new Date() },
+  })
+
+  res.json({ nomination: updated })
+})
+
 module.exports = router

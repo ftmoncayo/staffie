@@ -8,6 +8,7 @@ import VenueManagersPanel from '../components/venue/VenueManagersPanel'
 import VenueWorkers from '../components/venue/VenueWorkers'
 import Tag from '../components/Tag'
 import AboutSection from '../components/AboutSection'
+import NominateManagerButton from '../components/NominateManagerButton'
 
 function VenueDetail() {
   const { id } = useParams()
@@ -142,6 +143,13 @@ function VenueDetail() {
               </dd>
             </div>
           </div>
+        )}
+
+        {!venue.canEdit && (
+          <NominateManagerButton
+            label="Request to manage this venue"
+            onSubmit={(message) => api.nominateVenueManager(id, message)}
+          />
         )}
 
         <AboutSection

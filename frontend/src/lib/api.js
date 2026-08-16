@@ -318,6 +318,26 @@ export function removeVenueManager(venueId, userId) {
   })
 }
 
+export function nominateVenueManager(venueId, message) {
+  return authRequest(`/api/venues/${venueId}/nominate-manager`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  })
+}
+
+export async function fetchVenueManagerNominations() {
+  const data = await authRequest('/api/venues/manager-nominations/pending')
+  return data.nominations
+}
+
+export function approveVenueManagerNomination(id) {
+  return authRequest(`/api/venues/manager-nominations/${id}/approve`, { method: 'PUT' })
+}
+
+export function declineVenueManagerNomination(id) {
+  return authRequest(`/api/venues/manager-nominations/${id}/decline`, { method: 'PUT' })
+}
+
 export async function fetchVenueWorkers(venueId) {
   const data = await authRequest(`/api/venues/${venueId}/workers`)
   return data
@@ -471,6 +491,26 @@ export function removeBusinessManager(businessId, userId) {
   return authRequest(`/api/businesses/${businessId}/managers/${userId}`, {
     method: 'DELETE',
   })
+}
+
+export function nominateBusinessManager(businessId, message) {
+  return authRequest(`/api/businesses/${businessId}/nominate-manager`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  })
+}
+
+export async function fetchBusinessManagerNominations() {
+  const data = await authRequest('/api/businesses/manager-nominations/pending')
+  return data.nominations
+}
+
+export function approveBusinessManagerNomination(id) {
+  return authRequest(`/api/businesses/manager-nominations/${id}/approve`, { method: 'PUT' })
+}
+
+export function declineBusinessManagerNomination(id) {
+  return authRequest(`/api/businesses/manager-nominations/${id}/decline`, { method: 'PUT' })
 }
 
 export function fetchFeed() {

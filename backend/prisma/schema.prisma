@@ -26,6 +26,9 @@ model User {
   assignedVenueManagers VenueManager[]       @relation("VenueManagerAssignedBy")
   passwordResetTokens   PasswordResetToken[]
 
+  managerNominations         ManagerNomination[] @relation("ManagerNominationNominee")
+  respondedManagerNominations ManagerNomination[] @relation("ManagerNominationRespondedBy")
+
   sentConnectionRequests     ConnectionRequest[] @relation("ConnectionRequestFrom")
   receivedConnectionRequests ConnectionRequest[] @relation("ConnectionRequestTo")
 
@@ -298,4 +301,29 @@ model BusinessFollow {
   createdAt   DateTime @default(now())
 
   @@unique([userId, businessId])
+}
+
+enum ManagerTargetType {
+  VENUE
+  BUSINESS
+}
+
+enum NominationStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model ManagerNomination {
+  id                String            @id @default(uuid())
+  targetType        ManagerTargetType
+  targetId          String
+  nomineeUserId     String
+  nomineeUser       User              @relation("ManagerNominationNominee", fields: [nomineeUserId], references: [id], onDelete: Cascade)
+  message           String
+  status            NominationStatus  @default(PENDING)
+  createdAt         DateTime          @default(now())
+  respondedByUserId String?
+  respondedByUser   User?             @relation("ManagerNominationRespondedBy", fields: [respondedByUserId], references: [id])
+  respondedAt       DateTime?
 }

@@ -127,7 +127,7 @@ function Dashboard() {
             <Link to="/connections/requests" className="text-accent hover:text-accent-hover hover:underline">
               Connection requests
             </Link>
-            {user?.isAdmin && (
+            {(user?.isAdmin || user?.isVenueAdmin) && (
               <Link to="/admin/venues" className="text-accent hover:text-accent-hover hover:underline">
                 Admin
               </Link>

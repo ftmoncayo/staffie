@@ -2,6 +2,7 @@ const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth, requireAdmin } = require('../middleware/auth')
 const { sanitize } = require('../lib/sanitizeHtml')
+const { displayName } = require('../lib/displayName')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -199,13 +200,18 @@ router.put('/businesses/:id/verify', requireAdmin, async (req, res) => {
     return res.status(404).json({ error: 'Business not found' })
   }
 
+  const { verified } = req.body || {}
+  const nextStatus = verified === false ? 'UNVERIFIED' : 'VERIFIED'
+
   const business = await prisma.business.update({
     where: { id: existing.id },
-    data: { verificationStatus: 'VERIFIED' },
+    data: { verificationStatus: nextStatus },
     include: businessInclude,
   })
 
-  await prisma.activity.create({ data: { type: 'BUSINESS_VERIFIED', businessId: business.id } })
+  if (nextStatus === 'VERIFIED' && existing.verificationStatus !== 'VERIFIED') {
+    await prisma.activity.create({ data: { type: 'BUSINESS_VERIFIED', businessId: business.id } })
+  }
 
   const canEdit = await canEditBusiness(req.userId, business.id)
   res.json({ business: { ...mapBusiness(business), canEdit } })
@@ -272,6 +278,47 @@ router.put('/businesses/:id/favourite', async (req, res) => {
   })
 
   res.json({ isFollowing: true, isFavourite: follow.isFavourite })
+})
+
+// --- Admin listing (admin-only) ---
+
+router.get('/admin/businesses', requireAdmin, async (req, res) => {
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
+
+  const businesses = await prisma.business.findMany({
+    where: search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { category: { name: { contains: search, mode: 'insensitive' } } },
+          ],
+        }
+      : undefined,
+    include: {
+      category: true,
+      country: true,
+      locations: { include: { city: true } },
+      managers: { include: { user: { include: { profile: true } } } },
+      followers: true,
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  res.json({
+    businesses: businesses.map((b) => ({
+      id: b.id,
+      name: b.name,
+      verificationStatus: b.verificationStatus,
+      category: b.category,
+      locationScope: b.locationScope,
+      country: b.country,
+      locations: b.locations.map((l) => l.city),
+      managerCount: b.managers.length,
+      followerCount: b.followers.length,
+      favouriteCount: b.followers.filter((f) => f.isFavourite).length,
+      managers: b.managers.map((m) => ({ id: m.user.id, name: displayName(m.user) })),
+    })),
+  })
 })
 
 // --- Business managers (admin-only) ---

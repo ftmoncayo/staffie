@@ -4,7 +4,7 @@ import SearchCombobox from '../SearchCombobox'
 
 async function fetchUserOptions(search) {
   const users = await api.fetchUsers(search)
-  return users.map((u) => ({ id: u.id, name: u.email }))
+  return users.map((u) => ({ id: u.id, name: u.name }))
 }
 
 function VenueManagersPanel({ venueId }) {
@@ -61,7 +61,7 @@ function VenueManagersPanel({ venueId }) {
           onSelect={handleAdd}
           allowCreate={false}
           clearOnSelect
-          placeholder="Search users by email..."
+          placeholder="Search users by name..."
         />
       </div>
 

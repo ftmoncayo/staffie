@@ -21,6 +21,8 @@ function Dashboard() {
   const [postError, setPostError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [unverifiedVenueCount, setUnverifiedVenueCount] = useState(null)
+  const [unverifiedBusinessCount, setUnverifiedBusinessCount] = useState(null)
 
   useEffect(() => {
     api
@@ -39,6 +41,17 @@ function Dashboard() {
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (user?.isAdmin || user?.isVenueAdmin) {
+      api.fetchVenues({ status: 'UNVERIFIED' }).then((venues) => setUnverifiedVenueCount(venues.length))
+    }
+    if (user?.isAdmin) {
+      api
+        .fetchBusinesses({ status: 'UNVERIFIED' })
+        .then((businesses) => setUnverifiedBusinessCount(businesses.length))
+    }
+  }, [user])
 
   useEffect(() => {
     if (!cityFilter) {
@@ -129,12 +142,13 @@ function Dashboard() {
             </Link>
             {(user?.isAdmin || user?.isVenueAdmin) && (
               <Link to="/admin/venues" className="text-accent hover:text-accent-hover hover:underline">
-                Admin
+                Unverified Venues{unverifiedVenueCount !== null ? ` (${unverifiedVenueCount})` : ''}
               </Link>
             )}
             {user?.isAdmin && (
               <Link to="/admin/businesses" className="text-accent hover:text-accent-hover hover:underline">
-                Unverified businesses
+                Unverified Businesses
+                {unverifiedBusinessCount !== null ? ` (${unverifiedBusinessCount})` : ''}
               </Link>
             )}
             {user?.isAdmin && (

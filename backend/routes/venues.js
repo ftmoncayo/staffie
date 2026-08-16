@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma')
 const { requireAuth, requireAdmin, requireAdminOrVenueAdmin } = require('../middleware/auth')
 const { sanitize } = require('../lib/sanitizeHtml')
 const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
+const { displayName } = require('../lib/displayName')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -225,13 +226,18 @@ router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
     return res.status(404).json({ error: 'Venue not found' })
   }
 
+  const { verified } = req.body || {}
+  const nextStatus = verified === false ? 'UNVERIFIED' : 'VERIFIED'
+
   const venue = await prisma.venue.update({
     where: { id: existing.id },
-    data: { verificationStatus: 'VERIFIED' },
+    data: { verificationStatus: nextStatus },
     include: venueInclude,
   })
 
-  await prisma.activity.create({ data: { type: 'VENUE_VERIFIED', venueId: venue.id } })
+  if (nextStatus === 'VERIFIED' && existing.verificationStatus !== 'VERIFIED') {
+    await prisma.activity.create({ data: { type: 'VENUE_VERIFIED', venueId: venue.id } })
+  }
 
   const canEdit = await canEditVenue(req.userId, venue.id)
   res.json({ venue: { ...mapVenue(venue), canEdit } })
@@ -355,6 +361,65 @@ router.put('/venues/:id/favourite', async (req, res) => {
   })
 
   res.json({ isFollowing: true, isFavourite: follow.isFavourite })
+})
+
+// --- Admin listing (admin or venue-admin) ---
+
+router.get('/admin/venues', requireAdminOrVenueAdmin, async (req, res) => {
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
+
+  const venues = await prisma.venue.findMany({
+    where: search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { city: { name: { contains: search, mode: 'insensitive' } } },
+            { suburb: { name: { contains: search, mode: 'insensitive' } } },
+            { venueType: { name: { contains: search, mode: 'insensitive' } } },
+          ],
+        }
+      : undefined,
+    include: {
+      city: true,
+      suburb: true,
+      venueType: true,
+      managers: { include: { user: { include: { profile: true } } } },
+      followers: true,
+      experiences: { select: { profileId: true, isCurrent: true, endDate: true } },
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  res.json({
+    venues: venues.map((v) => {
+      const employeesByProfile = new Map()
+      for (const e of v.experiences) {
+        if (!employeesByProfile.has(e.profileId)) employeesByProfile.set(e.profileId, [])
+        employeesByProfile.get(e.profileId).push(e)
+      }
+      let currentEmployeeCount = 0
+      let previousEmployeeCount = 0
+      for (const exps of employeesByProfile.values()) {
+        if (exps.some((e) => e.isCurrent || !e.endDate)) currentEmployeeCount += 1
+        else previousEmployeeCount += 1
+      }
+
+      return {
+        id: v.id,
+        name: v.name,
+        verificationStatus: v.verificationStatus,
+        city: v.city,
+        suburb: v.suburb,
+        venueType: v.venueType,
+        managerCount: v.managers.length,
+        followerCount: v.followers.length,
+        favouriteCount: v.followers.filter((f) => f.isFavourite).length,
+        currentEmployeeCount,
+        previousEmployeeCount,
+        managers: v.managers.map((m) => ({ id: m.user.id, name: displayName(m.user) })),
+      }
+    }),
+  })
 })
 
 // --- Venue managers (admin-only) ---

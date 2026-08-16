@@ -1,6 +1,7 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth, requireAdmin } = require('../middleware/auth')
+const { displayName } = require('../lib/displayName')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -9,19 +10,39 @@ router.get('/users', requireAdmin, async (req, res) => {
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
 
   const users = await prisma.user.findMany({
-    where: search ? { email: { contains: search, mode: 'insensitive' } } : undefined,
-    select: { id: true, email: true },
-    orderBy: { email: 'asc' },
+    where: search
+      ? {
+          profile: {
+            OR: [
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+        }
+      : undefined,
+    select: { id: true, email: true, profile: { select: { firstName: true, lastName: true } } },
+    orderBy: [{ profile: { firstName: 'asc' } }, { profile: { lastName: 'asc' } }],
     take: 20,
   })
 
-  res.json({ users })
+  res.json({ users: users.map((u) => ({ id: u.id, email: u.email, name: displayName(u) })) })
 })
 
 // --- Admin user management (isAdmin only) ---
 
 router.get('/admin/users', requireAdmin, async (req, res) => {
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
+
   const users = await prisma.user.findMany({
+    where: search
+      ? {
+          OR: [
+            { email: { contains: search, mode: 'insensitive' } },
+            { profile: { firstName: { contains: search, mode: 'insensitive' } } },
+            { profile: { lastName: { contains: search, mode: 'insensitive' } } },
+          ],
+        }
+      : undefined,
     select: {
       id: true,
       email: true,
@@ -29,8 +50,9 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
       isVenueAdmin: true,
       profile: { select: { firstName: true, lastName: true } },
       managedVenues: { select: { venue: { select: { id: true, name: true } } } },
+      managedBusinesses: { select: { business: { select: { id: true, name: true } } } },
     },
-    orderBy: { email: 'asc' },
+    orderBy: [{ profile: { lastName: 'asc' } }, { profile: { firstName: 'asc' } }],
   })
 
   res.json({
@@ -41,6 +63,7 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
       isAdmin: u.isAdmin,
       isVenueAdmin: u.isVenueAdmin,
       managedVenues: u.managedVenues.map((m) => m.venue),
+      managedBusinesses: u.managedBusinesses.map((m) => m.business),
     })),
   })
 })

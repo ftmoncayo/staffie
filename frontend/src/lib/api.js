@@ -300,11 +300,19 @@ export async function updateVenue(id, venue) {
   return data.venue
 }
 
-export async function verifyVenue(id) {
+export async function verifyVenue(id, verified = true) {
   const data = await authRequest(`/api/venues/${id}/verify`, {
     method: 'PUT',
+    body: JSON.stringify({ verified }),
   })
   return data.venue
+}
+
+export async function fetchAdminVenues(search) {
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  const data = await authRequest(`/api/admin/venues?${params.toString()}`)
+  return data.venues
 }
 
 export async function fetchUsers(search) {
@@ -458,11 +466,19 @@ export async function updateBusiness(id, business) {
   return data.business
 }
 
-export async function verifyBusiness(id) {
+export async function verifyBusiness(id, verified = true) {
   const data = await authRequest(`/api/businesses/${id}/verify`, {
     method: 'PUT',
+    body: JSON.stringify({ verified }),
   })
   return data.business
+}
+
+export async function fetchAdminBusinesses(search) {
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  const data = await authRequest(`/api/admin/businesses?${params.toString()}`)
+  return data.businesses
 }
 
 export async function saveBusinessAbout(id, about) {
@@ -549,8 +565,10 @@ export function deletePost(id) {
   return authRequest(`/api/posts/${id}`, { method: 'DELETE' })
 }
 
-export async function fetchAdminUsers() {
-  const data = await authRequest('/api/admin/users')
+export async function fetchAdminUsers(search) {
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  const data = await authRequest(`/api/admin/users?${params.toString()}`)
   return data.users
 }
 

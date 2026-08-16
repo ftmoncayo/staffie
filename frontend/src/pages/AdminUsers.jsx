@@ -4,17 +4,19 @@ import * as api from '../lib/api'
 
 function AdminUsers() {
   const [users, setUsers] = useState([])
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState('')
 
   useEffect(() => {
+    setLoading(true)
     api
-      .fetchAdminUsers()
+      .fetchAdminUsers(search)
       .then(setUsers)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [search])
 
   async function handleToggle(userId, flag, value) {
     setError('')
@@ -39,6 +41,14 @@ function AdminUsers() {
           </Link>
         </div>
 
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or email..."
+          className="w-72 rounded border border-border-strong bg-surface px-3 py-2 text-sm text-text focus:border-accent"
+        />
+
         {error && <p className="text-sm text-danger">{error}</p>}
 
         <div className="overflow-x-auto rounded-lg border border-border bg-surface">
@@ -49,7 +59,8 @@ function AdminUsers() {
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Admin</th>
                 <th className="px-4 py-3 font-medium">Venue admin</th>
-                <th className="px-4 py-3 font-medium">Manages</th>
+                <th className="px-4 py-3 font-medium">Manages venues</th>
+                <th className="px-4 py-3 font-medium">Manages businesses</th>
               </tr>
             </thead>
             <tbody>
@@ -79,14 +90,39 @@ function AdminUsers() {
                   </td>
                   <td className="px-4 py-3 text-text-muted">
                     {user.managedVenues.length > 0
-                      ? user.managedVenues.map((v) => v.name).join(', ')
+                      ? user.managedVenues.map((v, i) => (
+                          <span key={v.id}>
+                            {i > 0 && ', '}
+                            <Link
+                              to={`/venues/${v.id}`}
+                              className="text-accent hover:text-accent-hover hover:underline"
+                            >
+                              {v.name}
+                            </Link>
+                          </span>
+                        ))
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-text-muted">
+                    {user.managedBusinesses.length > 0
+                      ? user.managedBusinesses.map((b, i) => (
+                          <span key={b.id}>
+                            {i > 0 && ', '}
+                            <Link
+                              to={`/businesses/${b.id}`}
+                              className="text-accent hover:text-accent-hover hover:underline"
+                            >
+                              {b.name}
+                            </Link>
+                          </span>
+                        ))
                       : '—'}
                   </td>
                 </tr>
               ))}
               {!loading && users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-text-faint">
+                  <td colSpan={6} className="px-4 py-6 text-center text-text-faint">
                     No users found.
                   </td>
                 </tr>

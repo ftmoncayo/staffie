@@ -194,7 +194,12 @@ router.get('/:userId/activity', async (req, res) => {
 
   const activities = await prisma.activity.findMany({
     where: { actorUserId: req.params.userId },
-    include: { actorUser: { include: { profile: { include: { city: true } } } } },
+    include: {
+      actorUser: { include: { profile: { include: { city: true } } } },
+      venue: { select: { id: true, name: true } },
+      business: { select: { id: true, name: true } },
+      notice: true,
+    },
     orderBy: { createdAt: 'desc' },
     take: ACTIVITY_LIMIT,
   })

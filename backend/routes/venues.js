@@ -4,6 +4,7 @@ const { requireAuth, requireAdmin, requireAdminOrVenueAdmin } = require('../midd
 const { sanitize } = require('../lib/sanitizeHtml')
 const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
 const { displayName } = require('../lib/displayName')
+const { formatActivities } = require('../lib/activityFeed')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -75,6 +76,21 @@ async function requireVenueEditor(req, res, next) {
   next()
 }
 
+async function isVenueManager(userId, venueId) {
+  const manager = await prisma.venueManager.findUnique({
+    where: { venueId_userId: { venueId, userId } },
+  })
+  return Boolean(manager)
+}
+
+async function requireVenueManager(req, res, next) {
+  const allowed = await isVenueManager(req.userId, req.params.id)
+  if (!allowed) {
+    return res.status(403).json({ error: 'Only assigned managers can post notices for this venue' })
+  }
+  next()
+}
+
 router.get('/venues', async (req, res) => {
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
   const sort = req.query.sort === 'name_asc' ? 'name_asc' : 'createdAt_desc'
@@ -113,7 +129,8 @@ router.get('/venues/:id', async (req, res) => {
   }
   const canEdit = await canEditVenue(req.userId, venue.id)
   const isFollowing = await isFollowingVenue(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit, isFollowing } })
+  const isManager = await isVenueManager(req.userId, venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isFollowing, isManager } })
 })
 
 router.post('/venues', async (req, res) => {
@@ -217,7 +234,8 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
   })
 
   const canEdit = await canEditVenue(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit } })
+  const isManager = await isVenueManager(req.userId, venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isManager } })
 })
 
 router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
@@ -258,7 +276,8 @@ router.put('/venues/:id/about', requireVenueEditor, async (req, res) => {
   })
 
   const canEdit = await canEditVenue(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit } })
+  const isManager = await isVenueManager(req.userId, venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isManager } })
 })
 
 router.get('/venues/:id/workers', async (req, res) => {
@@ -361,6 +380,46 @@ router.put('/venues/:id/favourite', async (req, res) => {
   })
 
   res.json({ isFollowing: true, isFavourite: follow.isFavourite })
+})
+
+// --- Notices & activity ---
+
+router.post('/venues/:id/notices', requireVenueManager, async (req, res) => {
+  const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
+  if (!venue) {
+    return res.status(404).json({ error: 'Venue not found' })
+  }
+
+  const { content } = req.body || {}
+  if (typeof content !== 'string' || !content.trim()) {
+    return res.status(400).json({ error: 'Notice content is required' })
+  }
+
+  const notice = await prisma.notice.create({
+    data: { targetType: 'VENUE', targetId: venue.id, authorUserId: req.userId, content: content.trim() },
+  })
+
+  await prisma.activity.create({
+    data: { type: 'NOTICE_POSTED', actorUserId: req.userId, venueId: venue.id, noticeId: notice.id },
+  })
+
+  res.status(201).json({ notice })
+})
+
+router.get('/venues/:id/activity', async (req, res) => {
+  const activities = await prisma.activity.findMany({
+    where: { venueId: req.params.id },
+    include: {
+      actorUser: { include: { profile: { include: { city: true } } } },
+      venue: { select: { id: true, name: true } },
+      business: { select: { id: true, name: true } },
+      notice: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+
+  res.json({ activities: await formatActivities(activities) })
 })
 
 // --- Admin listing (admin or venue-admin) ---

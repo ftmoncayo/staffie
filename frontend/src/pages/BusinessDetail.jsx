@@ -7,6 +7,9 @@ import BusinessManagersPanel from '../components/business/BusinessManagersPanel'
 import VerificationBadge from '../components/venue/VerificationBadge'
 import AboutSection from '../components/AboutSection'
 import NominateManagerButton from '../components/NominateManagerButton'
+import PostNoticeBox from '../components/PostNoticeBox'
+import ActivityItem from '../components/ActivityItem'
+import ShowMore from '../components/ShowMore'
 
 function locationSummary(business) {
   if (business.locationScope === 'GLOBAL') return 'Operates globally'
@@ -21,6 +24,7 @@ function BusinessDetail() {
   const { id } = useParams()
   const { user } = useAuth()
   const [business, setBusiness] = useState(null)
+  const [activity, setActivity] = useState([])
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -31,6 +35,15 @@ function BusinessDetail() {
       .then(setBusiness)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
+  }, [id])
+
+  function refreshActivity() {
+    return api.fetchBusinessActivity(id).then(setActivity)
+  }
+
+  useEffect(() => {
+    refreshActivity().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function handleSave(data) {
@@ -160,6 +173,24 @@ function BusinessDetail() {
             business.canEdit ? 'Add an introduction for this business.' : 'No introduction added yet.'
           }
         />
+
+        {business.isManager && (
+          <PostNoticeBox
+            onSubmit={(content) => api.postBusinessNotice(id, content)}
+            onPosted={refreshActivity}
+          />
+        )}
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold text-text">Recent activity</h2>
+          <ShowMore
+            items={activity}
+            initialCount={2}
+            incrementCount={5}
+            emptyMessage="No activity yet."
+            renderItem={(item) => <ActivityItem key={item.id} activity={item} />}
+          />
+        </div>
 
         {user?.isAdmin && <BusinessManagersPanel businessId={id} />}
       </div>

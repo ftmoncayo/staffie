@@ -29,7 +29,7 @@ function EntityLink({ entity, to }) {
 }
 
 function activityContent(activity) {
-  const { type, actor, counterpart, venue, business } = activity
+  const { type, actor, counterpart, venue, business, notice } = activity
 
   switch (type) {
     case 'SIGNUP': {
@@ -79,6 +79,16 @@ function activityContent(activity) {
           Business <EntityLink entity={business} to={`/businesses/${business?.id}`} /> was verified
         </>
       )
+    case 'NOTICE_POSTED': {
+      const target = venue || business
+      const to = venue ? `/venues/${venue.id}` : `/businesses/${business?.id}`
+      return (
+        <>
+          <ActorLink user={actor} /> posted a notice for <EntityLink entity={target} to={to} />
+          {notice?.content ? <>: {notice.content}</> : ''}
+        </>
+      )
+    }
     default:
       return 'Activity'
   }

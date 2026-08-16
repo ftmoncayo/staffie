@@ -9,11 +9,15 @@ import VenueWorkers from '../components/venue/VenueWorkers'
 import Tag from '../components/Tag'
 import AboutSection from '../components/AboutSection'
 import NominateManagerButton from '../components/NominateManagerButton'
+import PostNoticeBox from '../components/PostNoticeBox'
+import ActivityItem from '../components/ActivityItem'
+import ShowMore from '../components/ShowMore'
 
 function VenueDetail() {
   const { id } = useParams()
   const { user } = useAuth()
   const [venue, setVenue] = useState(null)
+  const [activity, setActivity] = useState([])
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -24,6 +28,15 @@ function VenueDetail() {
       .then(setVenue)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
+  }, [id])
+
+  function refreshActivity() {
+    return api.fetchVenueActivity(id).then(setActivity)
+  }
+
+  useEffect(() => {
+    refreshActivity().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function handleSave(data) {
@@ -160,6 +173,24 @@ function VenueDetail() {
             venue.canEdit ? 'Add an introduction for this venue.' : 'No introduction added yet.'
           }
         />
+
+        {venue.isManager && (
+          <PostNoticeBox
+            onSubmit={(content) => api.postVenueNotice(id, content)}
+            onPosted={refreshActivity}
+          />
+        )}
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold text-text">Recent activity</h2>
+          <ShowMore
+            items={activity}
+            initialCount={2}
+            incrementCount={5}
+            emptyMessage="No activity yet."
+            renderItem={(item) => <ActivityItem key={item.id} activity={item} />}
+          />
+        </div>
 
         <VenueWorkers venueId={id} />
 

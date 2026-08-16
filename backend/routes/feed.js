@@ -21,9 +21,16 @@ router.get('/feed', async (req, res) => {
     r.fromUserId === req.userId ? r.toUserId : r.fromUserId,
   )
 
-  const [venueFollows, businessFollows] = await Promise.all([
+  const [venueFollows, businessFollows, managedVenues, managedBusinesses, workedVenues] = await Promise.all([
     prisma.venueFollow.findMany({ where: { userId: req.userId } }),
     prisma.businessFollow.findMany({ where: { userId: req.userId } }),
+    prisma.venueManager.findMany({ where: { userId: req.userId }, select: { venueId: true } }),
+    prisma.businessManager.findMany({ where: { userId: req.userId }, select: { businessId: true } }),
+    prisma.experience.findMany({
+      where: { profile: { userId: req.userId } },
+      select: { venueId: true },
+      distinct: ['venueId'],
+    }),
   ])
 
   const followedVenueIds = venueFollows.map((f) => f.venueId)
@@ -33,10 +40,24 @@ router.get('/feed', async (req, res) => {
     businessFollows.filter((f) => f.isFavourite).map((f) => f.businessId),
   )
 
+  // Notice reach: assigned managers of a venue/business, plus (venues only) anyone
+  // with a current/previous Experience there, see NOTICE_POSTED activity even if
+  // they don't follow the venue/business.
+  const noticeReachVenueIds = [
+    ...new Set([...managedVenues.map((m) => m.venueId), ...workedVenues.map((w) => w.venueId)]),
+  ]
+  const noticeReachBusinessIds = managedBusinesses.map((m) => m.businessId)
+
   const orConditions = [
     connectionUserIds.length > 0 ? { actorUserId: { in: connectionUserIds } } : null,
     followedVenueIds.length > 0 ? { venueId: { in: followedVenueIds } } : null,
     followedBusinessIds.length > 0 ? { businessId: { in: followedBusinessIds } } : null,
+    noticeReachVenueIds.length > 0
+      ? { type: 'NOTICE_POSTED', venueId: { in: noticeReachVenueIds } }
+      : null,
+    noticeReachBusinessIds.length > 0
+      ? { type: 'NOTICE_POSTED', businessId: { in: noticeReachBusinessIds } }
+      : null,
   ].filter(Boolean)
 
   const activities = orConditions.length
@@ -49,6 +70,7 @@ router.get('/feed', async (req, res) => {
           actorUser: { include: { profile: { include: { city: true } } } },
           venue: { select: { id: true, name: true } },
           business: { select: { id: true, name: true } },
+          notice: true,
         },
         orderBy: { createdAt: 'desc' },
         take: ACTIVITY_LIMIT,

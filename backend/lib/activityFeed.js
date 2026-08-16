@@ -60,6 +60,7 @@ async function formatActivities(activities, { isFavourited = () => false } = {})
       counterpart: counterpartId ? formatActor(counterpartById.get(counterpartId)) : null,
       venue: a.venue || null,
       business: a.business || null,
+      notice: a.notice ? { content: a.notice.content } : null,
     }
   })
 }

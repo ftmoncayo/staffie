@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma')
 const { requireAuth, requireAdmin } = require('../middleware/auth')
 const { sanitize } = require('../lib/sanitizeHtml')
 const { displayName } = require('../lib/displayName')
+const { formatActivities } = require('../lib/activityFeed')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -78,6 +79,21 @@ async function requireBusinessEditor(req, res, next) {
   next()
 }
 
+async function isBusinessManager(userId, businessId) {
+  const manager = await prisma.businessManager.findUnique({
+    where: { businessId_userId: { businessId, userId } },
+  })
+  return Boolean(manager)
+}
+
+async function requireBusinessManager(req, res, next) {
+  const allowed = await isBusinessManager(req.userId, req.params.id)
+  if (!allowed) {
+    return res.status(403).json({ error: 'Only assigned managers can post notices for this business' })
+  }
+  next()
+}
+
 router.get('/businesses', async (req, res) => {
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
   const sort = req.query.sort === 'name_asc' ? 'name_asc' : 'createdAt_desc'
@@ -109,7 +125,8 @@ router.get('/businesses/:id', async (req, res) => {
   }
   const canEdit = await canEditBusiness(req.userId, business.id)
   const isFollowing = await isFollowingBusiness(req.userId, business.id)
-  res.json({ business: { ...mapBusiness(business), canEdit, isFollowing } })
+  const isManager = await isBusinessManager(req.userId, business.id)
+  res.json({ business: { ...mapBusiness(business), canEdit, isFollowing, isManager } })
 })
 
 router.post('/businesses', async (req, res) => {
@@ -191,7 +208,8 @@ router.put('/businesses/:id', requireBusinessEditor, async (req, res) => {
   })
 
   const canEdit = await canEditBusiness(req.userId, business.id)
-  res.json({ business: { ...mapBusiness(business), canEdit } })
+  const isManager = await isBusinessManager(req.userId, business.id)
+  res.json({ business: { ...mapBusiness(business), canEdit, isManager } })
 })
 
 router.put('/businesses/:id/verify', requireAdmin, async (req, res) => {
@@ -232,7 +250,8 @@ router.put('/businesses/:id/about', requireBusinessEditor, async (req, res) => {
   })
 
   const canEdit = await canEditBusiness(req.userId, business.id)
-  res.json({ business: { ...mapBusiness(business), canEdit } })
+  const isManager = await isBusinessManager(req.userId, business.id)
+  res.json({ business: { ...mapBusiness(business), canEdit, isManager } })
 })
 
 router.post('/businesses/:id/follow', async (req, res) => {
@@ -278,6 +297,46 @@ router.put('/businesses/:id/favourite', async (req, res) => {
   })
 
   res.json({ isFollowing: true, isFavourite: follow.isFavourite })
+})
+
+// --- Notices & activity ---
+
+router.post('/businesses/:id/notices', requireBusinessManager, async (req, res) => {
+  const business = await prisma.business.findUnique({ where: { id: req.params.id } })
+  if (!business) {
+    return res.status(404).json({ error: 'Business not found' })
+  }
+
+  const { content } = req.body || {}
+  if (typeof content !== 'string' || !content.trim()) {
+    return res.status(400).json({ error: 'Notice content is required' })
+  }
+
+  const notice = await prisma.notice.create({
+    data: { targetType: 'BUSINESS', targetId: business.id, authorUserId: req.userId, content: content.trim() },
+  })
+
+  await prisma.activity.create({
+    data: { type: 'NOTICE_POSTED', actorUserId: req.userId, businessId: business.id, noticeId: notice.id },
+  })
+
+  res.status(201).json({ notice })
+})
+
+router.get('/businesses/:id/activity', async (req, res) => {
+  const activities = await prisma.activity.findMany({
+    where: { businessId: req.params.id },
+    include: {
+      actorUser: { include: { profile: { include: { city: true } } } },
+      venue: { select: { id: true, name: true } },
+      business: { select: { id: true, name: true } },
+      notice: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+
+  res.json({ activities: await formatActivities(activities) })
 })
 
 // --- Admin listing (admin-only) ---

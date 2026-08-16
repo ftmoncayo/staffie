@@ -43,6 +43,7 @@ model User {
 
   activities Activity[]
   posts      Post[]
+  notices    Notice[]
 }
 
 enum ActivityType {
@@ -53,6 +54,7 @@ enum ActivityType {
   PROFILE_UPDATED
   VENUE_VERIFIED
   BUSINESS_VERIFIED
+  NOTICE_POSTED
 }
 
 model Activity {
@@ -64,7 +66,21 @@ model Activity {
   venue       Venue?       @relation(fields: [venueId], references: [id], onDelete: Cascade)
   businessId  String?
   business    Business?    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  noticeId    String?      @unique
+  notice      Notice?      @relation(fields: [noticeId], references: [id], onDelete: Cascade)
   createdAt   DateTime     @default(now())
+}
+
+model Notice {
+  id           String            @id @default(uuid())
+  targetType   ManagerTargetType
+  targetId     String
+  authorUserId String
+  authorUser   User              @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  content      String
+  createdAt    DateTime          @default(now())
+
+  activity Activity?
 }
 
 model VenueFollow {

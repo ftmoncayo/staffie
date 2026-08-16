@@ -372,6 +372,19 @@ export async function saveVenueAbout(venueId, about) {
   return data.venue
 }
 
+export async function postVenueNotice(venueId, content) {
+  const data = await authRequest(`/api/venues/${venueId}/notices`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })
+  return data.notice
+}
+
+export async function fetchVenueActivity(venueId) {
+  const data = await authRequest(`/api/venues/${venueId}/activity`)
+  return data.activities
+}
+
 export async function discoverPeople(lens) {
   const data = await authRequest(`/api/discover/people?lens=${encodeURIComponent(lens)}`)
   return data.people
@@ -487,6 +500,19 @@ export async function saveBusinessAbout(id, about) {
     body: JSON.stringify({ about }),
   })
   return data.business
+}
+
+export async function postBusinessNotice(businessId, content) {
+  const data = await authRequest(`/api/businesses/${businessId}/notices`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })
+  return data.notice
+}
+
+export async function fetchBusinessActivity(businessId) {
+  const data = await authRequest(`/api/businesses/${businessId}/activity`)
+  return data.activities
 }
 
 export async function followBusiness(id) {

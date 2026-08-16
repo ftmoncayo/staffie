@@ -7,6 +7,7 @@ import PostItem from '../components/PostItem'
 import PersonCard from '../components/PersonCard'
 import ConnectionButton from '../components/ConnectionButton'
 import SearchCombobox from '../components/SearchCombobox'
+import ShowMore from '../components/ShowMore'
 
 function Dashboard() {
   const { user, logout } = useAuth()
@@ -204,23 +205,25 @@ function Dashboard() {
 
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Activity</h2>
-          {!loading && feedItems.length === 0 && (
-            <p className="text-sm text-text-faint">
-              No activity yet. Connect with people, follow venues or businesses, or post a notice to
-              see updates here.
-            </p>
-          )}
-          {feedItems.map((item) =>
-            item.kind === 'post' ? (
-              <PostItem
-                key={item.id}
-                post={item.data}
-                canDelete={Boolean(user?.isAdmin)}
-                onDelete={handleDeletePost}
-              />
-            ) : (
-              <ActivityItem key={item.id} activity={item.data} />
-            ),
+          {!loading && (
+            <ShowMore
+              items={feedItems}
+              initialCount={5}
+              incrementCount={5}
+              emptyMessage="No activity yet. Connect with people, follow venues or businesses, or post a notice to see updates here."
+              renderItem={(item) =>
+                item.kind === 'post' ? (
+                  <PostItem
+                    key={item.id}
+                    post={item.data}
+                    canDelete={Boolean(user?.isAdmin)}
+                    onDelete={handleDeletePost}
+                  />
+                ) : (
+                  <ActivityItem key={item.id} activity={item.data} />
+                )
+              }
+            />
           )}
         </div>
       </div>

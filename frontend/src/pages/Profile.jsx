@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import ProfileDetails from '../components/profile/ProfileDetails'
 import SkillsEditor from '../components/profile/SkillsEditor'
 import KnowledgeAreaEditor from '../components/profile/KnowledgeAreaEditor'
@@ -8,9 +9,13 @@ import ExperienceEditor from '../components/profile/ExperienceEditor'
 import CertificationsEditor from '../components/profile/CertificationsEditor'
 import ConnectionsList from '../components/profile/ConnectionsList'
 import AboutSection from '../components/AboutSection'
+import ActivityItem from '../components/ActivityItem'
+import ShowMore from '../components/ShowMore'
 
 function Profile() {
+  const { user } = useAuth()
   const [profile, setProfile] = useState(null)
+  const [activity, setActivity] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -21,6 +26,11 @@ function Profile() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    api.fetchUserActivity(user.id).then(setActivity).catch(() => {})
+  }, [user])
 
   async function refresh() {
     const data = await api.fetchProfile()
@@ -102,6 +112,17 @@ function Profile() {
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold text-text">Recent activity</h2>
+          <ShowMore
+            items={activity}
+            initialCount={2}
+            incrementCount={5}
+            emptyMessage="No activity yet."
+            renderItem={(item) => <ActivityItem key={item.id} activity={item} />}
+          />
+        </div>
 
         <ProfileDetails profile={profile} onSave={handleSaveDetails} />
 

@@ -6,6 +6,8 @@ import AboutSection from '../components/AboutSection'
 import ConnectionButton from '../components/ConnectionButton'
 import Tag from '../components/Tag'
 import PersonCard from '../components/PersonCard'
+import ActivityItem from '../components/ActivityItem'
+import ShowMore from '../components/ShowMore'
 
 function formatDate(value) {
   if (!value) return ''
@@ -17,6 +19,7 @@ function PublicProfile() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
+  const [activity, setActivity] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -32,6 +35,7 @@ function PublicProfile() {
       .then(setData)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
+    api.fetchUserActivity(userId).then(setActivity).catch(() => {})
   }, [userId, user?.id, navigate])
 
   async function handleConnect() {
@@ -107,6 +111,17 @@ function PublicProfile() {
               Remove connection
             </button>
           )}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold text-text">Recent activity</h2>
+          <ShowMore
+            items={activity}
+            initialCount={2}
+            incrementCount={5}
+            emptyMessage="No activity yet."
+            renderItem={(item) => <ActivityItem key={item.id} activity={item} />}
+          />
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-6">

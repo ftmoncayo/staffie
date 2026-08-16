@@ -7,9 +7,12 @@ const {
   connectionStatusFor,
   buildConnectionsAdjacency,
 } = require('../lib/connectionStatus')
+const { formatActivities } = require('../lib/activityFeed')
 
 const router = express.Router()
 router.use(requireAuth)
+
+const ACTIVITY_LIMIT = 50
 
 const profileInclude = {
   city: true,
@@ -161,6 +164,16 @@ router.get('/:userId', async (req, res) => {
     })),
     sharedVenuesCount,
   })
+})
+
+router.get('/:userId/activity', async (req, res) => {
+  const activities = await prisma.activity.findMany({
+    where: { actorUserId: req.params.userId },
+    include: { actorUser: { include: { profile: { include: { city: true } } } } },
+    orderBy: { createdAt: 'desc' },
+    take: ACTIVITY_LIMIT,
+  })
+  res.json({ activities: await formatActivities(activities) })
 })
 
 // --- Skills ---

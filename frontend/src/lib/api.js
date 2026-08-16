@@ -99,6 +99,11 @@ export function fetchPublicProfile(userId) {
   return authRequest(`/api/profile/${userId}`)
 }
 
+export async function fetchUserActivity(userId) {
+  const data = await authRequest(`/api/profile/${userId}/activity`)
+  return data.activities
+}
+
 export function addSkill(name) {
   return authRequest('/api/profile/skills', {
     method: 'POST',

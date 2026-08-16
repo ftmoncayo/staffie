@@ -4,6 +4,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth')
 const { sanitize } = require('../lib/sanitizeHtml')
 const { displayName } = require('../lib/displayName')
 const { formatActivities } = require('../lib/activityFeed')
+const { sendInvite } = require('../lib/invites')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -130,7 +131,7 @@ router.get('/businesses/:id', async (req, res) => {
 })
 
 router.post('/businesses', async (req, res) => {
-  const { name, categoryId, about } = req.body || {}
+  const { name, categoryId, about, isManager, managerEmail } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Business name is required' })
@@ -162,6 +163,19 @@ router.post('/businesses', async (req, res) => {
     },
     include: businessInclude,
   })
+
+  if (isManager === true) {
+    await prisma.businessManager.create({
+      data: { businessId: business.id, userId: req.userId, assignedByUserId: req.userId, verified: false },
+    })
+  } else if (typeof managerEmail === 'string' && managerEmail.trim()) {
+    sendInvite({
+      inviterUserId: req.userId,
+      inviteeEmail: managerEmail,
+      type: 'VENUE_MANAGER_NUDGE',
+      businessId: business.id,
+    }).catch((err) => console.error('Failed to send business manager nudge invite:', err))
+  }
 
   res.status(201).json({ business: mapBusiness(business) })
 })
@@ -375,7 +389,7 @@ router.get('/admin/businesses', requireAdmin, async (req, res) => {
       managerCount: b.managers.length,
       followerCount: b.followers.length,
       favouriteCount: b.followers.filter((f) => f.isFavourite).length,
-      managers: b.managers.map((m) => ({ id: m.user.id, name: displayName(m.user) })),
+      managers: b.managers.map((m) => ({ id: m.user.id, name: displayName(m.user), verified: m.verified })),
     })),
   })
 })
@@ -438,6 +452,23 @@ router.delete('/businesses/:id/managers/:userId', requireAdmin, async (req, res)
 
   await prisma.businessManager.delete({ where: { id: existingManager.id } })
   res.status(204).end()
+})
+
+router.put('/businesses/:id/managers/:userId/confirm', requireAdmin, async (req, res) => {
+  const existingManager = await prisma.businessManager.findUnique({
+    where: { businessId_userId: { businessId: req.params.id, userId: req.params.userId } },
+  })
+  if (!existingManager) {
+    return res.status(404).json({ error: 'Manager assignment not found' })
+  }
+
+  const manager = await prisma.businessManager.update({
+    where: { id: existingManager.id },
+    data: { verified: true },
+    include: { user: { select: { id: true, email: true } } },
+  })
+
+  res.json({ manager })
 })
 
 // --- Manager nominations (self-nomination, admin approval) ---

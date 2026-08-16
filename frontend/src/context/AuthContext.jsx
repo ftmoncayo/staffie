@@ -21,10 +21,13 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  async function signup(email, password) {
-    const data = await api.signup(email, password)
+  async function signup(email, password, inviteToken) {
+    const data = await api.signup(email, password, inviteToken)
     api.setToken(data.token)
     setUser(data.user)
+    if (data.inviteVenue) {
+      localStorage.setItem('staffie_invite_venue', JSON.stringify(data.inviteVenue))
+    }
   }
 
   async function login(email, password) {

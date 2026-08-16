@@ -23,6 +23,7 @@ function Dashboard() {
   const [error, setError] = useState('')
   const [unverifiedVenueCount, setUnverifiedVenueCount] = useState(null)
   const [unverifiedBusinessCount, setUnverifiedBusinessCount] = useState(null)
+  const [profileComplete, setProfileComplete] = useState(true)
 
   useEffect(() => {
     api
@@ -38,6 +39,7 @@ function Dashboard() {
       .fetchProfile()
       .then((data) => {
         if (data.profile?.city) setCityFilter(data.profile.city)
+        setProfileComplete(Boolean(data.profile?.professionalTitle))
       })
       .catch(() => {})
   }, [])
@@ -140,6 +142,9 @@ function Dashboard() {
             <Link to="/connections/requests" className="text-accent hover:text-accent-hover hover:underline">
               Connection requests
             </Link>
+            <Link to="/invite" className="text-accent hover:text-accent-hover hover:underline">
+              Invite someone
+            </Link>
             {(user?.isAdmin || user?.isVenueAdmin) && (
               <Link to="/admin/venues" className="text-accent hover:text-accent-hover hover:underline">
                 Unverified Venues{unverifiedVenueCount !== null ? ` (${unverifiedVenueCount})` : ''}
@@ -163,6 +168,20 @@ function Dashboard() {
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
+
+        {!profileComplete && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent bg-surface p-4">
+            <p className="text-sm text-text">
+              Your profile is incomplete — add your name, title, and city so people can find you.
+            </p>
+            <Link
+              to="/profile"
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
+            >
+              Create your profile
+            </Link>
+          </div>
+        )}
 
         <form
           onSubmit={handleCreatePost}

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
@@ -73,7 +73,8 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
       {newVenueName !== null && (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-text-muted">
-            Add details for the new venue "{newVenueName}" (optional, but locks in once created):
+            This venue doesn't exist yet — it'll be created with the details you enter, but will be
+            locked from editing until it's verified by an admin or confirmed by its manager.
           </p>
           <VenueForm
             initial={{ name: newVenueName }}
@@ -148,11 +149,15 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
   )
 }
 
-function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete }) {
+function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete, prefillVenue }) {
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (prefillVenue) setAdding(true)
+  }, [prefillVenue])
 
   async function handleDelete(id) {
     setError('')
@@ -234,6 +239,7 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete }
 
         {adding && (
           <ExperienceForm
+            initial={prefillVenue ? { ...emptyForm, venue: prefillVenue } : undefined}
             onCancel={() => setAdding(false)}
             onSubmit={async (data) => {
               await onCreate(data)

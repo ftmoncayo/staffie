@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 function Signup() {
@@ -9,13 +9,15 @@ function Signup() {
   const [submitting, setSubmitting] = useState(false)
   const { signup } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const inviteToken = searchParams.get('invite')
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setSubmitting(true)
     try {
-      await signup(email, password)
+      await signup(email, password, inviteToken)
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)

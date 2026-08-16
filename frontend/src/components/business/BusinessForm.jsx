@@ -17,6 +17,8 @@ function BusinessForm({ initial, onSubmit, onCancel, submitLabel = 'Save', stand
   const [locationScope, setLocationScope] = useState(initial?.locationScope || 'SPECIFIC_CITIES')
   const [cities, setCities] = useState((initial?.locations || []).map((l) => l.city))
   const [locationCountry, setLocationCountry] = useState(initial?.country || null)
+  const [isManager, setIsManager] = useState(false)
+  const [managerEmail, setManagerEmail] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -40,7 +42,11 @@ function BusinessForm({ initial, onSubmit, onCancel, submitLabel = 'Save', stand
         cityIds: locationScope === 'SPECIFIC_CITIES' ? cities.map((c) => c.id) : [],
         countryId: locationScope === 'COUNTRY' ? locationCountry?.id || null : null,
       }
-      if (!isEditing) payload.about = about
+      if (!isEditing) {
+        payload.about = about
+        payload.isManager = isManager
+        payload.managerEmail = isManager ? '' : managerEmail
+      }
       await onSubmit(payload)
     } catch (err) {
       setError(err.message)
@@ -138,6 +144,32 @@ function BusinessForm({ initial, onSubmit, onCancel, submitLabel = 'Save', stand
           About (optional)
           <RichTextEditor content={about} onChange={setAbout} />
         </label>
+      )}
+
+      {!isEditing && (
+        <div className="flex flex-col gap-2 rounded border border-border p-4">
+          <label className="flex items-center gap-2 text-sm text-text-muted">
+            <input
+              type="checkbox"
+              checked={isManager}
+              onChange={(e) => setIsManager(e.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+            I am the manager of this business
+          </label>
+          {!isManager && (
+            <label className="flex flex-col gap-1 text-sm text-text-muted">
+              Manager's email (optional)
+              <input
+                type="email"
+                value={managerEmail}
+                onChange={(e) => setManagerEmail(e.target.value)}
+                placeholder="We'll let them know they can claim this page"
+                className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+              />
+            </label>
+          )}
+        </div>
       )}
 
       <div className="flex gap-3">

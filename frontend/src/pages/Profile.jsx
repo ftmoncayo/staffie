@@ -18,6 +18,25 @@ function Profile() {
   const [activity, setActivity] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [inviteVenue, setInviteVenue] = useState(() => {
+    try {
+      const raw = localStorage.getItem('staffie_invite_venue')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })
+  const [prefillVenue, setPrefillVenue] = useState(null)
+
+  function handleDismissInviteVenue() {
+    localStorage.removeItem('staffie_invite_venue')
+    setInviteVenue(null)
+  }
+
+  function handleAddInviteExperience() {
+    setPrefillVenue(inviteVenue)
+    handleDismissInviteVenue()
+  }
 
   useEffect(() => {
     api
@@ -113,6 +132,30 @@ function Profile() {
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
+        {inviteVenue && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent bg-surface p-4">
+            <p className="text-sm text-text">
+              Did you work at <span className="font-medium">{inviteVenue.name}</span>?
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleAddInviteExperience}
+                className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
+              >
+                Add to your experience
+              </button>
+              <button
+                type="button"
+                onClick={handleDismissInviteVenue}
+                className="text-sm text-text-muted hover:text-text"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Recent activity</h2>
           <ShowMore
@@ -151,6 +194,7 @@ function Profile() {
           onCreate={handleCreateExperience}
           onUpdate={handleUpdateExperience}
           onDelete={handleDeleteExperience}
+          prefillVenue={prefillVenue}
         />
 
         <CertificationsEditor

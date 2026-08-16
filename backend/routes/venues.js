@@ -1,10 +1,11 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
-const { requireAuth, requireAdmin, requireAdminOrVenueAdmin } = require('../middleware/auth')
+const { requireAuth, requireAdminOrVenueAdmin } = require('../middleware/auth')
 const { sanitize } = require('../lib/sanitizeHtml')
 const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connectionStatus')
 const { displayName } = require('../lib/displayName')
 const { formatActivities } = require('../lib/activityFeed')
+const { sendInvite } = require('../lib/invites')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -130,11 +131,15 @@ router.get('/venues/:id', async (req, res) => {
   const canEdit = await canEditVenue(req.userId, venue.id)
   const isFollowing = await isFollowingVenue(req.userId, venue.id)
   const isManager = await isVenueManager(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit, isFollowing, isManager } })
+  const hasExperienceHere = Boolean(
+    await prisma.experience.findFirst({ where: { venueId: venue.id, profile: { userId: req.userId } } }),
+  )
+  res.json({ venue: { ...mapVenue(venue), canEdit, isFollowing, isManager, hasExperienceHere } })
 })
 
 router.post('/venues', async (req, res) => {
-  const { name, cityId, suburbId, state, country, venueTypeId, specialtyIds } = req.body || {}
+  const { name, cityId, suburbId, state, country, venueTypeId, specialtyIds, isManager, managerEmail } =
+    req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Venue name is required' })
@@ -178,6 +183,19 @@ router.post('/venues', async (req, res) => {
     },
     include: venueInclude,
   })
+
+  if (isManager === true) {
+    await prisma.venueManager.create({
+      data: { venueId: venue.id, userId: req.userId, assignedByUserId: req.userId, verified: false },
+    })
+  } else if (typeof managerEmail === 'string' && managerEmail.trim()) {
+    sendInvite({
+      inviterUserId: req.userId,
+      inviteeEmail: managerEmail,
+      type: 'VENUE_MANAGER_NUDGE',
+      venueId: venue.id,
+    }).catch((err) => console.error('Failed to send venue manager nudge invite:', err))
+  }
 
   res.status(201).json({ venue: mapVenue(venue) })
 })
@@ -475,15 +493,15 @@ router.get('/admin/venues', requireAdminOrVenueAdmin, async (req, res) => {
         favouriteCount: v.followers.filter((f) => f.isFavourite).length,
         currentEmployeeCount,
         previousEmployeeCount,
-        managers: v.managers.map((m) => ({ id: m.user.id, name: displayName(m.user) })),
+        managers: v.managers.map((m) => ({ id: m.user.id, name: displayName(m.user), verified: m.verified })),
       }
     }),
   })
 })
 
-// --- Venue managers (admin-only) ---
+// --- Venue managers (admin or venue-admin) ---
 
-router.get('/venues/:id/managers', requireAdmin, async (req, res) => {
+router.get('/venues/:id/managers', requireAdminOrVenueAdmin, async (req, res) => {
   const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
   if (!venue) {
     return res.status(404).json({ error: 'Venue not found' })
@@ -498,7 +516,7 @@ router.get('/venues/:id/managers', requireAdmin, async (req, res) => {
   res.json({ managers })
 })
 
-router.post('/venues/:id/managers', requireAdmin, async (req, res) => {
+router.post('/venues/:id/managers', requireAdminOrVenueAdmin, async (req, res) => {
   const venue = await prisma.venue.findUnique({ where: { id: req.params.id } })
   if (!venue) {
     return res.status(404).json({ error: 'Venue not found' })
@@ -529,7 +547,7 @@ router.post('/venues/:id/managers', requireAdmin, async (req, res) => {
   res.status(201).json({ manager })
 })
 
-router.delete('/venues/:id/managers/:userId', requireAdmin, async (req, res) => {
+router.delete('/venues/:id/managers/:userId', requireAdminOrVenueAdmin, async (req, res) => {
   const existingManager = await prisma.venueManager.findUnique({
     where: { venueId_userId: { venueId: req.params.id, userId: req.params.userId } },
   })
@@ -539,6 +557,23 @@ router.delete('/venues/:id/managers/:userId', requireAdmin, async (req, res) => 
 
   await prisma.venueManager.delete({ where: { id: existingManager.id } })
   res.status(204).end()
+})
+
+router.put('/venues/:id/managers/:userId/confirm', requireAdminOrVenueAdmin, async (req, res) => {
+  const existingManager = await prisma.venueManager.findUnique({
+    where: { venueId_userId: { venueId: req.params.id, userId: req.params.userId } },
+  })
+  if (!existingManager) {
+    return res.status(404).json({ error: 'Manager assignment not found' })
+  }
+
+  const manager = await prisma.venueManager.update({
+    where: { id: existingManager.id },
+    data: { verified: true },
+    include: { user: { select: { id: true, email: true } } },
+  })
+
+  res.json({ manager })
 })
 
 // --- Manager nominations (self-nomination, admin or venue-admin approval) ---

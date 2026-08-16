@@ -14,6 +14,8 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
   const [country, setCountry] = useState(initial?.country || '')
   const [venueType, setVenueType] = useState(initial?.venueType || null)
   const [specialties, setSpecialties] = useState(initial?.specialties || [])
+  const [isManager, setIsManager] = useState(false)
+  const [managerEmail, setManagerEmail] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -75,6 +77,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
         country,
         venueTypeId: venueType?.id || null,
         specialtyIds: specialties.map((s) => s.id),
+        ...(isEditing ? {} : { isManager, managerEmail: isManager ? '' : managerEmail }),
       })
     } catch (err) {
       setError(err.message)
@@ -191,6 +194,32 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
           ))}
         </div>
       </div>
+
+      {!isEditing && (
+        <div className="flex flex-col gap-2 rounded border border-border p-4">
+          <label className="flex items-center gap-2 text-sm text-text-muted">
+            <input
+              type="checkbox"
+              checked={isManager}
+              onChange={(e) => setIsManager(e.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+            I am the manager of this venue
+          </label>
+          {!isManager && (
+            <label className="flex flex-col gap-1 text-sm text-text-muted">
+              Manager's email (optional)
+              <input
+                type="email"
+                value={managerEmail}
+                onChange={(e) => setManagerEmail(e.target.value)}
+                placeholder="We'll let them know they can claim this page"
+                className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+              />
+            </label>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3">
         <button

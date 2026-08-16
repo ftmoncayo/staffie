@@ -30,6 +30,8 @@ model User {
   managerNominations         ManagerNomination[] @relation("ManagerNominationNominee")
   respondedManagerNominations ManagerNomination[] @relation("ManagerNominationRespondedBy")
 
+  sentInvites Invite[] @relation("InviteInviter")
+
   sentConnectionRequests     ConnectionRequest[] @relation("ConnectionRequestFrom")
   receivedConnectionRequests ConnectionRequest[] @relation("ConnectionRequestTo")
 
@@ -235,6 +237,7 @@ model Venue {
   managers    VenueManager[]
   followers   VenueFollow[]
   activities  Activity[]
+  invites     Invite[]
 }
 
 model VenueManager {
@@ -246,6 +249,7 @@ model VenueManager {
   assignedByUserId String
   assignedByUser   User     @relation("VenueManagerAssignedBy", fields: [assignedByUserId], references: [id])
   assignedAt       DateTime @default(now())
+  verified         Boolean  @default(true)
 
   @@unique([venueId, userId])
 }
@@ -313,6 +317,7 @@ model Business {
   followers  BusinessFollow[]
   activities Activity[]
   locations  BusinessLocation[]
+  invites    Invite[]
 }
 
 model BusinessLocation {
@@ -334,6 +339,7 @@ model BusinessManager {
   assignedByUserId String
   assignedByUser   User     @relation("BusinessManagerAssignedBy", fields: [assignedByUserId], references: [id])
   assignedAt       DateTime @default(now())
+  verified         Boolean  @default(true)
 
   @@unique([businessId, userId])
 }
@@ -373,4 +379,31 @@ model ManagerNomination {
   respondedByUserId String?
   respondedByUser   User?             @relation("ManagerNominationRespondedBy", fields: [respondedByUserId], references: [id])
   respondedAt       DateTime?
+}
+
+enum InviteType {
+  GENERAL
+  VENUE_COWORKER
+  VENUE_MANAGER_NUDGE
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+}
+
+model Invite {
+  id            String       @id @default(uuid())
+  inviterUserId String
+  inviterUser   User         @relation("InviteInviter", fields: [inviterUserId], references: [id], onDelete: Cascade)
+  inviteeEmail  String
+  venueId       String?
+  venue         Venue?       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  businessId    String?
+  business      Business?    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  type          InviteType
+  token         String       @unique
+  status        InviteStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  expiresAt     DateTime
 }

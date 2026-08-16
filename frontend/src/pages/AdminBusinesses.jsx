@@ -196,6 +196,7 @@ function AdminBusinesses() {
                               >
                                 {m.name}
                               </Link>
+                              {!m.verified && <span className="text-xs text-text-faint"> (unverified)</span>}
                             </span>
                           ))
                         : '—'}

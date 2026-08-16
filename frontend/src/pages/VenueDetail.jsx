@@ -131,6 +131,15 @@ function VenueDetail() {
               </div>
             </div>
 
+            {venue.hasExperienceHere && (
+              <Link
+                to={`/invite?venueId=${id}`}
+                className="mt-3 inline-block text-sm text-accent hover:text-accent-hover hover:underline"
+              >
+                Invite a coworker
+              </Link>
+            )}
+
             <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <dt className="text-sm text-text-faint">Location</dt>
@@ -194,7 +203,7 @@ function VenueDetail() {
 
         <VenueWorkers venueId={id} />
 
-        {user?.isAdmin && <VenueManagersPanel venueId={id} />}
+        {(user?.isAdmin || user?.isVenueAdmin) && <VenueManagersPanel venueId={id} />}
       </div>
     </div>
   )

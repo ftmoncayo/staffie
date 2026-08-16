@@ -24,7 +24,7 @@ function signToken(user) {
 }
 
 router.post('/signup', async (req, res) => {
-  const { email, password } = req.body || {}
+  const { email, password, inviteToken } = req.body || {}
 
   if (typeof email !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ error: 'Email and password are required' })
@@ -45,10 +45,34 @@ router.post('/signup', async (req, res) => {
     data: { email: normalizedEmail, passwordHash },
   })
 
+  let inviteVenue = null
+  if (typeof inviteToken === 'string' && inviteToken.trim()) {
+    const invite = await prisma.invite.findUnique({ where: { token: inviteToken.trim() } })
+    const valid =
+      invite &&
+      invite.status === 'PENDING' &&
+      invite.expiresAt > new Date() &&
+      invite.inviteeEmail === normalizedEmail
+
+    if (valid) {
+      await prisma.invite.update({ where: { id: invite.id }, data: { status: 'ACCEPTED' } })
+      await prisma.connectionRequest
+        .create({ data: { fromUserId: invite.inviterUserId, toUserId: user.id } })
+        .catch(() => {})
+      if (invite.venueId) {
+        inviteVenue = await prisma.venue.findUnique({
+          where: { id: invite.venueId },
+          select: { id: true, name: true },
+        })
+      }
+    }
+  }
+
   const token = signToken(user)
   res.status(201).json({
     token,
     user: { id: user.id, email: user.email, isAdmin: user.isAdmin, isVenueAdmin: user.isVenueAdmin },
+    inviteVenue,
   })
 })
 

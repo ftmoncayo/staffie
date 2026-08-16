@@ -17,6 +17,7 @@ import AdminVenues from './pages/AdminVenues'
 import AdminBusinesses from './pages/AdminBusinesses'
 import AdminUsers from './pages/AdminUsers'
 import DiscoverPeople from './pages/DiscoverPeople'
+import InviteSomeone from './pages/InviteSomeone'
 import ConnectionRequests from './pages/ConnectionRequests'
 import Connections from './pages/Connections'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -110,6 +111,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DiscoverPeople />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invite"
+          element={
+            <ProtectedRoute>
+              <InviteSomeone />
             </ProtectedRoute>
           }
         />

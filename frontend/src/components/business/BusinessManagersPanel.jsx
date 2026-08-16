@@ -12,6 +12,7 @@ function BusinessManagersPanel({ businessId }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [removingId, setRemovingId] = useState('')
+  const [confirmingId, setConfirmingId] = useState('')
 
   function refresh() {
     return api.fetchBusinessManagers(businessId).then(setManagers)
@@ -46,6 +47,19 @@ function BusinessManagersPanel({ businessId }) {
     }
   }
 
+  async function handleConfirm(userId) {
+    setError('')
+    setConfirmingId(userId)
+    try {
+      await api.confirmBusinessManager(businessId, userId)
+      await refresh()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setConfirmingId('')
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border bg-surface p-6">
       <h2 className="text-xl font-semibold text-text">Manage business managers</h2>
@@ -74,15 +88,30 @@ function BusinessManagersPanel({ businessId }) {
             key={manager.id}
             className="flex items-center justify-between rounded border border-border px-3 py-2"
           >
-            <span className="text-sm text-text">{manager.user.email}</span>
-            <button
-              type="button"
-              disabled={removingId === manager.user.id}
-              onClick={() => handleRemove(manager.user.id)}
-              className="text-sm text-danger hover:underline disabled:opacity-50"
-            >
-              Remove
-            </button>
+            <span className="text-sm text-text">
+              {manager.user.email}
+              {!manager.verified && <span className="ml-2 text-xs text-text-faint">Unverified manager</span>}
+            </span>
+            <div className="flex items-center gap-3">
+              {!manager.verified && (
+                <button
+                  type="button"
+                  disabled={confirmingId === manager.user.id}
+                  onClick={() => handleConfirm(manager.user.id)}
+                  className="text-sm text-accent hover:underline disabled:opacity-50"
+                >
+                  Confirm manager
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={removingId === manager.user.id}
+                onClick={() => handleRemove(manager.user.id)}
+                className="text-sm text-danger hover:underline disabled:opacity-50"
+              >
+                Remove
+              </button>
+            </div>
           </div>
         ))}
       </div>

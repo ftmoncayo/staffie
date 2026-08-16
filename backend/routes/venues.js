@@ -200,6 +200,8 @@ router.post('/venues', async (req, res) => {
     }).catch((err) => console.error('Failed to send venue manager nudge invite:', err))
   }
 
+  await prisma.activity.create({ data: { type: 'VENUE_CREATED', actorUserId: req.userId } })
+
   res.status(201).json({ venue: mapVenue(venue) })
 })
 
@@ -274,9 +276,6 @@ router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
     include: venueInclude,
   })
 
-  if (nextStatus === 'VERIFIED' && existing.verificationStatus !== 'VERIFIED') {
-    await prisma.activity.create({ data: { type: 'VENUE_VERIFIED', venueId: venue.id } })
-  }
 
   const canEdit = await canEditVenue(req.userId, venue.id)
   res.json({ venue: { ...mapVenue(venue), canEdit } })

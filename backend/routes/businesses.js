@@ -180,6 +180,8 @@ router.post('/businesses', async (req, res) => {
     }).catch((err) => console.error('Failed to send business manager nudge invite:', err))
   }
 
+  await prisma.activity.create({ data: { type: 'BUSINESS_CREATED', actorUserId: req.userId } })
+
   res.status(201).json({ business: mapBusiness(business) })
 })
 
@@ -244,9 +246,6 @@ router.put('/businesses/:id/verify', requireAdmin, async (req, res) => {
     include: businessInclude,
   })
 
-  if (nextStatus === 'VERIFIED' && existing.verificationStatus !== 'VERIFIED') {
-    await prisma.activity.create({ data: { type: 'BUSINESS_VERIFIED', businessId: business.id } })
-  }
 
   const canEdit = await canEditBusiness(req.userId, business.id)
   res.json({ business: { ...mapBusiness(business), canEdit } })

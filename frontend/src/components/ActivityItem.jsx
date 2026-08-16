@@ -67,16 +67,16 @@ function activityContent(activity) {
           <ActorLink user={actor} /> updated their profile
         </>
       )
-    case 'VENUE_VERIFIED':
+    case 'VENUE_CREATED':
       return (
         <>
-          Venue <EntityLink entity={venue} to={`/venues/${venue?.id}`} /> was verified
+          <ActorLink user={actor} /> created a new venue
         </>
       )
-    case 'BUSINESS_VERIFIED':
+    case 'BUSINESS_CREATED':
       return (
         <>
-          Business <EntityLink entity={business} to={`/businesses/${business?.id}`} /> was verified
+          <ActorLink user={actor} /> created a new business
         </>
       )
     case 'NOTICE_POSTED': {

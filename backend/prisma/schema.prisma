@@ -46,6 +46,8 @@ model User {
   activities Activity[]
   posts      Post[]
   notices    Notice[]
+  comments   Comment[]
+  nods       Nod[]
 }
 
 enum ActivityType {
@@ -406,4 +408,34 @@ model Invite {
   status        InviteStatus @default(PENDING)
   createdAt     DateTime     @default(now())
   expiresAt     DateTime
+}
+
+// Shared by Comment and Nod so both post and activity engagement live in one
+// pair of tables instead of four near-identical ones.
+enum EngagementTargetType {
+  POST
+  ACTIVITY
+}
+
+model Comment {
+  id           String               @id @default(uuid())
+  targetType   EngagementTargetType
+  targetId     String
+  authorUserId String
+  authorUser   User                 @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  content      String
+  createdAt    DateTime             @default(now())
+
+  @@index([targetType, targetId])
+}
+
+model Nod {
+  id         String               @id @default(uuid())
+  targetType EngagementTargetType
+  targetId   String
+  userId     String
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime             @default(now())
+
+  @@unique([targetType, targetId, userId])
 }

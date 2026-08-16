@@ -12,6 +12,7 @@ const discoverRouter = require('./routes/discover')
 const feedRouter = require('./routes/feed')
 const postsRouter = require('./routes/posts')
 const invitesRouter = require('./routes/invites')
+const engagementRouter = require('./routes/engagement')
 
 const app = express()
 const port = process.env.PORT || 3001
@@ -34,6 +35,7 @@ app.use('/api', discoverRouter)
 app.use('/api', feedRouter)
 app.use('/api', postsRouter)
 app.use('/api', invitesRouter)
+app.use('/api', engagementRouter)
 
 app.listen(port, () => {
   console.log(`Backend listening on port ${port}`)

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Engagement from './Engagement'
 
 function personName(profile) {
   if (!profile) return null
@@ -96,12 +97,16 @@ function activityContent(activity) {
 
 function ActivityItem({ activity }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-surface p-4">
-      <p className="text-sm text-text">{activityContent(activity)}</p>
-      <div className="flex shrink-0 items-center gap-2">
-        {activity.favourited && <span className="text-xs text-accent">★ Favourite</span>}
-        <span className="text-xs text-text-faint">{formatDate(activity.createdAt)}</span>
+    <div className="rounded-lg border border-border bg-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-text">{activityContent(activity)}</p>
+        <div className="flex shrink-0 items-center gap-2">
+          {activity.favourited && <span className="text-xs text-accent">★ Favourite</span>}
+          <span className="text-xs text-text-faint">{formatDate(activity.createdAt)}</span>
+        </div>
       </div>
+
+      <Engagement targetType="ACTIVITY" targetId={activity.id} />
     </div>
   )
 }

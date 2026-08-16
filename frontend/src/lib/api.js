@@ -627,3 +627,27 @@ export async function unblockUser(userId) {
   const data = await authRequest(`/api/admin/users/${userId}/unblock`, { method: 'PUT' })
   return data.user
 }
+
+export function fetchEngagement(targetType, targetId) {
+  const params = new URLSearchParams({ targetType, targetId })
+  return authRequest(`/api/engagement?${params.toString()}`)
+}
+
+export async function createComment(targetType, targetId, content) {
+  const data = await authRequest('/api/comments', {
+    method: 'POST',
+    body: JSON.stringify({ targetType, targetId, content }),
+  })
+  return data.comment
+}
+
+export function deleteComment(id) {
+  return authRequest(`/api/comments/${id}`, { method: 'DELETE' })
+}
+
+export function toggleNod(targetType, targetId) {
+  return authRequest('/api/nods/toggle', {
+    method: 'POST',
+    body: JSON.stringify({ targetType, targetId }),
+  })
+}

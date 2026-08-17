@@ -38,6 +38,7 @@ function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [respondingId, setRespondingId] = useState('')
   const containerRef = useRef(null)
   const navigate = useNavigate()
 
@@ -94,6 +95,42 @@ function NotificationBell() {
     navigate(notificationLink(notification))
   }
 
+  // Once the connection request is resolved, the backend stops returning
+  // this notification at all — drop it from the local list to match rather
+  // than waiting on the next refreshList().
+  function removeNotification(notification) {
+    setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
+    if (!notification.read) {
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    }
+  }
+
+  async function handleAccept(notification) {
+    setError('')
+    setRespondingId(notification.id)
+    try {
+      await api.acceptConnectionRequest(notification.targetId)
+      removeNotification(notification)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRespondingId('')
+    }
+  }
+
+  async function handleDecline(notification) {
+    setError('')
+    setRespondingId(notification.id)
+    try {
+      await api.declineConnectionRequest(notification.targetId)
+      removeNotification(notification)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRespondingId('')
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -125,19 +162,51 @@ function NotificationBell() {
             {!loading && !error && notifications.length === 0 && (
               <p className="p-4 text-sm text-text-faint">No notifications yet.</p>
             )}
-            {notifications.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => handleNotificationClick(n)}
-                className={`flex w-full flex-col gap-0.5 border-b border-border px-4 py-3 text-left last:border-0 hover:bg-surface-hover ${
-                  n.read ? '' : 'bg-bg'
-                }`}
-              >
-                <span className="text-sm text-text">{notificationText(n)}</span>
-                <span className="text-xs text-text-faint">{formatDate(n.createdAt)}</span>
-              </button>
-            ))}
+            {notifications.map((n) =>
+              n.type === 'CONNECTION_REQUEST' ? (
+                <div
+                  key={n.id}
+                  className={`flex flex-col gap-2 border-b border-border px-4 py-3 last:border-0 ${
+                    n.read ? '' : 'bg-bg'
+                  }`}
+                >
+                  <button type="button" onClick={() => handleNotificationClick(n)} className="text-left">
+                    <span className="block text-sm text-text">{notificationText(n)}</span>
+                    <span className="block text-xs text-text-faint">{formatDate(n.createdAt)}</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={respondingId === n.id}
+                      onClick={() => handleAccept(n)}
+                      className="rounded bg-accent px-3 py-1 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      disabled={respondingId === n.id}
+                      onClick={() => handleDecline(n)}
+                      className="rounded border border-border-strong px-3 py-1 text-xs text-text-muted hover:bg-surface-hover disabled:opacity-50"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => handleNotificationClick(n)}
+                  className={`flex w-full flex-col gap-0.5 border-b border-border px-4 py-3 text-left last:border-0 hover:bg-surface-hover ${
+                    n.read ? '' : 'bg-bg'
+                  }`}
+                >
+                  <span className="text-sm text-text">{notificationText(n)}</span>
+                  <span className="text-xs text-text-faint">{formatDate(n.createdAt)}</span>
+                </button>
+              ),
+            )}
           </div>
         </div>
       )}

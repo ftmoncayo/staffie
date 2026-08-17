@@ -20,6 +20,27 @@ function formatNotification(n) {
   }
 }
 
+// A CONNECTION_REQUEST notification stays visible only while the underlying
+// request is still PENDING — once accepted or declined (from here or from
+// /connections/requests directly) it stops appearing, without deleting the
+// notification row itself. Every other type is unaffected.
+async function filterVisibleNotifications(notifications) {
+  const connectionRequestIds = [
+    ...new Set(notifications.filter((n) => n.type === 'CONNECTION_REQUEST').map((n) => n.targetId)),
+  ]
+  if (connectionRequestIds.length === 0) return notifications
+
+  const requests = await prisma.connectionRequest.findMany({
+    where: { id: { in: connectionRequestIds } },
+    select: { id: true, status: true },
+  })
+  const statusById = new Map(requests.map((r) => [r.id, r.status]))
+
+  return notifications.filter(
+    (n) => n.type !== 'CONNECTION_REQUEST' || statusById.get(n.targetId) === 'PENDING',
+  )
+}
+
 router.get('/notifications', async (req, res) => {
   const notifications = await prisma.notification.findMany({
     where: { userId: req.userId },
@@ -28,12 +49,17 @@ router.get('/notifications', async (req, res) => {
     take: NOTIFICATION_LIMIT,
   })
 
-  res.json({ notifications: notifications.map(formatNotification) })
+  const visible = await filterVisibleNotifications(notifications)
+  res.json({ notifications: visible.map(formatNotification) })
 })
 
 router.get('/notifications/unread-count', async (req, res) => {
-  const count = await prisma.notification.count({ where: { userId: req.userId, read: false } })
-  res.json({ count })
+  const unread = await prisma.notification.findMany({
+    where: { userId: req.userId, read: false },
+    select: { id: true, type: true, targetId: true },
+  })
+  const visible = await filterVisibleNotifications(unread)
+  res.json({ count: visible.length })
 })
 
 router.put('/notifications/read-all', async (req, res) => {

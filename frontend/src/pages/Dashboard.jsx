@@ -45,11 +45,13 @@ function Dashboard() {
 
   useEffect(() => {
     if (user?.isAdmin || user?.isVenueAdmin) {
-      api.fetchVenues({ status: 'UNVERIFIED' }).then((venues) => setUnverifiedVenueCount(venues.length))
+      api
+        .fetchVenues({ status: 'UNVERIFIED', includeManaged: true })
+        .then((venues) => setUnverifiedVenueCount(venues.length))
     }
     if (user?.isAdmin) {
       api
-        .fetchBusinesses({ status: 'UNVERIFIED' })
+        .fetchBusinesses({ status: 'UNVERIFIED', includeManaged: true })
         .then((businesses) => setUnverifiedBusinessCount(businesses.length))
     }
   }, [user])

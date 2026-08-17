@@ -272,18 +272,19 @@ export async function createVenueSpecialty(name) {
   return data.venueSpecialty
 }
 
-export async function fetchVenues({ search, sort, status, mine } = {}) {
+export async function fetchVenues({ search, sort, status, mine, includeManaged } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
   if (mine) params.set('mine', 'true')
+  if (includeManaged) params.set('includeManaged', 'true')
   const data = await authRequest(`/api/venues?${params.toString()}`)
   return data.venues
 }
 
 export async function fetchVenueOptions(search) {
-  const venues = await fetchVenues({ search })
+  const venues = await fetchVenues({ search, includeManaged: true })
   return venues.map((v) => ({ id: v.id, name: v.name }))
 }
 
@@ -475,12 +476,13 @@ export async function createBusinessCategory(name) {
   return data.businessCategory
 }
 
-export async function fetchBusinesses({ search, sort, status, mine } = {}) {
+export async function fetchBusinesses({ search, sort, status, mine, includeManaged } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
   if (mine) params.set('mine', 'true')
+  if (includeManaged) params.set('includeManaged', 'true')
   const data = await authRequest(`/api/businesses?${params.toString()}`)
   return data.businesses
 }

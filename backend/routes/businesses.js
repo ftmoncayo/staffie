@@ -105,22 +105,31 @@ router.get('/businesses', async (req, res) => {
     ? req.query.status
     : undefined
   const mine = req.query.mine === 'true'
+  // Lets specific-purpose callers (admin-wide unverified counts) opt out of
+  // the directory exclusion below — only the general Businesses directory
+  // should hide managed businesses.
+  const includeManaged = req.query.includeManaged === 'true'
 
-  let managedBusinessIds = null
-  if (mine) {
-    const rows = await prisma.businessManager.findMany({
-      where: { userId: req.userId },
-      select: { businessId: true },
-    })
-    managedBusinessIds = rows.map((r) => r.businessId)
-    if (managedBusinessIds.length === 0) {
-      return res.json({ businesses: [] })
-    }
+  const managedBusinessIds =
+    mine || !includeManaged
+      ? (
+          await prisma.businessManager.findMany({ where: { userId: req.userId }, select: { businessId: true } })
+        ).map((r) => r.businessId)
+      : []
+
+  if (mine && managedBusinessIds.length === 0) {
+    return res.json({ businesses: [] })
   }
 
   const where = {
     ...(status ? { verificationStatus: status } : {}),
-    ...(mine ? { id: { in: managedBusinessIds } } : {}),
+    ...(mine
+      ? { id: { in: managedBusinessIds } }
+      : // Businesses the viewer manages are excluded from the general
+        // directory — those surface on "My Businesses" instead.
+        !includeManaged && managedBusinessIds.length > 0
+        ? { id: { notIn: managedBusinessIds } }
+        : {}),
     ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
   }
 

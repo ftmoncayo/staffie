@@ -4,17 +4,21 @@ import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
 import NotificationBell from './NotificationBell'
 
-function buildLinks(user) {
+function buildPrimaryLinks() {
   return [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/profile', label: 'Profile' },
     { to: '/discover', label: 'People' },
-    { to: '/connections/requests', label: 'Connection Requests' },
     { to: '/venues', label: 'Venues' },
-    ...(user?.managesVenue ? [{ to: '/venues/mine', label: 'My Venues' }] : []),
     { to: '/businesses', label: 'Businesses' },
-    ...(user?.managesBusiness ? [{ to: '/businesses/mine', label: 'My Businesses' }] : []),
     { to: '/jobs', label: 'Jobs' },
+  ]
+}
+
+function buildMineLinks(user) {
+  return [
+    ...(user?.managesVenue ? [{ to: '/venues/mine', label: 'My Venues' }] : []),
+    ...(user?.managesBusiness ? [{ to: '/businesses/mine', label: 'My Businesses' }] : []),
     ...(user?.managesVenue ? [{ to: '/jobs/mine', label: 'My Jobs' }] : []),
   ]
 }
@@ -57,7 +61,8 @@ function TopNav() {
 
   const name = profile ? [profile.firstName, profile.lastName].filter(Boolean).join(' ') : ''
   const displayName = name || user.email
-  const links = buildLinks(user)
+  const primaryLinks = buildPrimaryLinks()
+  const mineLinks = buildMineLinks(user)
 
   function handleLogout() {
     setMenuOpen(false)
@@ -85,7 +90,7 @@ function TopNav() {
       </div>
 
       <nav className="hidden items-center gap-6 border-b border-border px-4 py-3 sm:flex">
-        {links.map((link) => (
+        {primaryLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
@@ -96,6 +101,23 @@ function TopNav() {
             {link.label}
           </NavLink>
         ))}
+        {mineLinks.length > 0 && (
+          <>
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+            {mineLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `text-sm font-medium ${isActive ? 'text-accent' : 'text-text-muted hover:text-accent'}`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+          </>
+        )}
         <button
           type="button"
           onClick={handleLogout}
@@ -107,7 +129,7 @@ function TopNav() {
 
       {menuOpen && (
         <nav ref={menuRef} className="flex flex-col border-b border-border px-4 py-2 sm:hidden">
-          {links.map((link) => (
+          {primaryLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -121,6 +143,26 @@ function TopNav() {
               {link.label}
             </NavLink>
           ))}
+          {mineLinks.length > 0 && (
+            <>
+              <hr className="my-2 border-border" />
+              {mineLinks.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `rounded px-2 py-2 text-sm font-medium ${
+                      isActive ? 'text-accent' : 'text-text-muted hover:bg-surface-hover hover:text-accent'
+                    }`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+              <hr className="my-2 border-border" />
+            </>
+          )}
           <button
             type="button"
             onClick={handleLogout}

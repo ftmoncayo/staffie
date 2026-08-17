@@ -134,22 +134,31 @@ router.get('/venues', async (req, res) => {
     ? req.query.status
     : undefined
   const mine = req.query.mine === 'true'
+  // Lets specific-purpose callers (picking a venue for one's own Experience
+  // entry, admin-wide unverified counts) opt out of the directory exclusion
+  // below — only the general Venues directory should hide managed venues.
+  const includeManaged = req.query.includeManaged === 'true'
 
-  let managedVenueIds = null
-  if (mine) {
-    const rows = await prisma.venueManager.findMany({
-      where: { userId: req.userId },
-      select: { venueId: true },
-    })
-    managedVenueIds = rows.map((r) => r.venueId)
-    if (managedVenueIds.length === 0) {
-      return res.json({ venues: [] })
-    }
+  const managedVenueIds =
+    mine || !includeManaged
+      ? (
+          await prisma.venueManager.findMany({ where: { userId: req.userId }, select: { venueId: true } })
+        ).map((r) => r.venueId)
+      : []
+
+  if (mine && managedVenueIds.length === 0) {
+    return res.json({ venues: [] })
   }
 
   const where = {
     ...(status ? { verificationStatus: status } : {}),
-    ...(mine ? { id: { in: managedVenueIds } } : {}),
+    ...(mine
+      ? { id: { in: managedVenueIds } }
+      : // Venues the viewer manages are excluded from the general directory —
+        // those surface on "My Venues" instead.
+        !includeManaged && managedVenueIds.length > 0
+        ? { id: { notIn: managedVenueIds } }
+        : {}),
     ...(search
       ? {
           OR: [

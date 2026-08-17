@@ -40,20 +40,21 @@ router.get('/feed', async (req, res) => {
     businessFollows.filter((f) => f.isFavourite).map((f) => f.businessId),
   )
 
-  // Notice reach: assigned managers of a venue/business, plus (venues only) anyone
-  // with a current/previous Experience there, see NOTICE_POSTED activity even if
-  // they don't follow the venue/business.
+  // Notice/Job reach: assigned managers of a venue/business, plus (venues only)
+  // anyone with a current/previous Experience there, see NOTICE_POSTED and
+  // JOB_POSTED activity even if they don't follow the venue/business.
   const noticeReachVenueIds = [
     ...new Set([...managedVenues.map((m) => m.venueId), ...workedVenues.map((w) => w.venueId)]),
   ]
   const noticeReachBusinessIds = managedBusinesses.map((m) => m.businessId)
+  const venueReachTypes = ['NOTICE_POSTED', 'JOB_POSTED']
 
   const orConditions = [
     connectionUserIds.length > 0 ? { actorUserId: { in: connectionUserIds } } : null,
     followedVenueIds.length > 0 ? { venueId: { in: followedVenueIds } } : null,
     followedBusinessIds.length > 0 ? { businessId: { in: followedBusinessIds } } : null,
     noticeReachVenueIds.length > 0
-      ? { type: 'NOTICE_POSTED', venueId: { in: noticeReachVenueIds } }
+      ? { type: { in: venueReachTypes }, venueId: { in: noticeReachVenueIds } }
       : null,
     noticeReachBusinessIds.length > 0
       ? { type: 'NOTICE_POSTED', businessId: { in: noticeReachBusinessIds } }
@@ -71,6 +72,7 @@ router.get('/feed', async (req, res) => {
           venue: { select: { id: true, name: true } },
           business: { select: { id: true, name: true } },
           notice: true,
+          job: { select: { id: true, title: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: ACTIVITY_LIMIT,

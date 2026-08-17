@@ -20,6 +20,10 @@ import DiscoverPeople from './pages/DiscoverPeople'
 import InviteSomeone from './pages/InviteSomeone'
 import ConnectionRequests from './pages/ConnectionRequests'
 import Connections from './pages/Connections'
+import JobsDirectory from './pages/JobsDirectory'
+import JobCreate from './pages/JobCreate'
+import JobDetail from './pages/JobDetail'
+import JobApplications from './pages/JobApplications'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import TopNav from './components/TopNav'
@@ -103,6 +107,38 @@ function App() {
           element={
             <ProtectedRoute>
               <BusinessDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs"
+          element={
+            <ProtectedRoute>
+              <JobsDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs/:id"
+          element={
+            <ProtectedRoute>
+              <JobDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs/:id/applications"
+          element={
+            <ProtectedRoute>
+              <JobApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/venues/:venueId/jobs/new"
+          element={
+            <ProtectedRoute>
+              <JobCreate />
             </ProtectedRoute>
           }
         />

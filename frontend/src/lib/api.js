@@ -671,3 +671,63 @@ export function toggleNod(targetType, targetId) {
     body: JSON.stringify({ targetType, targetId }),
   })
 }
+
+export async function createSkill(name) {
+  const data = await authRequest('/api/skills', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.skill
+}
+
+export async function createKnowledgeArea(name) {
+  const data = await authRequest('/api/knowledge-areas', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.knowledgeArea
+}
+
+export async function fetchJobs({ cityId, venueId, sort, status } = {}) {
+  const params = new URLSearchParams()
+  if (cityId) params.set('cityId', cityId)
+  if (venueId) params.set('venueId', venueId)
+  if (sort) params.set('sort', sort)
+  if (status) params.set('status', status)
+  const data = await authRequest(`/api/jobs?${params.toString()}`)
+  return data.jobs
+}
+
+export async function fetchJob(id) {
+  const data = await authRequest(`/api/jobs/${id}`)
+  return data.job
+}
+
+export async function createJob(job) {
+  const data = await authRequest('/api/jobs', {
+    method: 'POST',
+    body: JSON.stringify(job),
+  })
+  return data.job
+}
+
+export async function updateJob(id, job) {
+  const data = await authRequest(`/api/jobs/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(job),
+  })
+  return data.job
+}
+
+export async function applyToJob(id, note) {
+  const data = await authRequest(`/api/jobs/${id}/apply`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  })
+  return data.application
+}
+
+export async function fetchJobApplications(id) {
+  const data = await authRequest(`/api/jobs/${id}/applications`)
+  return data.applications
+}

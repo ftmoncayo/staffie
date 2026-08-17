@@ -220,6 +220,7 @@ router.get('/:userId/activity', async (req, res) => {
       venue: { select: { id: true, name: true } },
       business: { select: { id: true, name: true } },
       notice: true,
+      job: { select: { id: true, title: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: ACTIVITY_LIMIT,

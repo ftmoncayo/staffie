@@ -136,6 +136,18 @@ router.get('/skills', async (req, res) => {
   res.json({ skills })
 })
 
+router.post('/skills', async (req, res) => {
+  const name = validateName(req, res)
+  if (!name) return
+
+  const skill = await prisma.skill.upsert({
+    where: { name },
+    create: { name },
+    update: {},
+  })
+  res.status(201).json({ skill })
+})
+
 // --- Knowledge areas ---
 
 router.get('/knowledge-areas', async (req, res) => {
@@ -145,6 +157,18 @@ router.get('/knowledge-areas', async (req, res) => {
     take: SEARCH_LIMIT,
   })
   res.json({ knowledgeAreas })
+})
+
+router.post('/knowledge-areas', async (req, res) => {
+  const name = validateName(req, res)
+  if (!name) return
+
+  const knowledgeArea = await prisma.knowledgeArea.upsert({
+    where: { name },
+    create: { name },
+    update: {},
+  })
+  res.status(201).json({ knowledgeArea })
 })
 
 // --- Certification types ---

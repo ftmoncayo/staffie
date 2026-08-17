@@ -19,6 +19,7 @@ function VenueDetail() {
   const { user } = useAuth()
   const [venue, setVenue] = useState(null)
   const [activity, setActivity] = useState([])
+  const [jobs, setJobs] = useState([])
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -37,6 +38,7 @@ function VenueDetail() {
 
   useEffect(() => {
     refreshActivity().catch(() => {})
+    api.fetchJobs({ venueId: id }).then(setJobs).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
@@ -190,6 +192,33 @@ function VenueDetail() {
             onPosted={refreshActivity}
           />
         )}
+
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-text">Jobs at this venue</h2>
+            {venue.canEdit && (
+              <Link
+                to={`/venues/${id}/jobs/new`}
+                className="text-sm text-accent hover:text-accent-hover hover:underline"
+              >
+                + Post a job
+              </Link>
+            )}
+          </div>
+          {jobs.length === 0 && <p className="text-sm text-text-faint">No jobs posted yet.</p>}
+          {jobs.map((job) => (
+            <Link
+              key={job.id}
+              to={`/jobs/${job.id}`}
+              className="flex items-center justify-between rounded-lg border border-border bg-surface p-4 hover:border-border-strong hover:bg-surface-hover"
+            >
+              <span className="font-medium text-text">{job.title}</span>
+              {job.status === 'CLOSED' && (
+                <span className="rounded bg-warning-bg px-2 py-0.5 text-xs text-warning">Closed</span>
+              )}
+            </Link>
+          ))}
+        </div>
 
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Recent activity</h2>

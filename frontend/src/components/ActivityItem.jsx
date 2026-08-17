@@ -30,7 +30,7 @@ function EntityLink({ entity, to }) {
 }
 
 function activityContent(activity) {
-  const { type, actor, counterpart, venue, business, notice } = activity
+  const { type, actor, counterpart, venue, business, notice, job } = activity
 
   switch (type) {
     case 'SIGNUP': {
@@ -90,6 +90,19 @@ function activityContent(activity) {
         </>
       )
     }
+    case 'JOB_POSTED':
+      return (
+        <>
+          <ActorLink user={actor} /> posted a job at <EntityLink entity={venue} to={`/venues/${venue?.id}`} />
+          {job?.title ? (
+            <>
+              : <EntityLink entity={{ name: job.title }} to={`/jobs/${job.id}`} />
+            </>
+          ) : (
+            ''
+          )}
+        </>
+      )
     default:
       return 'Activity'
   }

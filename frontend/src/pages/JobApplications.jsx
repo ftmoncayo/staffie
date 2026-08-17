@@ -8,7 +8,8 @@ function formatDate(value) {
 }
 
 function ApplicantCard({ application }) {
-  const { applicant, note, createdAt } = application
+  const { applicant, note, createdAt, skillMatchCount, knowledgeMatchCount, mutualConnectionsAtVenue } =
+    application
   const name = applicant.profile
     ? [applicant.profile.firstName, applicant.profile.lastName].filter(Boolean).join(' ')
     : applicant.email
@@ -32,6 +33,13 @@ function ApplicantCard({ application }) {
         </div>
         <span className="shrink-0 text-xs text-text-faint">Applied {formatDate(createdAt)}</span>
       </div>
+      <p className="text-sm text-text-faint">
+        {skillMatchCount} skill{skillMatchCount === 1 ? '' : 's'} matched, {knowledgeMatchCount} knowledge
+        area{knowledgeMatchCount === 1 ? '' : 's'} matched
+      </p>
+      <p className="text-sm text-text-faint">
+        {mutualConnectionsAtVenue} mutual connection{mutualConnectionsAtVenue === 1 ? '' : 's'} at this venue
+      </p>
       {note && <p className="text-sm text-text">{note}</p>}
     </div>
   )

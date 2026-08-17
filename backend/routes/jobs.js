@@ -332,7 +332,10 @@ router.post('/jobs/:id/apply', async (req, res) => {
 })
 
 router.get('/jobs/:id/applications', async (req, res) => {
-  const job = await prisma.job.findUnique({ where: { id: req.params.id } })
+  const job = await prisma.job.findUnique({
+    where: { id: req.params.id },
+    include: { skills: true, knowledgeAreas: true },
+  })
   if (!job) {
     return res.status(404).json({ error: 'Job not found' })
   }
@@ -342,30 +345,68 @@ router.get('/jobs/:id/applications', async (req, res) => {
     return res.status(403).json({ error: 'You do not have permission to view applications for this job' })
   }
 
+  const jobSkillIds = job.skills.map((js) => js.skillId)
+  const jobKnowledgeAreaIds = job.knowledgeAreas.map((jk) => jk.knowledgeAreaId)
+
   const applications = await prisma.jobApplication.findMany({
     where: { jobId: job.id },
-    include: { applicantUser: { include: { profile: { include: { city: true } } } } },
+    include: {
+      applicantUser: {
+        include: { profile: { include: { city: true, skills: true, knowledgeAreas: true } } },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   })
 
+  // Mutual connections are scoped to each applicant, not the viewer: how many
+  // of the applicant's own accepted connections have current/previous
+  // Experience at this venue.
+  const adjacency = await buildConnectionsAdjacency()
+  const applicantConnections = applications.map((a) => adjacency.get(a.applicantUserId) || new Set())
+  const allConnectedUserIds = [...new Set(applicantConnections.flatMap((s) => [...s]))]
+
+  const experiencedUserIds = allConnectedUserIds.length
+    ? new Set(
+        (
+          await prisma.experience.findMany({
+            where: { venueId: job.venueId, profile: { userId: { in: allConnectedUserIds } } },
+            select: { profile: { select: { userId: true } } },
+          })
+        ).map((e) => e.profile.userId),
+      )
+    : new Set()
+
   res.json({
-    applications: applications.map((a) => ({
-      id: a.id,
-      note: a.note,
-      createdAt: a.createdAt,
-      applicant: {
-        id: a.applicantUser.id,
-        email: a.applicantUser.email,
-        profile: a.applicantUser.profile
-          ? {
-              firstName: a.applicantUser.profile.firstName,
-              lastName: a.applicantUser.profile.lastName,
-              professionalTitle: a.applicantUser.profile.professionalTitle,
-              city: a.applicantUser.profile.city,
-            }
-          : null,
-      },
-    })),
+    applications: applications.map((a, i) => {
+      const applicantSkillIds = new Set((a.applicantUser.profile?.skills || []).map((s) => s.id))
+      const applicantKnowledgeAreaIds = new Set(
+        (a.applicantUser.profile?.knowledgeAreas || []).map((k) => k.id),
+      )
+      const mutualConnectionsAtVenue = [...applicantConnections[i]].filter((id) =>
+        experiencedUserIds.has(id),
+      ).length
+
+      return {
+        id: a.id,
+        note: a.note,
+        createdAt: a.createdAt,
+        skillMatchCount: jobSkillIds.filter((id) => applicantSkillIds.has(id)).length,
+        knowledgeMatchCount: jobKnowledgeAreaIds.filter((id) => applicantKnowledgeAreaIds.has(id)).length,
+        mutualConnectionsAtVenue,
+        applicant: {
+          id: a.applicantUser.id,
+          email: a.applicantUser.email,
+          profile: a.applicantUser.profile
+            ? {
+                firstName: a.applicantUser.profile.firstName,
+                lastName: a.applicantUser.profile.lastName,
+                professionalTitle: a.applicantUser.profile.professionalTitle,
+                city: a.applicantUser.profile.city,
+              }
+            : null,
+        },
+      }
+    }),
   })
 })
 

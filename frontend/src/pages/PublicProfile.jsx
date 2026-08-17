@@ -177,7 +177,9 @@ function PublicProfile() {
           <h2 className="text-xl font-semibold text-text">Skills</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             {profile.skills.map((skill) => (
-              <Tag key={skill.id}>{skill.name}</Tag>
+              <Tag key={skill.id} level={skill.level}>
+                {skill.name}
+              </Tag>
             ))}
             {profile.skills.length === 0 && <p className="text-sm text-text-faint">No skills added yet.</p>}
           </div>
@@ -187,7 +189,9 @@ function PublicProfile() {
           <h2 className="text-xl font-semibold text-text">Knowledge Bank</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             {profile.knowledgeAreas.map((area) => (
-              <Tag key={area.id}>{area.name}</Tag>
+              <Tag key={area.id} level={area.level}>
+                {area.name}
+              </Tag>
             ))}
             {profile.knowledgeAreas.length === 0 && (
               <p className="text-sm text-text-faint">No knowledge areas added yet.</p>

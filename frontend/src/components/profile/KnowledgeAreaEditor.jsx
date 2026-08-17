@@ -61,6 +61,7 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
         {knowledgeAreas.map((area) => (
           <Tag
             key={area.id}
+            level={area.level}
             onRemove={() => handleRemove(area.name)}
             removeDisabled={removing === area.name}
             removeLabel={`Remove ${area.name}`}

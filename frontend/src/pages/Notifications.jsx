@@ -18,6 +18,10 @@ function notificationText(n) {
       return `${name} commented on your ${n.targetType === 'ACTIVITY' ? 'activity' : 'post'}`
     case 'NOD':
       return `${name} nodded your ${n.targetType === 'ACTIVITY' ? 'activity' : 'post'}`
+    case 'ENDORSEMENT_REQUEST': {
+      const label = n.targetType === 'SKILL' ? 'skill' : 'knowledge area'
+      return `${name} asked you to endorse their ${label} "${n.itemName || ''}"`
+    }
     default:
       return 'New notification'
   }
@@ -26,6 +30,7 @@ function notificationText(n) {
 function notificationLink(n) {
   if (n.type === 'CONNECTION_REQUEST') return '/connections/requests'
   if (n.type === 'CONNECTION_ACCEPTED') return n.sourceUser ? `/profile/${n.sourceUser.id}` : '/connections'
+  if (n.type === 'ENDORSEMENT_REQUEST') return n.sourceUser ? `/profile/${n.sourceUser.id}` : '/discover'
   // Comments/nods target either a Post or an Activity, neither of which has
   // its own page — Home is where Posts render, and a person's own Activity
   // always shows on their own Profile regardless of feed reach.
@@ -84,6 +89,19 @@ function Notifications() {
     setRespondingId(n.id)
     try {
       await api.declineConnectionRequest(n.targetId)
+      removeNotification(n.id)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRespondingId('')
+    }
+  }
+
+  async function handleEndorse(n) {
+    setError('')
+    setRespondingId(n.id)
+    try {
+      await api.endorseNotification(n.id)
       removeNotification(n.id)
     } catch (err) {
       setError(err.message)
@@ -176,6 +194,25 @@ function Notifications() {
                     className="rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover disabled:opacity-50"
                   >
                     Decline
+                  </button>
+                </div>
+              ) : n.type === 'ENDORSEMENT_REQUEST' ? (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={respondingId === n.id}
+                    onClick={() => handleEndorse(n)}
+                    className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                  >
+                    Endorse
+                  </button>
+                  <button
+                    type="button"
+                    disabled={dismissingId === n.id}
+                    onClick={() => handleDismiss(n)}
+                    className="rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover disabled:opacity-50"
+                  >
+                    Dismiss
                   </button>
                 </div>
               ) : (

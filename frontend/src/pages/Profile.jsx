@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import ProfileDetails from '../components/profile/ProfileDetails'
 import SkillsEditor from '../components/profile/SkillsEditor'
 import KnowledgeAreaEditor from '../components/profile/KnowledgeAreaEditor'
+import RequestEndorsementsPanel from '../components/profile/RequestEndorsementsPanel'
 import ExperienceEditor from '../components/profile/ExperienceEditor'
 import CertificationsEditor from '../components/profile/CertificationsEditor'
 import ConnectionsList from '../components/profile/ConnectionsList'
@@ -27,6 +28,7 @@ function Profile() {
     }
   })
   const [prefillVenue, setPrefillVenue] = useState(null)
+  const [showEndorsementPanel, setShowEndorsementPanel] = useState(false)
 
   function handleDismissInviteVenue() {
     localStorage.removeItem('staffie_invite_venue')
@@ -187,6 +189,29 @@ function Profile() {
           onAdd={handleAddKnowledgeArea}
           onRemove={handleRemoveKnowledgeArea}
         />
+
+        {profile && (
+          <div className="rounded-lg border border-border bg-surface p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-text">Endorsements</h2>
+                <p className="mt-1 text-sm text-text-faint">
+                  Ask colleagues or managers to endorse your skills and knowledge areas.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEndorsementPanel((prev) => !prev)}
+                className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
+              >
+                {showEndorsementPanel ? 'Hide' : 'Request Endorsements'}
+              </button>
+            </div>
+            {showEndorsementPanel && (
+              <RequestEndorsementsPanel profile={profile} onClose={() => setShowEndorsementPanel(false)} />
+            )}
+          </div>
+        )}
 
         <ExperienceEditor
           profile={profile}

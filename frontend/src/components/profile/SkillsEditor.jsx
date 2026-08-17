@@ -58,6 +58,7 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
         {skills.map((skill) => (
           <Tag
             key={skill.id}
+            level={skill.level}
             onRemove={() => handleRemove(skill.name)}
             removeDisabled={removing === skill.name}
             removeLabel={`Remove ${skill.name}`}

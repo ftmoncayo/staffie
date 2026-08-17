@@ -764,6 +764,33 @@ export async function dismissAllNotifications() {
   return authRequest('/api/notifications/dismiss-all', { method: 'PUT' })
 }
 
+export async function endorseNotification(id) {
+  return authRequest(`/api/notifications/${id}/endorse`, { method: 'PUT' })
+}
+
+export async function requestEndorsements(items, recipientScope) {
+  return authRequest('/api/profile/request-endorsements', {
+    method: 'POST',
+    body: JSON.stringify({ items, recipientScope }),
+  })
+}
+
+export async function addWorkerSkill(userId, name) {
+  const data = await authRequest(`/api/profile/${userId}/skills`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.skill
+}
+
+export async function addWorkerKnowledgeArea(userId, name) {
+  const data = await authRequest(`/api/profile/${userId}/knowledge-areas`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.knowledgeArea
+}
+
 export async function fetchLookupTypes() {
   const data = await authRequest('/api/admin/lookup-types')
   return data.types

@@ -8,6 +8,15 @@ const {
   buildConnectionsAdjacency,
 } = require('../lib/connectionStatus')
 const { formatActivities } = require('../lib/activityFeed')
+const {
+  PEER_NOTIFY_LIMIT,
+  attachEndorsementLevels,
+  getWorkerVenueIds,
+  getEligiblePeerUserIds,
+  getEligibleManagerUserIds,
+  isEligibleManagerFor,
+  clearPendingEndorsementRequests,
+} = require('../lib/endorsements')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -31,7 +40,9 @@ const profileInclude = {
 
 async function getOwnedProfile(userId) {
   const profile = await prisma.profile.findUnique({ where: { userId }, include: profileInclude })
-  return profile ? { ...profile, about: sanitize(profile.about) } : profile
+  if (!profile) return profile
+  const withLevels = await attachEndorsementLevels(profile)
+  return { ...withLevels, about: sanitize(profile.about) }
 }
 
 function parseDate(value) {
@@ -154,13 +165,14 @@ router.get('/:userId', async (req, res) => {
     return res.json({ unavailable: true })
   }
 
-  const profile = await prisma.profile.findUnique({
+  const rawProfile = await prisma.profile.findUnique({
     where: { userId: req.params.userId },
     include: profileInclude,
   })
-  if (!profile) {
+  if (!rawProfile) {
     return res.status(404).json({ error: 'Profile not found' })
   }
+  const profile = await attachEndorsementLevels(rawProfile)
 
   const statusMap = await buildConnectionStatusMap(req.userId)
 
@@ -259,6 +271,11 @@ router.delete('/skills/:name', requireProfile, async (req, res) => {
       where: { id: req.profile.id },
       data: { skills: { disconnect: { id: skill.id } } },
     })
+    // Endorsements are keyed by itemId, not the m2m row, so they'd otherwise
+    // survive a remove — and silently resurface if the same skill is re-added.
+    await prisma.endorsement.deleteMany({
+      where: { profileId: req.profile.id, itemType: 'SKILL', itemId: skill.id },
+    })
   }
   const profile = await getOwnedProfile(req.userId)
   res.json({ profile })
@@ -297,9 +314,183 @@ router.delete('/knowledge-areas/:name', requireProfile, async (req, res) => {
       where: { id: req.profile.id },
       data: { knowledgeAreas: { disconnect: { id: knowledgeArea.id } } },
     })
+    await prisma.endorsement.deleteMany({
+      where: { profileId: req.profile.id, itemType: 'KNOWLEDGE_AREA', itemId: knowledgeArea.id },
+    })
   }
   const profile = await getOwnedProfile(req.userId)
   res.json({ profile })
+})
+
+// --- Endorsements ---
+
+async function createEndorsementRequestIfNeeded({ recipientUserId, workerUserId, itemType, itemId }) {
+  if (recipientUserId === workerUserId) return
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId: recipientUserId,
+      sourceUserId: workerUserId,
+      type: 'ENDORSEMENT_REQUEST',
+      targetType: itemType,
+      targetId: itemId,
+      dismissed: false,
+    },
+  })
+  if (existing) return
+  await prisma.notification.create({
+    data: {
+      userId: recipientUserId,
+      sourceUserId: workerUserId,
+      type: 'ENDORSEMENT_REQUEST',
+      targetType: itemType,
+      targetId: itemId,
+    },
+  })
+}
+
+router.post('/request-endorsements', requireProfile, async (req, res) => {
+  const { items, recipientScope } = req.body || {}
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Select at least one item to request endorsements for' })
+  }
+  if (!['PEERS', 'MANAGERS', 'BOTH'].includes(recipientScope)) {
+    return res.status(400).json({ error: 'Invalid recipient scope' })
+  }
+
+  const ownProfile = await prisma.profile.findUnique({
+    where: { id: req.profile.id },
+    include: { skills: true, knowledgeAreas: true },
+  })
+  const validSkillIds = new Set(ownProfile.skills.map((s) => s.id))
+  const validKnowledgeAreaIds = new Set(ownProfile.knowledgeAreas.map((k) => k.id))
+
+  const validItems = items.filter((item) => {
+    if (typeof item?.itemId !== 'string' || !item.itemId.trim()) return false
+    if (item.itemType === 'SKILL') return validSkillIds.has(item.itemId)
+    if (item.itemType === 'KNOWLEDGE_AREA') return validKnowledgeAreaIds.has(item.itemId)
+    return false
+  })
+  if (validItems.length === 0) {
+    return res.status(400).json({ error: 'None of the selected items were found on your profile' })
+  }
+
+  let recipientUserIds = []
+  if (recipientScope === 'PEERS' || recipientScope === 'BOTH') {
+    const peers = await getEligiblePeerUserIds(req.profile.id, req.userId)
+    recipientUserIds.push(...peers.slice(0, PEER_NOTIFY_LIMIT))
+  }
+  if (recipientScope === 'MANAGERS' || recipientScope === 'BOTH') {
+    const venueIds = await getWorkerVenueIds(req.profile.id)
+    const managers = await getEligibleManagerUserIds(venueIds, req.userId)
+    recipientUserIds.push(...managers)
+  }
+  recipientUserIds = [...new Set(recipientUserIds)]
+
+  if (recipientUserIds.length === 0) {
+    return res.status(400).json({ error: 'No eligible people found to request endorsements from' })
+  }
+
+  for (const recipientUserId of recipientUserIds) {
+    for (const item of validItems) {
+      await createEndorsementRequestIfNeeded({
+        recipientUserId,
+        workerUserId: req.userId,
+        itemType: item.itemType,
+        itemId: item.itemId,
+      })
+    }
+  }
+
+  res.status(201).json({ ok: true, recipientCount: recipientUserIds.length, itemCount: validItems.length })
+})
+
+// A verified manager of a venue where :userId has current/previous Experience
+// can add a Skill/Knowledge item on that person's behalf, immediately at
+// Level 3 (a MANAGER endorsement from creation).
+async function requireManagerEligibleForWorker(req, res, next) {
+  const targetProfile = await prisma.profile.findUnique({ where: { userId: req.params.userId } })
+  if (!targetProfile) {
+    return res.status(404).json({ error: 'Profile not found' })
+  }
+  const eligible = await isEligibleManagerFor(req.userId, targetProfile.id)
+  if (!eligible) {
+    return res
+      .status(403)
+      .json({ error: 'You must be a verified manager of a venue this person has worked at' })
+  }
+  req.targetProfile = targetProfile
+  next()
+}
+
+async function endorseAsManager({ targetProfileId, itemType, itemId, managerUserId, workerUserId }) {
+  await prisma.endorsement.upsert({
+    where: {
+      profileId_itemType_itemId_endorserUserId: {
+        profileId: targetProfileId,
+        itemType,
+        itemId,
+        endorserUserId: managerUserId,
+      },
+    },
+    create: { profileId: targetProfileId, itemType, itemId, endorserUserId: managerUserId, endorserRole: 'MANAGER' },
+    update: { endorserRole: 'MANAGER' },
+  })
+  await clearPendingEndorsementRequests({ workerUserId, itemType, itemId })
+}
+
+router.post('/:userId/skills', requireManagerEligibleForWorker, async (req, res) => {
+  const { name } = req.body || {}
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Skill name is required' })
+  }
+  const trimmed = name.trim()
+
+  const skill = await prisma.skill.upsert({ where: { name: trimmed }, create: { name: trimmed }, update: {} })
+
+  await prisma.profile.update({
+    where: { id: req.targetProfile.id },
+    data: { skills: { connect: { id: skill.id } } },
+  })
+
+  await endorseAsManager({
+    targetProfileId: req.targetProfile.id,
+    itemType: 'SKILL',
+    itemId: skill.id,
+    managerUserId: req.userId,
+    workerUserId: req.params.userId,
+  })
+
+  res.status(201).json({ skill: { ...skill, level: 3 } })
+})
+
+router.post('/:userId/knowledge-areas', requireManagerEligibleForWorker, async (req, res) => {
+  const { name } = req.body || {}
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Knowledge area name is required' })
+  }
+  const trimmed = name.trim()
+
+  const knowledgeArea = await prisma.knowledgeArea.upsert({
+    where: { name: trimmed },
+    create: { name: trimmed },
+    update: {},
+  })
+
+  await prisma.profile.update({
+    where: { id: req.targetProfile.id },
+    data: { knowledgeAreas: { connect: { id: knowledgeArea.id } } },
+  })
+
+  await endorseAsManager({
+    targetProfileId: req.targetProfile.id,
+    itemType: 'KNOWLEDGE_AREA',
+    itemId: knowledgeArea.id,
+    managerUserId: req.userId,
+    workerUserId: req.params.userId,
+  })
+
+  res.status(201).json({ knowledgeArea: { ...knowledgeArea, level: 3 } })
 })
 
 // --- Experience ---

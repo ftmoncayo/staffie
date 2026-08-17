@@ -231,7 +231,7 @@ function VenueDetail() {
           />
         </div>
 
-        <VenueWorkers venueId={id} />
+        <VenueWorkers venueId={id} canManage={venue.canEdit} />
 
         {venue.canManageNominations && <PendingManagerRequests venueId={id} />}
 

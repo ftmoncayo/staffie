@@ -54,6 +54,8 @@ model User {
 
   receivedNotifications Notification[] @relation("NotificationRecipient")
   sentNotifications     Notification[] @relation("NotificationSource")
+
+  endorsementsGiven Endorsement[]
 }
 
 enum ActivityType {
@@ -212,6 +214,7 @@ model Profile {
   knowledgeAreas KnowledgeArea[]
   experiences    Experience[]
   certifications Certification[]
+  endorsements   Endorsement[]
 }
 
 model Country {
@@ -520,15 +523,48 @@ enum NotificationType {
   CONNECTION_ACCEPTED
   COMMENT
   NOD
+  ENDORSEMENT_REQUEST
 }
 
 // Reuses EngagementTargetType's POST/ACTIVITY values plus CONNECTION_REQUEST,
 // mirroring the targetType/targetId discriminator pattern used by Notice,
 // Comment, and Nod rather than a dedicated join table per notification kind.
+// SKILL/KNOWLEDGE_AREA (targetId = Skill.id / KnowledgeArea.id) back
+// ENDORSEMENT_REQUEST notifications the same way.
 enum NotificationTargetType {
   CONNECTION_REQUEST
   POST
   ACTIVITY
+  SKILL
+  KNOWLEDGE_AREA
+}
+
+enum EndorsementItemType {
+  SKILL
+  KNOWLEDGE_AREA
+}
+
+enum EndorsementRole {
+  PEER
+  MANAGER
+}
+
+// No FK on itemId — it points at a Skill.id or KnowledgeArea.id depending on
+// itemType, the same discriminator-without-relation pattern Comment/Nod use
+// for POST/ACTIVITY. Level is derived (not stored): MANAGER role present ->
+// 3, else PEER present -> 2, else 1.
+model Endorsement {
+  id             String              @id @default(uuid())
+  profileId      String
+  profile        Profile             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  itemType       EndorsementItemType
+  itemId         String
+  endorserUserId String
+  endorserUser   User                @relation(fields: [endorserUserId], references: [id], onDelete: Cascade)
+  endorserRole   EndorsementRole
+  createdAt      DateTime            @default(now())
+
+  @@unique([profileId, itemType, itemId, endorserUserId])
 }
 
 model Notification {

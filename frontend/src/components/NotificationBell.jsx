@@ -99,15 +99,10 @@ function NotificationBell() {
       <button
         type="button"
         onClick={handleToggle}
-        aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
-        className="relative text-lg leading-none text-text-muted hover:text-accent"
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+        className="text-sm font-medium text-text-muted hover:text-accent"
       >
-        🔔
-        {unreadCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-accent-text">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
+        {unreadCount > 0 ? `Notifications (${unreadCount})` : 'Notifications'}
       </button>
 
       {open && (

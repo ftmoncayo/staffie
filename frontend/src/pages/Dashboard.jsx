@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
 import ActivityItem from '../components/ActivityItem'
@@ -10,8 +10,7 @@ import SearchCombobox from '../components/SearchCombobox'
 import ShowMore from '../components/ShowMore'
 
 function Dashboard() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const [activities, setActivities] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [posts, setPosts] = useState([])
@@ -62,11 +61,6 @@ function Dashboard() {
     }
     api.fetchPosts(cityFilter.id).then(setPosts).catch((err) => setError(err.message))
   }, [cityFilter])
-
-  function handleLogout() {
-    logout()
-    navigate('/login')
-  }
 
   function updateSuggestion(userId, changes) {
     setSuggestions((prev) => prev.map((p) => (p.id === userId ? { ...p, ...changes } : p)))
@@ -139,9 +133,6 @@ function Dashboard() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold text-text">Home</h1>
           <div className="flex flex-wrap items-center gap-4 text-sm">
-            <Link to="/connections/requests" className="text-accent hover:text-accent-hover hover:underline">
-              Connection requests
-            </Link>
             <Link to="/invite" className="text-accent hover:text-accent-hover hover:underline">
               Invite someone
             </Link>
@@ -166,9 +157,6 @@ function Dashboard() {
                 Job Admin
               </Link>
             )}
-            <button type="button" onClick={handleLogout} className="text-text-muted hover:text-danger">
-              Logout
-            </button>
           </div>
         </div>
 

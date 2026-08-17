@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
@@ -9,6 +9,7 @@ function buildLinks(user) {
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/profile', label: 'Profile' },
     { to: '/discover', label: 'People' },
+    { to: '/connections/requests', label: 'Connection Requests' },
     { to: '/venues', label: 'Venues' },
     ...(user?.managesVenue ? [{ to: '/venues/mine', label: 'My Venues' }] : []),
     { to: '/businesses', label: 'Businesses' },
@@ -19,10 +20,12 @@ function buildLinks(user) {
 }
 
 function TopNav() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+  const toggleButtonRef = useRef(null)
 
   useEffect(() => {
     if (!user) {
@@ -37,7 +40,12 @@ function TopNav() {
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target) &&
+        toggleButtonRef.current &&
+        !toggleButtonRef.current.contains(e.target)
+      ) {
         setMenuOpen(false)
       }
     }
@@ -51,6 +59,12 @@ function TopNav() {
   const displayName = name || user.email
   const links = buildLinks(user)
 
+  function handleLogout() {
+    setMenuOpen(false)
+    logout()
+    navigate('/login')
+  }
+
   return (
     <div className="sticky top-0 z-10 bg-surface">
       <div className="flex items-center justify-between border-b border-border px-4 py-2 text-sm text-text-muted">
@@ -58,6 +72,7 @@ function TopNav() {
         <div className="flex items-center gap-4">
           <NotificationBell />
           <button
+            ref={toggleButtonRef}
             type="button"
             onClick={() => setMenuOpen((prev) => !prev)}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -81,6 +96,13 @@ function TopNav() {
             {link.label}
           </NavLink>
         ))}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-sm font-medium text-text-muted hover:text-danger"
+        >
+          Logout
+        </button>
       </nav>
 
       {menuOpen && (
@@ -99,6 +121,13 @@ function TopNav() {
               {link.label}
             </NavLink>
           ))}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded px-2 py-2 text-left text-sm font-medium text-text-muted hover:bg-surface-hover hover:text-danger"
+          >
+            Logout
+          </button>
         </nav>
       )}
     </div>

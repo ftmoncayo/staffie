@@ -68,6 +68,17 @@ async function isFollowingVenue(userId, venueId) {
   return Boolean(follow)
 }
 
+// A newly-verified manager is implicitly interested in this venue's
+// activity, so follow it on their behalf — but only if they aren't already
+// following (never overwrites an existing follow, e.g. one they favourited).
+async function ensureVenueFollow(userId, venueId) {
+  await prisma.venueFollow.upsert({
+    where: { userId_venueId: { userId, venueId } },
+    create: { userId, venueId },
+    update: {},
+  })
+}
+
 async function requireVenueEditor(req, res, next) {
   const allowed = await canEditVenue(req.userId, req.params.id)
   if (!allowed) {
@@ -600,6 +611,7 @@ router.post('/venues/:id/managers', requireAdminOrVenueAdmin, async (req, res) =
     data: { venueId: venue.id, userId: user.id, assignedByUserId: req.userId },
     include: { user: { select: { id: true, email: true } } },
   })
+  await ensureVenueFollow(user.id, venue.id)
 
   res.status(201).json({ manager })
 })
@@ -725,6 +737,7 @@ router.put('/venues/manager-nominations/:nominationId/approve', async (req, res)
       data: { venueId: nomination.targetId, userId: nomination.nomineeUserId, assignedByUserId: req.userId },
     })
   }
+  await ensureVenueFollow(nomination.nomineeUserId, nomination.targetId)
 
   const updated = await prisma.managerNomination.update({
     where: { id: nomination.id },

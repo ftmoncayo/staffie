@@ -14,6 +14,18 @@ function formatDate(value) {
   return value.slice(0, 10)
 }
 
+function rightToWorkLabel(countryName) {
+  return countryName ? `Eligible to work in ${countryName}` : 'Eligible to work here'
+}
+
+function locationString(profile) {
+  return (
+    [profile.suburb?.name, profile.city?.name, profile.city?.state?.name, profile.city?.state?.country?.name]
+      .filter(Boolean)
+      .join(', ') || '—'
+  )
+}
+
 function PublicProfile() {
   const { userId } = useParams()
   const { user } = useAuth()
@@ -126,6 +138,30 @@ function PublicProfile() {
           )}
         </div>
 
+        <div className="rounded-lg border border-border bg-surface p-6">
+          <h2 className="text-xl font-semibold text-text">ID Card</h2>
+          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm text-text-faint">Location</dt>
+              <dd className="text-text">{locationString(profile)}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-text-faint">Professional title</dt>
+              <dd className="text-text">{profile.professionalTitle}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-text-faint">{rightToWorkLabel(profile.city?.state?.country?.name)}</dt>
+              <dd className="text-text">{profile.rightToWork ? 'Yes' : 'No'}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-text-faint">Cultural identity / background</dt>
+              <dd className="text-text">{profile.culturalIdentity || '—'}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <AboutSection about={profile.about} canEdit={false} emptyMessage="Nothing here yet." />
+
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Recent activity</h2>
           <ShowMore
@@ -136,26 +172,6 @@ function PublicProfile() {
             renderItem={(item) => <ActivityItem key={item.id} activity={item} />}
           />
         </div>
-
-        <div className="rounded-lg border border-border bg-surface p-6">
-          <h2 className="text-xl font-semibold text-text">Profile details</h2>
-          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <dt className="text-sm text-text-faint">Professional title</dt>
-              <dd className="text-text">{profile.professionalTitle}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-text-faint">City</dt>
-              <dd className="text-text">{profile.city?.name || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-text-faint">Cultural identity / background</dt>
-              <dd className="text-text">{profile.culturalIdentity || '—'}</dd>
-            </div>
-          </dl>
-        </div>
-
-        <AboutSection about={profile.about} canEdit={false} emptyMessage="Nothing here yet." />
 
         <div className="rounded-lg border border-border bg-surface p-6">
           <h2 className="text-xl font-semibold text-text">Skills</h2>

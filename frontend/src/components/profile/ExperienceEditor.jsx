@@ -189,7 +189,7 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete, 
 
       {!profile && (
         <p className="mt-2 text-sm text-text-faint">
-          Complete your profile details above before adding experience.
+          Complete your ID Card above before adding experience.
         </p>
       )}
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}

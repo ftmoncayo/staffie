@@ -15,7 +15,8 @@ router.use(requireAuth)
 const ACTIVITY_LIMIT = 50
 
 const profileInclude = {
-  city: true,
+  city: { include: { state: { include: { country: true } } } },
+  suburb: true,
   skills: true,
   knowledgeAreas: true,
   experiences: {
@@ -43,6 +44,20 @@ async function requesterIsAdmin(userId) {
   return Boolean(requester?.isAdmin)
 }
 
+async function validateSuburbId(suburbId, cityId) {
+  if (typeof suburbId !== 'string' || !suburbId.trim()) {
+    return { ok: true, suburbId: null }
+  }
+  const suburb = await prisma.suburb.findUnique({ where: { id: suburbId.trim() } })
+  if (!suburb) {
+    return { ok: false, error: 'Selected suburb was not found' }
+  }
+  if (cityId && suburb.cityId !== cityId) {
+    return { ok: false, error: 'Selected suburb does not belong to the selected city' }
+  }
+  return { ok: true, suburbId: suburb.id }
+}
+
 async function requireProfile(req, res, next) {
   const profile = await prisma.profile.findUnique({ where: { userId: req.userId } })
   if (!profile) {
@@ -58,7 +73,7 @@ router.get('/', async (req, res) => {
 })
 
 router.put('/', async (req, res) => {
-  const { firstName, lastName, cityId, professionalTitle, rightToWork, culturalIdentity } =
+  const { firstName, lastName, cityId, suburbId, professionalTitle, rightToWork, culturalIdentity } =
     req.body || {}
 
   if (typeof firstName !== 'string' || !firstName.trim()) {
@@ -80,10 +95,16 @@ router.put('/', async (req, res) => {
     validatedCityId = city.id
   }
 
+  const suburbResult = await validateSuburbId(suburbId, validatedCityId)
+  if (!suburbResult.ok) {
+    return res.status(400).json({ error: suburbResult.error })
+  }
+
   const data = {
     firstName: firstName.trim(),
     lastName: typeof lastName === 'string' && lastName.trim() ? lastName.trim() : null,
     cityId: validatedCityId,
+    suburbId: suburbResult.suburbId,
     professionalTitle: professionalTitle.trim(),
     rightToWork,
     culturalIdentity:

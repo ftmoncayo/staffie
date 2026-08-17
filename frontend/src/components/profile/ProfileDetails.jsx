@@ -1,45 +1,49 @@
-import { useCallback, useState } from 'react'
-import * as api from '../../lib/api'
-import SearchCombobox from '../SearchCombobox'
+import { useState } from 'react'
+import LocationCascade from '../LocationCascade'
+
+function rightToWorkLabel(countryName) {
+  return countryName ? `Eligible to work in ${countryName}` : 'Eligible to work here'
+}
+
+function locationString(profile) {
+  return (
+    [profile.suburb?.name, profile.city?.name, profile.city?.state?.name, profile.city?.state?.country?.name]
+      .filter(Boolean)
+      .join(', ') || '—'
+  )
+}
 
 function ProfileDetails({ profile, onSave }) {
   const [editing, setEditing] = useState(!profile)
   const [firstName, setFirstName] = useState(profile?.firstName || '')
   const [lastName, setLastName] = useState(profile?.lastName || '')
+  const [country, setCountry] = useState(profile?.city?.state?.country || null)
+  const [state, setState] = useState(profile?.city?.state || null)
   const [city, setCity] = useState(profile?.city || null)
-  const [cityCountry, setCityCountry] = useState(profile?.city?.country || null)
-  const [cityState, setCityState] = useState(profile?.city?.state || null)
+  const [suburb, setSuburb] = useState(profile?.suburb || null)
   const [professionalTitle, setProfessionalTitle] = useState(profile?.professionalTitle || '')
   const [rightToWork, setRightToWork] = useState(profile?.rightToWork ?? false)
   const [culturalIdentity, setCulturalIdentity] = useState(profile?.culturalIdentity || '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  function handleCityCountryChange(newCountry) {
-    setCityCountry(newCountry)
-    setCityState(null)
+  function handleCountryChange(newCountry) {
+    setCountry(newCountry)
+    setState(null)
+    setCity(null)
+    setSuburb(null)
   }
 
-  const fetchCityStateOptions = useCallback(
-    (search) => (cityCountry ? api.fetchStates(cityCountry.id, search) : Promise.resolve([])),
-    [cityCountry],
-  )
+  function handleStateChange(newState) {
+    setState(newState)
+    setCity(null)
+    setSuburb(null)
+  }
 
-  const handleCreateCityState = useCallback(
-    (stateName) => {
-      if (!cityCountry) return Promise.reject(new Error('Select a country first'))
-      return api.createState(stateName, cityCountry.id)
-    },
-    [cityCountry],
-  )
-
-  const handleCreateCity = useCallback(
-    (cityName) => {
-      if (!cityState) return Promise.reject(new Error('Select a state for the new city first'))
-      return api.createCity(cityName, cityState.id)
-    },
-    [cityState],
-  )
+  function handleCityChange(newCity) {
+    setCity(newCity)
+    setSuburb(null)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -50,6 +54,7 @@ function ProfileDetails({ profile, onSave }) {
         firstName,
         lastName,
         cityId: city?.id || null,
+        suburbId: suburb?.id || null,
         professionalTitle,
         rightToWork,
         culturalIdentity,
@@ -66,7 +71,7 @@ function ProfileDetails({ profile, onSave }) {
     return (
       <div className="rounded-lg border border-border bg-surface p-6">
         <div className="flex items-start justify-between">
-          <h2 className="text-xl font-semibold text-text">Profile details</h2>
+          <h2 className="text-xl font-semibold text-text">ID Card</h2>
           <button
             onClick={() => setEditing(true)}
             className="text-sm text-accent hover:text-accent-hover hover:underline"
@@ -82,15 +87,15 @@ function ProfileDetails({ profile, onSave }) {
             </dd>
           </div>
           <div>
+            <dt className="text-sm text-text-faint">Location</dt>
+            <dd className="text-text">{locationString(profile)}</dd>
+          </div>
+          <div>
             <dt className="text-sm text-text-faint">Professional title</dt>
             <dd className="text-text">{profile.professionalTitle}</dd>
           </div>
           <div>
-            <dt className="text-sm text-text-faint">City</dt>
-            <dd className="text-text">{profile.city?.name || '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-text-faint">Right to work</dt>
+            <dt className="text-sm text-text-faint">{rightToWorkLabel(profile.city?.state?.country?.name)}</dt>
             <dd className="text-text">{profile.rightToWork ? 'Yes' : 'No'}</dd>
           </div>
           <div>
@@ -105,7 +110,7 @@ function ProfileDetails({ profile, onSave }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-6">
       <h2 className="text-xl font-semibold text-text">
-        {profile ? 'Edit profile details' : 'Complete your profile'}
+        {profile ? 'Edit ID Card' : 'Complete your profile'}
       </h2>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -133,6 +138,20 @@ function ProfileDetails({ profile, onSave }) {
         </label>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <LocationCascade
+          country={country}
+          state={state}
+          city={city}
+          suburb={suburb}
+          onCountryChange={handleCountryChange}
+          onStateChange={handleStateChange}
+          onCityChange={handleCityChange}
+          onSuburbChange={setSuburb}
+          suburbLabel="Suburb (optional)"
+        />
+      </div>
+
       <label className="flex flex-col gap-1 text-sm text-text-muted">
         Professional title
         <input
@@ -144,40 +163,6 @@ function ProfileDetails({ profile, onSave }) {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm text-text-muted">
-        City (e.g. Melbourne, Sydney, London)
-        <SearchCombobox
-          fetchOptions={api.fetchCities}
-          onCreate={handleCreateCity}
-          onSelect={setCity}
-          initialQuery={city?.name || ''}
-          placeholder="Search for a city..."
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm text-text-muted">
-        City's country (only needed to add a new city)
-        <SearchCombobox
-          fetchOptions={api.fetchCountries}
-          onCreate={api.createCountry}
-          onSelect={handleCityCountryChange}
-          initialQuery={cityCountry?.name || ''}
-          placeholder="Search for a country..."
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm text-text-muted">
-        City's state/region (only needed to add a new city)
-        <SearchCombobox
-          fetchOptions={fetchCityStateOptions}
-          onCreate={handleCreateCityState}
-          onSelect={setCityState}
-          initialQuery={cityState?.name || ''}
-          placeholder={cityCountry ? 'Search for a state or region...' : 'Select a country first'}
-          disabled={!cityCountry}
-        />
-      </label>
-
       <label className="flex items-center gap-2 text-sm text-text-muted">
         <input
           type="checkbox"
@@ -185,7 +170,7 @@ function ProfileDetails({ profile, onSave }) {
           onChange={(e) => setRightToWork(e.target.checked)}
           className="h-4 w-4 accent-accent"
         />
-        I have the right to work
+        {rightToWorkLabel(country?.name)}
       </label>
 
       <label className="flex flex-col gap-1 text-sm text-text-muted">

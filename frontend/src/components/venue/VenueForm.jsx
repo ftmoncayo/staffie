@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import LocationCascade from '../LocationCascade'
 import Tag from '../Tag'
 
 const DEFAULT_COUNTRY_NAME = 'Australia'
@@ -67,45 +68,6 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
     setSuburb(null)
   }
 
-  const fetchStateOptions = useCallback(
-    (search) => (country ? api.fetchStates(country.id, search) : Promise.resolve([])),
-    [country],
-  )
-
-  const handleCreateState = useCallback(
-    (stateName) => {
-      if (!country) return Promise.reject(new Error('Select a country first'))
-      return api.createState(stateName, country.id)
-    },
-    [country],
-  )
-
-  const fetchCityOptions = useCallback(
-    (search) => (state ? api.fetchCitiesByState(state.id, search) : Promise.resolve([])),
-    [state],
-  )
-
-  const handleCreateCity = useCallback(
-    (cityName) => {
-      if (!state) return Promise.reject(new Error('Select a state first'))
-      return api.createCity(cityName, state.id)
-    },
-    [state],
-  )
-
-  const fetchSuburbOptions = useCallback(
-    (search) => (city ? api.fetchSuburbs(city.id, search) : Promise.resolve([])),
-    [city],
-  )
-
-  const handleCreateSuburb = useCallback(
-    (suburbName) => {
-      if (!city) return Promise.reject(new Error('Select a city first'))
-      return api.createSuburb(city.id, suburbName)
-    },
-    [city],
-  )
-
   const specialtyNames = specialties.map((s) => s.name)
 
   function handleAddSpecialty(item) {
@@ -161,52 +123,16 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
       </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Country
-          <SearchCombobox
-            fetchOptions={api.fetchCountries}
-            onCreate={api.createCountry}
-            onSelect={handleCountryChange}
-            initialQuery={country?.name || ''}
-            placeholder="Search for a country..."
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          State/Region
-          <SearchCombobox
-            fetchOptions={fetchStateOptions}
-            onCreate={handleCreateState}
-            onSelect={handleStateChange}
-            initialQuery={state?.name || ''}
-            placeholder={country ? 'Search for a state or region...' : 'Select a country first'}
-            disabled={!country}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          City
-          <SearchCombobox
-            fetchOptions={fetchCityOptions}
-            onCreate={handleCreateCity}
-            onSelect={handleCityChange}
-            initialQuery={city?.name || ''}
-            placeholder={state ? 'Search for a city...' : 'Select a state first'}
-            disabled={!state}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Suburb
-          <SearchCombobox
-            fetchOptions={fetchSuburbOptions}
-            onCreate={handleCreateSuburb}
-            onSelect={setSuburb}
-            initialQuery={suburb?.name || ''}
-            placeholder={city ? 'Search for a suburb...' : 'Select a city first'}
-            disabled={!city}
-          />
-        </label>
+        <LocationCascade
+          country={country}
+          state={state}
+          city={city}
+          suburb={suburb}
+          onCountryChange={handleCountryChange}
+          onStateChange={handleStateChange}
+          onCityChange={handleCityChange}
+          onSuburbChange={setSuburb}
+        />
 
         <label className="flex flex-col gap-1 text-sm text-text-muted">
           Venue type

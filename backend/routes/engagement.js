@@ -2,6 +2,7 @@ const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
 const { displayName } = require('../lib/displayName')
+const { buildConnectionStatusMap } = require('../lib/connectionStatus')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -20,6 +21,25 @@ async function targetExists(targetType, targetId) {
     return Boolean(await prisma.post.findUnique({ where: { id: targetId } }))
   }
   return Boolean(await prisma.activity.findUnique({ where: { id: targetId } }))
+}
+
+// Engaging (nodding/commenting) with someone else's Activity requires an
+// accepted connection to that activity's actor; Posts remain unrestricted.
+async function canEngageWithActivity(userId, activityId) {
+  const activity = await prisma.activity.findUnique({
+    where: { id: activityId },
+    select: { actorUserId: true },
+  })
+  if (!activity?.actorUserId) return false
+  if (activity.actorUserId === userId) return true
+
+  const statusMap = await buildConnectionStatusMap(userId)
+  return statusMap.get(activity.actorUserId)?.status === 'connected'
+}
+
+async function canEngageWithTarget(userId, target) {
+  if (target.targetType !== 'ACTIVITY') return true
+  return canEngageWithActivity(userId, target.targetId)
 }
 
 function formatComment(comment) {
@@ -47,7 +67,7 @@ router.get('/engagement', async (req, res) => {
     return res.status(400).json({ error: 'A valid targetType and targetId are required' })
   }
 
-  const [comments, nodCount, myNod] = await Promise.all([
+  const [comments, nodCount, myNod, canEngage] = await Promise.all([
     prisma.comment.findMany({
       where: target,
       include: { authorUser: { include: { profile: true } } },
@@ -57,12 +77,14 @@ router.get('/engagement', async (req, res) => {
     prisma.nod.findUnique({
       where: { targetType_targetId_userId: { ...target, userId: req.userId } },
     }),
+    canEngageWithTarget(req.userId, target),
   ])
 
   res.json({
     comments: comments.map(formatComment),
     nodCount,
     nodded: Boolean(myNod),
+    canEngage,
   })
 })
 
@@ -78,6 +100,9 @@ router.post('/comments', async (req, res) => {
 
   if (!(await targetExists(target.targetType, target.targetId))) {
     return res.status(404).json({ error: 'Nothing found to comment on' })
+  }
+  if (!(await canEngageWithTarget(req.userId, target))) {
+    return res.status(403).json({ error: 'Connect with this person to comment on their activity' })
   }
 
   const comment = await prisma.comment.create({
@@ -112,6 +137,9 @@ router.post('/nods/toggle', async (req, res) => {
 
   if (!(await targetExists(target.targetType, target.targetId))) {
     return res.status(404).json({ error: 'Nothing found to nod at' })
+  }
+  if (!(await canEngageWithTarget(req.userId, target))) {
+    return res.status(403).json({ error: 'Connect with this person to nod at their activity' })
   }
 
   const where = { targetType_targetId_userId: { ...target, userId: req.userId } }

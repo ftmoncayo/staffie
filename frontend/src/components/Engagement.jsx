@@ -13,6 +13,7 @@ function Engagement({ targetType, targetId }) {
   const [comments, setComments] = useState([])
   const [nodCount, setNodCount] = useState(0)
   const [nodded, setNodded] = useState(false)
+  const [canEngage, setCanEngage] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [content, setContent] = useState('')
@@ -24,6 +25,7 @@ function Engagement({ targetType, targetId }) {
       setComments(data.comments)
       setNodCount(data.nodCount)
       setNodded(data.nodded)
+      setCanEngage(data.canEngage !== false)
     })
   }
 
@@ -80,18 +82,22 @@ function Engagement({ targetType, targetId }) {
       {error && <p className="text-xs text-danger">{error}</p>}
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleNod}
-          disabled={nodding}
-          className={
-            nodded
-              ? 'rounded border border-accent px-2 py-1 text-xs font-medium text-accent disabled:opacity-50'
-              : 'rounded border border-border-strong px-2 py-1 text-xs text-text-muted hover:bg-surface-hover disabled:opacity-50'
-          }
-        >
-          👍 Nod{nodCount > 0 ? ` (${nodCount})` : ''}
-        </button>
+        {canEngage ? (
+          <button
+            type="button"
+            onClick={handleNod}
+            disabled={nodding}
+            className={
+              nodded
+                ? 'rounded border border-accent px-2 py-1 text-xs font-medium text-accent disabled:opacity-50'
+                : 'rounded border border-border-strong px-2 py-1 text-xs text-text-muted hover:bg-surface-hover disabled:opacity-50'
+            }
+          >
+            👍 Nod{nodCount > 0 ? ` (${nodCount})` : ''}
+          </button>
+        ) : (
+          nodCount > 0 && <span className="text-xs text-text-faint">👍 {nodCount}</span>
+        )}
         {!loading && comments.length > 0 && (
           <span className="text-xs text-text-faint">
             {comments.length} comment{comments.length === 1 ? '' : 's'}
@@ -129,22 +135,24 @@ function Engagement({ targetType, targetId }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        <input
-          type="text"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Write a comment..."
-          className="flex-1 rounded border border-border-strong bg-bg px-3 py-1.5 text-xs text-text focus:border-accent"
-        />
-        <button
-          type="submit"
-          disabled={submitting || !content.trim()}
-          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
-        >
-          Post
-        </button>
-      </form>
+      {canEngage && (
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <input
+            type="text"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Write a comment..."
+            className="flex-1 rounded border border-border-strong bg-bg px-3 py-1.5 text-xs text-text focus:border-accent"
+          />
+          <button
+            type="submit"
+            disabled={submitting || !content.trim()}
+            className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+          >
+            Post
+          </button>
+        </form>
+      )}
     </div>
   )
 }

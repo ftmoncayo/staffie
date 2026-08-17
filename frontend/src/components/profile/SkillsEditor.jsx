@@ -36,7 +36,7 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
       <h2 className="text-xl font-semibold text-text">Skills</h2>
       {!profile && (
         <p className="mt-2 text-sm text-text-faint">
-          Complete your profile details above before adding skills.
+          Complete your ID Card above before adding skills.
         </p>
       )}
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}

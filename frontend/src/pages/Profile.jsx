@@ -156,6 +156,19 @@ function Profile() {
           </div>
         )}
 
+        <ProfileDetails profile={profile} onSave={handleSaveDetails} />
+
+        <AboutSection
+          about={profile?.about}
+          canEdit={Boolean(profile)}
+          onSave={handleSaveAbout}
+          emptyMessage={
+            profile
+              ? 'Add an introduction to tell people about yourself.'
+              : 'Complete your ID Card above before adding an introduction.'
+          }
+        />
+
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Recent activity</h2>
           <ShowMore
@@ -166,19 +179,6 @@ function Profile() {
             renderItem={(item) => <ActivityItem key={item.id} activity={item} />}
           />
         </div>
-
-        <ProfileDetails profile={profile} onSave={handleSaveDetails} />
-
-        <AboutSection
-          about={profile?.about}
-          canEdit={Boolean(profile)}
-          onSave={handleSaveAbout}
-          emptyMessage={
-            profile
-              ? 'Add an introduction to tell people about yourself.'
-              : 'Complete your profile details above before adding an introduction.'
-          }
-        />
 
         <SkillsEditor profile={profile} onAdd={handleAddSkill} onRemove={handleRemoveSkill} />
 

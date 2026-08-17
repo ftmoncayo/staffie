@@ -39,7 +39,7 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
       </p>
       {!profile && (
         <p className="mt-2 text-sm text-text-faint">
-          Complete your profile details above before adding knowledge areas.
+          Complete your ID Card above before adding knowledge areas.
         </p>
       )}
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}

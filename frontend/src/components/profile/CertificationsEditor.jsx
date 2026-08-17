@@ -123,7 +123,7 @@ function CertificationsEditor({ profile, certifications, onCreate, onUpdate, onD
 
       {!profile && (
         <p className="mt-2 text-sm text-text-faint">
-          Complete your profile details above before adding certifications.
+          Complete your ID Card above before adding certifications.
         </p>
       )}
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}

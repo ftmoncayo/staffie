@@ -136,6 +136,8 @@ model Profile {
   lastName          String?
   cityId            String?
   city              City?    @relation(fields: [cityId], references: [id])
+  suburbId          String?
+  suburb            Suburb?  @relation(fields: [suburbId], references: [id])
   professionalTitle String
   rightToWork       Boolean
   culturalIdentity  String?
@@ -187,11 +189,12 @@ model Post {
 }
 
 model Suburb {
-  id     String  @id @default(uuid())
-  name   String
-  cityId String
-  city   City    @relation(fields: [cityId], references: [id])
-  venues Venue[]
+  id       String    @id @default(uuid())
+  name     String
+  cityId   String
+  city     City      @relation(fields: [cityId], references: [id])
+  venues   Venue[]
+  profiles Profile[]
 
   @@unique([name, cityId])
 }

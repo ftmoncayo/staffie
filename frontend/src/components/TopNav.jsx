@@ -35,13 +35,15 @@ function TopNav() {
   return (
     <div className="sticky top-0 z-10 bg-surface">
       <div className="border-b border-border px-4 py-2 text-sm text-text-muted">{displayName}</div>
-      <nav className="flex items-center gap-6 border-b border-border px-4 py-3">
+      <nav className="flex items-center gap-6 overflow-x-auto border-b border-border px-4 py-3">
         {links.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
             className={({ isActive }) =>
-              `text-sm font-medium ${isActive ? 'text-accent' : 'text-text-muted hover:text-accent'}`
+              `shrink-0 whitespace-nowrap text-sm font-medium ${
+                isActive ? 'text-accent' : 'text-text-muted hover:text-accent'
+              }`
             }
           >
             {link.label}

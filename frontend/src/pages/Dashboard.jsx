@@ -109,24 +109,15 @@ function Dashboard() {
   }
 
   const feedItems = useMemo(() => {
-    // Favourited and SIGNUP activities are already placed in priority order by the
-    // backend (favourited-entity activity first, then common-ground-ranked signups) -
-    // preserve that order rather than re-sorting it in with everything else.
-    const pinnedActivities = activities
-      .filter((a) => a.favourited || a.type === 'SIGNUP')
-      .map((a) => ({ kind: 'activity', id: `activity-${a.id}`, createdAt: a.createdAt, data: a }))
-
-    const restActivities = activities
-      .filter((a) => !a.favourited && a.type !== 'SIGNUP')
-      .map((a) => ({ kind: 'activity', id: `activity-${a.id}`, createdAt: a.createdAt, data: a }))
-
+    const activityItems = activities.map((a) => ({
+      kind: 'activity',
+      id: `activity-${a.id}`,
+      createdAt: a.createdAt,
+      data: a,
+    }))
     const postItems = posts.map((p) => ({ kind: 'post', id: `post-${p.id}`, createdAt: p.createdAt, data: p }))
 
-    const rest = [...restActivities, ...postItems].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-    )
-
-    return [...pinnedActivities, ...rest]
+    return [...activityItems, ...postItems].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [activities, posts])
 
   return (

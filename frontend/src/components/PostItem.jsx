@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import Engagement from './Engagement'
+import useEngagement from '../hooks/useEngagement'
+import CommentSection from './CommentSection'
 
 function personName(profile) {
   if (!profile) return null
@@ -12,6 +13,9 @@ function formatDate(value) {
 }
 
 function PostItem({ post, canDelete, onDelete }) {
+  const { comments, canEngage, loading, error, content, setContent, submitting, handleSubmit, handleDelete } =
+    useEngagement('POST', post.id)
+
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
@@ -38,7 +42,24 @@ function PostItem({ post, canDelete, onDelete }) {
         </div>
       </div>
 
-      <Engagement targetType="POST" targetId={post.id} />
+      <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+        {error && <p className="text-xs text-danger">{error}</p>}
+        {!loading && comments.length > 0 && (
+          <span className="text-xs text-text-faint">
+            {comments.length} comment{comments.length === 1 ? '' : 's'}
+          </span>
+        )}
+        <CommentSection
+          loading={loading}
+          comments={comments}
+          canEngage={canEngage}
+          content={content}
+          setContent={setContent}
+          submitting={submitting}
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+        />
+      </div>
     </div>
   )
 }

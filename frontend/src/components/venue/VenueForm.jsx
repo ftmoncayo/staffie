@@ -3,15 +3,17 @@ import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 import Tag from '../Tag'
 
+const DEFAULT_COUNTRY_NAME = 'Australia'
+const DEFAULT_STATE_NAME = 'Victoria'
 const DEFAULT_CITY_NAME = 'Melbourne'
+const DEFAULT_SUBURB_NAME = 'CBD'
 
 function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalone = true, isEditing = false }) {
   const [name, setName] = useState(initial?.name || '')
+  const [country, setCountry] = useState(initial?.city?.state?.country || null)
+  const [state, setState] = useState(initial?.city?.state || null)
   const [city, setCity] = useState(initial?.city || null)
-  const [cityCountry, setCityCountry] = useState(initial?.city?.country || null)
   const [suburb, setSuburb] = useState(initial?.suburb || null)
-  const [state, setState] = useState(initial?.state || '')
-  const [country, setCountry] = useState(initial?.country || '')
   const [venueType, setVenueType] = useState(initial?.venueType || null)
   const [specialties, setSpecialties] = useState(initial?.specialties || [])
   const [isManager, setIsManager] = useState(false)
@@ -19,26 +21,81 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Pre-select Australia / Victoria / Melbourne / CBD on a fresh create — each
+  // still changeable, and skipped entirely when editing an existing venue or a
+  // location has already been set (e.g. by the caller).
   useEffect(() => {
     if (isEditing || city) return
-    api.fetchCities(DEFAULT_CITY_NAME).then((cities) => {
+    let cancelled = false
+    async function loadDefaults() {
+      const countries = await api.fetchCountries(DEFAULT_COUNTRY_NAME)
+      const defaultCountry = countries.find((c) => c.name === DEFAULT_COUNTRY_NAME)
+      if (cancelled || !defaultCountry) return
+      setCountry(defaultCountry)
+
+      const states = await api.fetchStates(defaultCountry.id, DEFAULT_STATE_NAME)
+      const defaultState = states.find((s) => s.name === DEFAULT_STATE_NAME)
+      if (cancelled || !defaultState) return
+      setState(defaultState)
+
+      const cities = await api.fetchCitiesByState(defaultState.id, DEFAULT_CITY_NAME)
       const defaultCity = cities.find((c) => c.name === DEFAULT_CITY_NAME)
-      if (defaultCity) setCity(defaultCity)
-    })
+      if (cancelled || !defaultCity) return
+      setCity(defaultCity)
+
+      const suburbs = await api.fetchSuburbs(defaultCity.id, DEFAULT_SUBURB_NAME)
+      const defaultSuburb = suburbs.find((s) => s.name === DEFAULT_SUBURB_NAME)
+      if (!cancelled && defaultSuburb) setSuburb(defaultSuburb)
+    }
+    loadDefaults()
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function handleCountryChange(newCountry) {
+    setCountry(newCountry)
+    setState(null)
+    setCity(null)
+    setSuburb(null)
+  }
+
+  function handleStateChange(newState) {
+    setState(newState)
+    setCity(null)
+    setSuburb(null)
+  }
 
   function handleCityChange(newCity) {
     setCity(newCity)
     setSuburb(null)
   }
 
+  const fetchStateOptions = useCallback(
+    (search) => (country ? api.fetchStates(country.id, search) : Promise.resolve([])),
+    [country],
+  )
+
+  const handleCreateState = useCallback(
+    (stateName) => {
+      if (!country) return Promise.reject(new Error('Select a country first'))
+      return api.createState(stateName, country.id)
+    },
+    [country],
+  )
+
+  const fetchCityOptions = useCallback(
+    (search) => (state ? api.fetchCitiesByState(state.id, search) : Promise.resolve([])),
+    [state],
+  )
+
   const handleCreateCity = useCallback(
     (cityName) => {
-      if (!cityCountry) return Promise.reject(new Error('Select a country for the new city first'))
-      return api.createCity(cityName, cityCountry.id)
+      if (!state) return Promise.reject(new Error('Select a state first'))
+      return api.createCity(cityName, state.id)
     },
-    [cityCountry],
+    [state],
   )
 
   const fetchSuburbOptions = useCallback(
@@ -73,8 +130,6 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
         name,
         cityId: city?.id || null,
         suburbId: suburb?.id || null,
-        state,
-        country,
         venueTypeId: venueType?.id || null,
         specialtyIds: specialties.map((s) => s.id),
         ...(isEditing ? {} : { isManager, managerEmail: isManager ? '' : managerEmail }),
@@ -108,55 +163,49 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm text-text-muted">
-          City (e.g. Melbourne, Sydney, London)
-          <SearchCombobox
-            fetchOptions={api.fetchCities}
-            onCreate={handleCreateCity}
-            onSelect={handleCityChange}
-            initialQuery={city?.name || ''}
-            placeholder="Search for a city..."
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          City's country (only needed to add a new city)
+          Country
           <SearchCombobox
             fetchOptions={api.fetchCountries}
             onCreate={api.createCountry}
-            onSelect={setCityCountry}
-            initialQuery={cityCountry?.name || ''}
+            onSelect={handleCountryChange}
+            initialQuery={country?.name || ''}
             placeholder="Search for a country..."
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-text-muted">
-          State/Region (optional)
-          <input
-            type="text"
-            value={state}
-            onChange={(e) => setState(e.target.value)}
-            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+          State/Region
+          <SearchCombobox
+            fetchOptions={fetchStateOptions}
+            onCreate={handleCreateState}
+            onSelect={handleStateChange}
+            initialQuery={state?.name || ''}
+            placeholder={country ? 'Search for a state or region...' : 'Select a country first'}
+            disabled={!country}
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Suburb (optional)
+          City
+          <SearchCombobox
+            fetchOptions={fetchCityOptions}
+            onCreate={handleCreateCity}
+            onSelect={handleCityChange}
+            initialQuery={city?.name || ''}
+            placeholder={state ? 'Search for a city...' : 'Select a state first'}
+            disabled={!state}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
+          Suburb
           <SearchCombobox
             fetchOptions={fetchSuburbOptions}
             onCreate={handleCreateSuburb}
             onSelect={setSuburb}
             initialQuery={suburb?.name || ''}
-            placeholder="Search for a suburb..."
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Country (optional)
-          <input
-            type="text"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            className="rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+            placeholder={city ? 'Search for a suburb...' : 'Select a city first'}
+            disabled={!city}
           />
         </label>
 

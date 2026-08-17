@@ -152,15 +152,23 @@ model Profile {
 model Country {
   id        String @id @default(uuid())
   name      String @unique
-  cities    City[]
+  states    State[]
   businesses Business[]
+}
+
+model State {
+  id        String  @id @default(uuid())
+  name      String  @unique
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
+  cities    City[]
 }
 
 model City {
   id                String             @id @default(uuid())
   name              String             @unique
-  countryId         String
-  country           Country            @relation(fields: [countryId], references: [id])
+  stateId           String
+  state             State              @relation(fields: [stateId], references: [id])
   profiles          Profile[]
   venues            Venue[]
   suburbs           Suburb[]
@@ -224,8 +232,6 @@ model Venue {
   city               City?                   @relation(fields: [cityId], references: [id])
   suburbId           String?
   suburb             Suburb?                 @relation(fields: [suburbId], references: [id])
-  state              String?
-  country            String?
   venueTypeId        String?
   venueType          VenueType?              @relation(fields: [venueTypeId], references: [id])
   verificationStatus VenueVerificationStatus @default(UNVERIFIED)

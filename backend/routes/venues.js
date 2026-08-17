@@ -11,7 +11,7 @@ const router = express.Router()
 router.use(requireAuth)
 
 const venueInclude = {
-  city: true,
+  city: { include: { state: { include: { country: true } } } },
   suburb: true,
   venueType: true,
   specialties: true,
@@ -35,10 +35,6 @@ async function validateSpecialtyIds(specialtyIds) {
     where: { id: { in: specialtyIds } },
   })
   return found.map((s) => s.id)
-}
-
-function optionalString(value) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 async function validateSuburbId(suburbId, cityId) {
@@ -159,8 +155,7 @@ router.get('/venues/:id', async (req, res) => {
 })
 
 router.post('/venues', async (req, res) => {
-  const { name, cityId, suburbId, state, country, venueTypeId, specialtyIds, isManager, managerEmail } =
-    req.body || {}
+  const { name, cityId, suburbId, venueTypeId, specialtyIds, isManager, managerEmail } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Venue name is required' })
@@ -196,8 +191,6 @@ router.post('/venues', async (req, res) => {
       name: name.trim(),
       cityId: validatedCityId,
       suburbId: suburbResult.suburbId,
-      state: optionalString(state),
-      country: optionalString(country),
       venueTypeId: validatedVenueTypeId,
       createdByUserId: req.userId,
       specialties: { connect: validSpecialtyIds.map((id) => ({ id })) },
@@ -237,7 +230,7 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
     return res.status(404).json({ error: 'Venue not found' })
   }
 
-  const { name, cityId, suburbId, state, country, venueTypeId, specialtyIds } = req.body || {}
+  const { name, cityId, suburbId, venueTypeId, specialtyIds } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Venue name is required' })
@@ -274,8 +267,6 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
       name: name.trim(),
       cityId: validatedCityId,
       suburbId: suburbResult.suburbId,
-      state: optionalString(state),
-      country: optionalString(country),
       venueTypeId: validatedVenueTypeId,
       specialties: { set: validSpecialtyIds.map((id) => ({ id })) },
     },

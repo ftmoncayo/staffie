@@ -183,15 +183,35 @@ export async function createCountry(name) {
   return data.country
 }
 
+export async function fetchStates(countryId, search) {
+  const params = new URLSearchParams({ countryId, search: search || '' })
+  const data = await authRequest(`/api/states?${params.toString()}`)
+  return data.states
+}
+
+export async function createState(name, countryId) {
+  const data = await authRequest('/api/states', {
+    method: 'POST',
+    body: JSON.stringify({ name, countryId }),
+  })
+  return data.state
+}
+
 export async function fetchCities(search) {
   const data = await authRequest(`/api/cities?search=${encodeURIComponent(search || '')}`)
   return data.cities
 }
 
-export async function createCity(name, countryId) {
+export async function fetchCitiesByState(stateId, search) {
+  const params = new URLSearchParams({ stateId, search: search || '' })
+  const data = await authRequest(`/api/cities?${params.toString()}`)
+  return data.cities
+}
+
+export async function createCity(name, stateId) {
   const data = await authRequest('/api/cities', {
     method: 'POST',
-    body: JSON.stringify({ name, countryId }),
+    body: JSON.stringify({ name, stateId }),
   })
   return data.city
 }

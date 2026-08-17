@@ -85,7 +85,7 @@ function VenueDirectory() {
               <div>
                 <p className="font-medium text-text">{venue.name}</p>
                 <p className="text-sm text-text-faint">
-                  {[venue.suburb?.name, venue.city?.name, venue.state, venue.country]
+                  {[venue.suburb?.name, venue.city?.name, venue.city?.state?.name, venue.city?.state?.country?.name]
                     .filter(Boolean)
                     .join(', ') || '—'}
                 </p>

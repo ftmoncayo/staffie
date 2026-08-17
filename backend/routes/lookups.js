@@ -47,26 +47,28 @@ router.post('/countries', async (req, res) => {
   res.status(201).json({ country })
 })
 
-// --- Cities ---
+// --- States (optionally scoped to a country) ---
 
-router.get('/cities', async (req, res) => {
-  const cities = await prisma.city.findMany({
-    where: searchFilter(getSearch(req)),
+router.get('/states', async (req, res) => {
+  const countryId = typeof req.query.countryId === 'string' ? req.query.countryId.trim() : ''
+
+  const states = await prisma.state.findMany({
+    where: { ...(countryId ? { countryId } : {}), ...searchFilter(getSearch(req)) },
     include: { country: true },
     orderBy: { name: 'asc' },
     take: SEARCH_LIMIT,
   })
-  res.json({ cities })
+  res.json({ states })
 })
 
-router.post('/cities', async (req, res) => {
+router.post('/states', async (req, res) => {
   const { name, countryId } = req.body || {}
 
   if (typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Name is required' })
   }
   if (typeof countryId !== 'string' || !countryId.trim()) {
-    return res.status(400).json({ error: 'Select a country for this city' })
+    return res.status(400).json({ error: 'Select a country for this state' })
   }
 
   const country = await prisma.country.findUnique({ where: { id: countryId.trim() } })
@@ -75,13 +77,52 @@ router.post('/cities', async (req, res) => {
   }
 
   const trimmedName = name.trim()
-  const city = await prisma.city.upsert({
+  const state = await prisma.state.upsert({
     where: { name: trimmedName },
     create: { name: trimmedName, countryId: country.id },
     update: {},
     include: { country: true },
   })
-  res.status(201).json({ city })
+  res.status(201).json({ state })
+})
+
+// --- Cities (optionally scoped to a state) ---
+
+router.get('/cities', async (req, res) => {
+  const stateId = typeof req.query.stateId === 'string' ? req.query.stateId.trim() : ''
+
+  const cities = await prisma.city.findMany({
+    where: { ...(stateId ? { stateId } : {}), ...searchFilter(getSearch(req)) },
+    include: { state: { include: { country: true } } },
+    orderBy: { name: 'asc' },
+    take: SEARCH_LIMIT,
+  })
+  res.json({ cities: cities.map((c) => ({ ...c, country: c.state.country })) })
+})
+
+router.post('/cities', async (req, res) => {
+  const { name, stateId } = req.body || {}
+
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Name is required' })
+  }
+  if (typeof stateId !== 'string' || !stateId.trim()) {
+    return res.status(400).json({ error: 'Select a state for this city' })
+  }
+
+  const state = await prisma.state.findUnique({ where: { id: stateId.trim() }, include: { country: true } })
+  if (!state) {
+    return res.status(400).json({ error: 'Selected state was not found' })
+  }
+
+  const trimmedName = name.trim()
+  const city = await prisma.city.upsert({
+    where: { name: trimmedName },
+    create: { name: trimmedName, stateId: state.id },
+    update: {},
+    include: { state: { include: { country: true } } },
+  })
+  res.status(201).json({ city: { ...city, country: city.state.country } })
 })
 
 // --- Skills ---

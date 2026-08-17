@@ -8,18 +8,37 @@ function ProfileDetails({ profile, onSave }) {
   const [lastName, setLastName] = useState(profile?.lastName || '')
   const [city, setCity] = useState(profile?.city || null)
   const [cityCountry, setCityCountry] = useState(profile?.city?.country || null)
+  const [cityState, setCityState] = useState(profile?.city?.state || null)
   const [professionalTitle, setProfessionalTitle] = useState(profile?.professionalTitle || '')
   const [rightToWork, setRightToWork] = useState(profile?.rightToWork ?? false)
   const [culturalIdentity, setCulturalIdentity] = useState(profile?.culturalIdentity || '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const handleCreateCity = useCallback(
-    (cityName) => {
-      if (!cityCountry) return Promise.reject(new Error('Select a country for the new city first'))
-      return api.createCity(cityName, cityCountry.id)
+  function handleCityCountryChange(newCountry) {
+    setCityCountry(newCountry)
+    setCityState(null)
+  }
+
+  const fetchCityStateOptions = useCallback(
+    (search) => (cityCountry ? api.fetchStates(cityCountry.id, search) : Promise.resolve([])),
+    [cityCountry],
+  )
+
+  const handleCreateCityState = useCallback(
+    (stateName) => {
+      if (!cityCountry) return Promise.reject(new Error('Select a country first'))
+      return api.createState(stateName, cityCountry.id)
     },
     [cityCountry],
+  )
+
+  const handleCreateCity = useCallback(
+    (cityName) => {
+      if (!cityState) return Promise.reject(new Error('Select a state for the new city first'))
+      return api.createCity(cityName, cityState.id)
+    },
+    [cityState],
   )
 
   async function handleSubmit(e) {
@@ -141,9 +160,21 @@ function ProfileDetails({ profile, onSave }) {
         <SearchCombobox
           fetchOptions={api.fetchCountries}
           onCreate={api.createCountry}
-          onSelect={setCityCountry}
+          onSelect={handleCityCountryChange}
           initialQuery={cityCountry?.name || ''}
           placeholder="Search for a country..."
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
+        City's state/region (only needed to add a new city)
+        <SearchCombobox
+          fetchOptions={fetchCityStateOptions}
+          onCreate={handleCreateCityState}
+          onSelect={setCityState}
+          initialQuery={cityState?.name || ''}
+          placeholder={cityCountry ? 'Search for a state or region...' : 'Select a country first'}
+          disabled={!cityCountry}
         />
       </label>
 

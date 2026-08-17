@@ -145,7 +145,7 @@ function VenueDetail() {
               <div>
                 <dt className="text-sm text-text-faint">Location</dt>
                 <dd className="text-text">
-                  {[venue.city?.name, venue.state, venue.suburb?.name, venue.country]
+                  {[venue.suburb?.name, venue.city?.name, venue.city?.state?.name, venue.city?.state?.country?.name]
                     .filter(Boolean)
                     .join(', ') || '—'}
                 </dd>

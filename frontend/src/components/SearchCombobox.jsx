@@ -11,6 +11,7 @@ function SearchCombobox({
   clearOnSelect = false,
   excludeNames = [],
   allowCreate = true,
+  disabled = false,
 }) {
   const [query, setQuery] = useState(initialQuery)
   const [options, setOptions] = useState([])
@@ -89,12 +90,13 @@ function SearchCombobox({
         type="text"
         value={query}
         placeholder={placeholder}
+        disabled={disabled}
         onChange={(e) => {
           setQuery(e.target.value)
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
-        className="w-full rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent"
+        className="w-full rounded border border-border-strong bg-bg px-3 py-2 text-text focus:border-accent disabled:cursor-not-allowed disabled:bg-surface disabled:text-text-faint"
       />
       {error && <p className="mt-1 text-sm text-danger">{error}</p>}
       {open && (

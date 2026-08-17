@@ -757,3 +757,28 @@ export async function markNotificationRead(id) {
 export async function markAllNotificationsRead() {
   return authRequest('/api/notifications/read-all', { method: 'PUT' })
 }
+
+export async function fetchLookupTypes() {
+  const data = await authRequest('/api/admin/lookup-types')
+  return data.types
+}
+
+export async function fetchAdminLookupEntries(type) {
+  const data = await authRequest(`/api/admin/lookups/${type}`)
+  return data.entries
+}
+
+export async function renameAdminLookupEntry(type, id, name) {
+  const data = await authRequest(`/api/admin/lookups/${type}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  })
+  return data.entry
+}
+
+export async function mergeAdminLookupEntries(type, sourceId, targetId) {
+  return authRequest(`/api/admin/lookups/${type}/merge`, {
+    method: 'POST',
+    body: JSON.stringify({ sourceId, targetId }),
+  })
+}

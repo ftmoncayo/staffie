@@ -157,6 +157,11 @@ function Dashboard() {
                 Job Admin
               </Link>
             )}
+            {user?.isAdmin && (
+              <Link to="/admin/lookups" className="text-accent hover:text-accent-hover hover:underline">
+                Lookup Data
+              </Link>
+            )}
           </div>
         </div>
 

@@ -17,6 +17,7 @@ import AdminVenues from './pages/AdminVenues'
 import AdminBusinesses from './pages/AdminBusinesses'
 import AdminUsers from './pages/AdminUsers'
 import AdminJobs from './pages/AdminJobs'
+import AdminLookups from './pages/AdminLookups'
 import DiscoverPeople from './pages/DiscoverPeople'
 import InviteSomeone from './pages/InviteSomeone'
 import ConnectionRequests from './pages/ConnectionRequests'
@@ -228,6 +229,14 @@ function App() {
           element={
             <AdminRoute>
               <AdminJobs />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/lookups"
+          element={
+            <AdminRoute>
+              <AdminLookups />
             </AdminRoute>
           }
         />

@@ -756,8 +756,12 @@ export async function markNotificationRead(id) {
   return authRequest(`/api/notifications/${id}/read`, { method: 'PUT' })
 }
 
-export async function markAllNotificationsRead() {
-  return authRequest('/api/notifications/read-all', { method: 'PUT' })
+export async function dismissNotification(id) {
+  return authRequest(`/api/notifications/${id}/dismiss`, { method: 'PUT' })
+}
+
+export async function dismissAllNotifications() {
+  return authRequest('/api/notifications/dismiss-all', { method: 'PUT' })
 }
 
 export async function fetchLookupTypes() {

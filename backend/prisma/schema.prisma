@@ -541,6 +541,7 @@ model Notification {
   targetType   NotificationTargetType
   targetId     String
   read         Boolean                @default(false)
+  dismissed    Boolean                @default(false)
   createdAt    DateTime               @default(now())
 
   @@index([userId, read])

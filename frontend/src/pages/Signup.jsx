@@ -18,7 +18,7 @@ function Signup() {
     setSubmitting(true)
     try {
       await signup(email, password, inviteToken)
-      navigate('/dashboard')
+      navigate('/home')
     } catch (err) {
       setError(err.message)
     } finally {

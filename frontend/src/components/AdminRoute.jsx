@@ -13,7 +13,7 @@ function AdminRoute({ children, allowVenueAdmin = false }) {
   }
 
   if (!user.isAdmin && !(allowVenueAdmin && user.isVenueAdmin)) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/home" replace />
   }
 
   return children

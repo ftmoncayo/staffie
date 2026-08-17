@@ -2,11 +2,11 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
-import NotificationBell from './NotificationBell'
+import NotificationsLink from './NotificationsLink'
 
 function buildPrimaryLinks() {
   return [
-    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/home', label: 'Home' },
     { to: '/profile', label: 'Profile' },
     { to: '/discover', label: 'People' },
     { to: '/venues', label: 'Venues' },
@@ -75,7 +75,7 @@ function TopNav() {
       <div className="flex items-center justify-between border-b border-border px-4 py-2 text-sm text-text-muted">
         <span>{displayName}</span>
         <div className="flex items-center gap-4">
-          <NotificationBell />
+          <NotificationsLink />
           <button
             ref={toggleButtonRef}
             type="button"

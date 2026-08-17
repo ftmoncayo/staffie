@@ -21,6 +21,7 @@ import AdminLookups from './pages/AdminLookups'
 import DiscoverPeople from './pages/DiscoverPeople'
 import InviteSomeone from './pages/InviteSomeone'
 import ConnectionRequests from './pages/ConnectionRequests'
+import Notifications from './pages/Notifications'
 import Connections from './pages/Connections'
 import JobsDirectory from './pages/JobsDirectory'
 import JobCreate from './pages/JobCreate'
@@ -41,7 +42,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route
-          path="/dashboard"
+          path="/home"
           element={
             <ProtectedRoute>
               <Dashboard />
@@ -197,6 +198,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ConnectionRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
             </ProtectedRoute>
           }
         />

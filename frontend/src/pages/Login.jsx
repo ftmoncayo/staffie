@@ -18,7 +18,7 @@ function Login() {
     setSubmitting(true)
     try {
       await login(email, password)
-      navigate('/dashboard')
+      navigate('/home')
     } catch (err) {
       setError(err.message)
     } finally {

@@ -50,8 +50,8 @@ function InviteSomeone() {
       <div className="mx-auto flex max-w-md flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-text">Invite someone</h1>
-          <Link to="/dashboard" className="text-sm text-accent hover:text-accent-hover hover:underline">
-            Back to dashboard
+          <Link to="/home" className="text-sm text-accent hover:text-accent-hover hover:underline">
+            Back to home
           </Link>
         </div>
 

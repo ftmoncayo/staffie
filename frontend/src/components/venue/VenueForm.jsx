@@ -6,7 +6,6 @@ import Tag from '../Tag'
 const DEFAULT_COUNTRY_NAME = 'Australia'
 const DEFAULT_STATE_NAME = 'Victoria'
 const DEFAULT_CITY_NAME = 'Melbourne'
-const DEFAULT_SUBURB_NAME = 'CBD'
 
 function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalone = true, isEditing = false }) {
   const [name, setName] = useState(initial?.name || '')
@@ -21,9 +20,10 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // Pre-select Australia / Victoria / Melbourne / CBD on a fresh create — each
-  // still changeable, and skipped entirely when editing an existing venue or a
-  // location has already been set (e.g. by the caller).
+  // Pre-select Australia / Victoria / Melbourne on a fresh create — each still
+  // changeable, and skipped entirely when editing an existing venue or a
+  // location has already been set (e.g. by the caller). Suburb is left empty
+  // even on create, since there's no single reasonable default suburb.
   useEffect(() => {
     if (isEditing || city) return
     let cancelled = false
@@ -40,12 +40,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
 
       const cities = await api.fetchCitiesByState(defaultState.id, DEFAULT_CITY_NAME)
       const defaultCity = cities.find((c) => c.name === DEFAULT_CITY_NAME)
-      if (cancelled || !defaultCity) return
-      setCity(defaultCity)
-
-      const suburbs = await api.fetchSuburbs(defaultCity.id, DEFAULT_SUBURB_NAME)
-      const defaultSuburb = suburbs.find((s) => s.name === DEFAULT_SUBURB_NAME)
-      if (!cancelled && defaultSuburb) setSuburb(defaultSuburb)
+      if (!cancelled && defaultCity) setCity(defaultCity)
     }
     loadDefaults()
     return () => {
@@ -124,13 +119,17 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
   async function handleSubmit(e) {
     e?.preventDefault()
     setError('')
+    if (!venueType) {
+      setError('Venue type is required')
+      return
+    }
     setSubmitting(true)
     try {
       await onSubmit({
         name,
         cityId: city?.id || null,
         suburbId: suburb?.id || null,
-        venueTypeId: venueType?.id || null,
+        venueTypeId: venueType.id,
         specialtyIds: specialties.map((s) => s.id),
         ...(isEditing ? {} : { isManager, managerEmail: isManager ? '' : managerEmail }),
       })
@@ -210,7 +209,7 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-text-muted">
-          Venue type (optional)
+          Venue type
           <SearchCombobox
             fetchOptions={api.fetchVenueTypes}
             onCreate={api.createVenueType}

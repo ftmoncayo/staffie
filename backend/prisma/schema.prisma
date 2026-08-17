@@ -232,8 +232,8 @@ model Venue {
   city               City?                   @relation(fields: [cityId], references: [id])
   suburbId           String?
   suburb             Suburb?                 @relation(fields: [suburbId], references: [id])
-  venueTypeId        String?
-  venueType          VenueType?              @relation(fields: [venueTypeId], references: [id])
+  venueTypeId        String
+  venueType          VenueType               @relation(fields: [venueTypeId], references: [id])
   verificationStatus VenueVerificationStatus @default(UNVERIFIED)
   about              String?
   createdByUserId    String

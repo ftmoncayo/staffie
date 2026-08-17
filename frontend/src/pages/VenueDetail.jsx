@@ -207,6 +207,23 @@ function VenueDetail() {
         {venue.canManageNominations && <PendingManagerRequests venueId={id} />}
 
         {(user?.isAdmin || user?.isVenueAdmin) && <VenueManagersPanel venueId={id} />}
+
+        {venue.verifiedManagers?.length > 0 && (
+          <p className="text-sm text-text-muted">
+            {venue.name} is managed by:{' '}
+            {venue.verifiedManagers.map((manager, i) => (
+              <span key={manager.id}>
+                {i > 0 && ', '}
+                <Link
+                  to={`/profile/${manager.id}`}
+                  className="text-accent hover:text-accent-hover hover:underline"
+                >
+                  {manager.name}
+                </Link>
+              </span>
+            ))}
+          </p>
+        )}
       </div>
     </div>
   )

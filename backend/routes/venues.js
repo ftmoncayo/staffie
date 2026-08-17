@@ -98,6 +98,16 @@ async function canManageVenueNominations(userId, venueId) {
   return isVerifiedVenueManager(userId, venueId)
 }
 
+async function getVerifiedManagers(venueId) {
+  const rows = await prisma.venueManager.findMany({
+    where: { venueId, verified: true },
+    include: { user: { include: { profile: true } } },
+  })
+  return rows
+    .map((m) => ({ id: m.user.id, name: displayName(m.user) }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
 async function requireVenueManager(req, res, next) {
   const allowed = await isVenueManager(req.userId, req.params.id)
   if (!allowed) {
@@ -149,8 +159,17 @@ router.get('/venues/:id', async (req, res) => {
   const hasExperienceHere = Boolean(
     await prisma.experience.findFirst({ where: { venueId: venue.id, profile: { userId: req.userId } } }),
   )
+  const verifiedManagers = await getVerifiedManagers(venue.id)
   res.json({
-    venue: { ...mapVenue(venue), canEdit, isFollowing, isManager, canManageNominations, hasExperienceHere },
+    venue: {
+      ...mapVenue(venue),
+      canEdit,
+      isFollowing,
+      isManager,
+      canManageNominations,
+      hasExperienceHere,
+      verifiedManagers,
+    },
   })
 })
 
@@ -175,14 +194,14 @@ router.post('/venues', async (req, res) => {
     return res.status(400).json({ error: suburbResult.error })
   }
 
-  let validatedVenueTypeId = null
-  if (typeof venueTypeId === 'string' && venueTypeId.trim()) {
-    const venueType = await prisma.venueType.findUnique({ where: { id: venueTypeId.trim() } })
-    if (!venueType) {
-      return res.status(400).json({ error: 'Selected venue type was not found' })
-    }
-    validatedVenueTypeId = venueType.id
+  if (typeof venueTypeId !== 'string' || !venueTypeId.trim()) {
+    return res.status(400).json({ error: 'Venue type is required' })
   }
+  const venueType = await prisma.venueType.findUnique({ where: { id: venueTypeId.trim() } })
+  if (!venueType) {
+    return res.status(400).json({ error: 'Selected venue type was not found' })
+  }
+  const validatedVenueTypeId = venueType.id
 
   const validSpecialtyIds = await validateSpecialtyIds(parseSpecialtyIds(specialtyIds))
 
@@ -250,14 +269,14 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
     return res.status(400).json({ error: suburbResult.error })
   }
 
-  let validatedVenueTypeId = null
-  if (typeof venueTypeId === 'string' && venueTypeId.trim()) {
-    const venueType = await prisma.venueType.findUnique({ where: { id: venueTypeId.trim() } })
-    if (!venueType) {
-      return res.status(400).json({ error: 'Selected venue type was not found' })
-    }
-    validatedVenueTypeId = venueType.id
+  if (typeof venueTypeId !== 'string' || !venueTypeId.trim()) {
+    return res.status(400).json({ error: 'Venue type is required' })
   }
+  const venueType = await prisma.venueType.findUnique({ where: { id: venueTypeId.trim() } })
+  if (!venueType) {
+    return res.status(400).json({ error: 'Selected venue type was not found' })
+  }
+  const validatedVenueTypeId = venueType.id
 
   const validSpecialtyIds = await validateSpecialtyIds(parseSpecialtyIds(specialtyIds))
 
@@ -276,7 +295,8 @@ router.put('/venues/:id', requireVenueEditor, async (req, res) => {
   const canEdit = await canEditVenue(req.userId, venue.id)
   const isManager = await isVenueManager(req.userId, venue.id)
   const canManageNominations = await canManageVenueNominations(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit, isManager, canManageNominations } })
+  const verifiedManagers = await getVerifiedManagers(venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isManager, canManageNominations, verifiedManagers } })
 })
 
 router.put('/venues/:id/verify', requireAdminOrVenueAdmin, async (req, res) => {
@@ -316,7 +336,8 @@ router.put('/venues/:id/about', requireVenueEditor, async (req, res) => {
   const canEdit = await canEditVenue(req.userId, venue.id)
   const isManager = await isVenueManager(req.userId, venue.id)
   const canManageNominations = await canManageVenueNominations(req.userId, venue.id)
-  res.json({ venue: { ...mapVenue(venue), canEdit, isManager, canManageNominations } })
+  const verifiedManagers = await getVerifiedManagers(venue.id)
+  res.json({ venue: { ...mapVenue(venue), canEdit, isManager, canManageNominations, verifiedManagers } })
 })
 
 router.get('/venues/:id/workers', async (req, res) => {

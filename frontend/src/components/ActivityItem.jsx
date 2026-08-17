@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import useEngagement from '../hooks/useEngagement'
-import NodButton from './NodButton'
 import CommentSection from './CommentSection'
 
 function personName(profile) {
@@ -114,34 +113,16 @@ function ActivityItem({ activity }) {
   // Jobs don't support nodding/commenting at all — hide engagement entirely
   // rather than fetching engagement state that will never be used.
   const isJobPosted = activity.type === 'JOB_POSTED'
-  const {
-    comments,
-    nodCount,
-    nodded,
-    canEngage,
-    loading,
-    error,
-    content,
-    setContent,
-    submitting,
-    nodding,
-    handleNod,
-    handleSubmit,
-    handleDelete,
-  } = useEngagement('ACTIVITY', activity.id, { enabled: !isJobPosted })
+  const { comments, canEngage, loading, error, content, setContent, submitting, handleSubmit, handleDelete } =
+    useEngagement('ACTIVITY', activity.id, { enabled: !isJobPosted })
 
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm text-text">{activityContent(activity)}</p>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            {activity.favourited && <span className="text-xs text-accent">★ Favourite</span>}
-            <span className="text-xs text-text-faint">{formatDate(activity.createdAt)}</span>
-          </div>
-          {!isJobPosted && (
-            <NodButton canEngage={canEngage} nodded={nodded} nodCount={nodCount} nodding={nodding} onNod={handleNod} />
-          )}
+        <div className="flex shrink-0 items-center gap-2">
+          {activity.favourited && <span className="text-xs text-accent">★ Favourite</span>}
+          <span className="text-xs text-text-faint">{formatDate(activity.createdAt)}</span>
         </div>
       </div>
 

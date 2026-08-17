@@ -156,6 +156,12 @@ router.post('/nods/toggle', async (req, res) => {
   if (!target) {
     return res.status(400).json({ error: 'A valid targetType and targetId are required' })
   }
+  // Nodding is retired for activity items — the control is hidden client-side,
+  // this rejects anyone hitting the endpoint directly. Existing Nod rows and
+  // the model itself are untouched in case this comes back.
+  if (target.targetType === 'ACTIVITY') {
+    return res.status(400).json({ error: 'Nodding is no longer available for activity items' })
+  }
 
   if (!(await targetExists(target.targetType, target.targetId))) {
     return res.status(404).json({ error: 'Nothing found to nod at' })

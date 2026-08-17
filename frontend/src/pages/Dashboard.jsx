@@ -161,6 +161,11 @@ function Dashboard() {
                 Users
               </Link>
             )}
+            {user?.isAdmin && (
+              <Link to="/admin/jobs" className="text-accent hover:text-accent-hover hover:underline">
+                Job Admin
+              </Link>
+            )}
             <button type="button" onClick={handleLogout} className="text-text-muted hover:text-danger">
               Logout
             </button>

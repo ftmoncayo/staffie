@@ -16,6 +16,7 @@ import BusinessDetail from './pages/BusinessDetail'
 import AdminVenues from './pages/AdminVenues'
 import AdminBusinesses from './pages/AdminBusinesses'
 import AdminUsers from './pages/AdminUsers'
+import AdminJobs from './pages/AdminJobs'
 import DiscoverPeople from './pages/DiscoverPeople'
 import InviteSomeone from './pages/InviteSomeone'
 import ConnectionRequests from './pages/ConnectionRequests'
@@ -71,6 +72,14 @@ function App() {
           }
         />
         <Route
+          path="/venues/mine"
+          element={
+            <ProtectedRoute>
+              <VenueDirectory mine />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/venues/new"
           element={
             <ProtectedRoute>
@@ -95,6 +104,14 @@ function App() {
           }
         />
         <Route
+          path="/businesses/mine"
+          element={
+            <ProtectedRoute>
+              <BusinessDirectory mine />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/businesses/new"
           element={
             <ProtectedRoute>
@@ -115,6 +132,14 @@ function App() {
           element={
             <ProtectedRoute>
               <JobsDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs/mine"
+          element={
+            <ProtectedRoute>
+              <JobsDirectory mine />
             </ProtectedRoute>
           }
         />
@@ -195,6 +220,14 @@ function App() {
           element={
             <AdminRoute>
               <AdminUsers />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/jobs"
+          element={
+            <AdminRoute>
+              <AdminJobs />
             </AdminRoute>
           }
         />

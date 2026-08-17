@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
 import VerificationBadge from '../components/venue/VerificationBadge'
 
-function BusinessDirectory() {
+function BusinessDirectory({ mine = false }) {
   const [businesses, setBusinesses] = useState([])
   const [sort, setSort] = useState('createdAt_desc')
   const [search, setSearch] = useState('')
@@ -13,17 +13,17 @@ function BusinessDirectory() {
   useEffect(() => {
     setLoading(true)
     api
-      .fetchBusinesses({ sort, search })
+      .fetchBusinesses({ sort, search, mine })
       .then(setBusinesses)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [sort, search])
+  }, [sort, search, mine])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-text">Businesses</h1>
+          <h1 className="text-2xl font-semibold text-text">{mine ? 'My businesses' : 'Businesses'}</h1>
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="text-sm text-accent hover:text-accent-hover hover:underline">
               Back to dashboard
@@ -74,7 +74,9 @@ function BusinessDirectory() {
 
         <div className="flex flex-col gap-3">
           {!loading && businesses.length === 0 && (
-            <p className="text-sm text-text-faint">No businesses found.</p>
+            <p className="text-sm text-text-faint">
+              {mine ? "You don't manage any businesses yet." : 'No businesses found.'}
+            </p>
           )}
           {businesses.map((business) => (
             <Link

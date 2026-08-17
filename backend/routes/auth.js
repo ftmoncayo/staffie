@@ -23,6 +23,14 @@ function signToken(user) {
   return jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
 }
 
+async function computeManagerFlags(userId) {
+  const [venueManager, businessManager] = await Promise.all([
+    prisma.venueManager.findFirst({ where: { userId }, select: { id: true } }),
+    prisma.businessManager.findFirst({ where: { userId }, select: { id: true } }),
+  ])
+  return { managesVenue: Boolean(venueManager), managesBusiness: Boolean(businessManager) }
+}
+
 router.post('/signup', async (req, res) => {
   const { email, password, inviteToken } = req.body || {}
 
@@ -69,9 +77,10 @@ router.post('/signup', async (req, res) => {
   }
 
   const token = signToken(user)
+  const managerFlags = await computeManagerFlags(user.id)
   res.status(201).json({
     token,
-    user: { id: user.id, email: user.email, isAdmin: user.isAdmin, isVenueAdmin: user.isVenueAdmin },
+    user: { id: user.id, email: user.email, isAdmin: user.isAdmin, isVenueAdmin: user.isVenueAdmin, ...managerFlags },
     inviteVenue,
   })
 })
@@ -101,9 +110,10 @@ router.post('/login', async (req, res) => {
   }
 
   const token = signToken(user)
+  const managerFlags = await computeManagerFlags(user.id)
   res.json({
     token,
-    user: { id: user.id, email: user.email, isAdmin: user.isAdmin, isVenueAdmin: user.isVenueAdmin },
+    user: { id: user.id, email: user.email, isAdmin: user.isAdmin, isVenueAdmin: user.isVenueAdmin, ...managerFlags },
   })
 })
 
@@ -112,12 +122,14 @@ router.get('/me', requireAuth, async (req, res) => {
   if (!user) {
     return res.status(404).json({ error: 'User not found' })
   }
+  const managerFlags = await computeManagerFlags(user.id)
   res.json({
     id: user.id,
     email: user.email,
     isAdmin: user.isAdmin,
     isVenueAdmin: user.isVenueAdmin,
     createdAt: user.createdAt,
+    ...managerFlags,
   })
 })
 

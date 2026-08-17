@@ -122,9 +122,23 @@ router.get('/venues', async (req, res) => {
   const status = req.query.status === 'UNVERIFIED' || req.query.status === 'VERIFIED'
     ? req.query.status
     : undefined
+  const mine = req.query.mine === 'true'
+
+  let managedVenueIds = null
+  if (mine) {
+    const rows = await prisma.venueManager.findMany({
+      where: { userId: req.userId },
+      select: { venueId: true },
+    })
+    managedVenueIds = rows.map((r) => r.venueId)
+    if (managedVenueIds.length === 0) {
+      return res.json({ venues: [] })
+    }
+  }
 
   const where = {
     ...(status ? { verificationStatus: status } : {}),
+    ...(mine ? { id: { in: managedVenueIds } } : {}),
     ...(search
       ? {
           OR: [

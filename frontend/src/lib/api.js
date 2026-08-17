@@ -272,11 +272,12 @@ export async function createVenueSpecialty(name) {
   return data.venueSpecialty
 }
 
-export async function fetchVenues({ search, sort, status } = {}) {
+export async function fetchVenues({ search, sort, status, mine } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
+  if (mine) params.set('mine', 'true')
   const data = await authRequest(`/api/venues?${params.toString()}`)
   return data.venues
 }
@@ -474,11 +475,12 @@ export async function createBusinessCategory(name) {
   return data.businessCategory
 }
 
-export async function fetchBusinesses({ search, sort, status } = {}) {
+export async function fetchBusinesses({ search, sort, status, mine } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
+  if (mine) params.set('mine', 'true')
   const data = await authRequest(`/api/businesses?${params.toString()}`)
   return data.businesses
 }
@@ -688,13 +690,19 @@ export async function createKnowledgeArea(name) {
   return data.knowledgeArea
 }
 
-export async function fetchJobs({ cityId, venueId, sort, status } = {}) {
+export async function fetchJobs({ cityId, venueId, sort, status, mine } = {}) {
   const params = new URLSearchParams()
   if (cityId) params.set('cityId', cityId)
   if (venueId) params.set('venueId', venueId)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
+  if (mine) params.set('mine', 'true')
   const data = await authRequest(`/api/jobs?${params.toString()}`)
+  return data.jobs
+}
+
+export async function fetchAdminJobs() {
+  const data = await authRequest('/api/admin/jobs')
   return data.jobs
 }
 

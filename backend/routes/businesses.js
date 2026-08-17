@@ -104,9 +104,23 @@ router.get('/businesses', async (req, res) => {
   const status = req.query.status === 'UNVERIFIED' || req.query.status === 'VERIFIED'
     ? req.query.status
     : undefined
+  const mine = req.query.mine === 'true'
+
+  let managedBusinessIds = null
+  if (mine) {
+    const rows = await prisma.businessManager.findMany({
+      where: { userId: req.userId },
+      select: { businessId: true },
+    })
+    managedBusinessIds = rows.map((r) => r.businessId)
+    if (managedBusinessIds.length === 0) {
+      return res.json({ businesses: [] })
+    }
+  }
 
   const where = {
     ...(status ? { verificationStatus: status } : {}),
+    ...(mine ? { id: { in: managedBusinessIds } } : {}),
     ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
   }
 

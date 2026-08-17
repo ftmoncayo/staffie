@@ -138,7 +138,7 @@ function JobDetail() {
           </div>
         )}
 
-        {!editing && (
+        {!editing && !job.canEdit && (
           <div className="rounded-lg border border-border bg-surface p-6">
             <h2 className="text-xl font-semibold text-text">Apply</h2>
             {job.hasApplied ? (

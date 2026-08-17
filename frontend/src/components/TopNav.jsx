@@ -3,14 +3,19 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
 
-const links = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/profile', label: 'Profile' },
-  { to: '/discover', label: 'People' },
-  { to: '/venues', label: 'Venues' },
-  { to: '/businesses', label: 'Businesses' },
-  { to: '/jobs', label: 'Jobs' },
-]
+function buildLinks(user) {
+  return [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/profile', label: 'Profile' },
+    { to: '/discover', label: 'People' },
+    { to: '/venues', label: 'Venues' },
+    ...(user?.managesVenue ? [{ to: '/venues/mine', label: 'My Venues' }] : []),
+    { to: '/businesses', label: 'Businesses' },
+    ...(user?.managesBusiness ? [{ to: '/businesses/mine', label: 'My Businesses' }] : []),
+    { to: '/jobs', label: 'Jobs' },
+    ...(user?.managesVenue ? [{ to: '/jobs/mine', label: 'My Jobs' }] : []),
+  ]
+}
 
 function TopNav() {
   const { user } = useAuth()
@@ -43,6 +48,7 @@ function TopNav() {
 
   const name = profile ? [profile.firstName, profile.lastName].filter(Boolean).join(' ') : ''
   const displayName = name || user.email
+  const links = buildLinks(user)
 
   return (
     <div className="sticky top-0 z-10 bg-surface">

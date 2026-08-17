@@ -1,8 +1,9 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
-const { requireAuth } = require('../middleware/auth')
+const { requireAuth, requireAdmin } = require('../middleware/auth')
 const { canEditVenue } = require('./venues')
 const { buildConnectionsAdjacency } = require('../lib/connectionStatus')
+const { displayName } = require('../lib/displayName')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -11,6 +12,7 @@ const jobInclude = {
   venue: { include: { city: { include: { state: { include: { country: true } } } }, suburb: true } },
   skills: { include: { skill: true } },
   knowledgeAreas: { include: { knowledgeArea: true } },
+  _count: { select: { applications: true } },
 }
 
 function parseIds(ids) {
@@ -28,6 +30,20 @@ async function validateKnowledgeAreaIds(ids) {
   if (ids.length === 0) return []
   const found = await prisma.knowledgeArea.findMany({ where: { id: { in: ids } } })
   return found.map((k) => k.id)
+}
+
+async function getManagedVenueIds(userId) {
+  const rows = await prisma.venueManager.findMany({ where: { userId }, select: { venueId: true } })
+  return rows.map((r) => r.venueId)
+}
+
+async function getAppliedJobIds(userId, jobIds) {
+  if (jobIds.length === 0) return new Set()
+  const applications = await prisma.jobApplication.findMany({
+    where: { applicantUserId: userId, jobId: { in: jobIds } },
+    select: { jobId: true },
+  })
+  return new Set(applications.map((a) => a.jobId))
 }
 
 // Viewer-specific context reused across a single list/detail request: the
@@ -70,7 +86,7 @@ async function getMutualConnectionsAtVenues(venueIds, myConnections) {
   return counts
 }
 
-function shapeJob(job, ctx, mutualConnectionsMap) {
+function shapeJob(job, ctx, mutualConnectionsMap, appliedJobIds) {
   const jobSkillIds = job.skills.map((js) => js.skillId)
   const jobKnowledgeAreaIds = job.knowledgeAreas.map((jk) => jk.knowledgeAreaId)
 
@@ -92,6 +108,8 @@ function shapeJob(job, ctx, mutualConnectionsMap) {
     skillMatchCount: jobSkillIds.filter((id) => ctx.mySkillIds.has(id)).length,
     knowledgeMatchCount: jobKnowledgeAreaIds.filter((id) => ctx.myKnowledgeAreaIds.has(id)).length,
     mutualConnectionsAtVenue: mutualConnectionsMap.get(job.venueId) || 0,
+    applicationCount: job._count?.applications ?? 0,
+    hasApplied: appliedJobIds.has(job.id),
   }
 }
 
@@ -111,26 +129,46 @@ router.get('/jobs', async (req, res) => {
   const cityId = typeof req.query.cityId === 'string' && req.query.cityId.trim() ? req.query.cityId.trim() : null
   const venueId =
     typeof req.query.venueId === 'string' && req.query.venueId.trim() ? req.query.venueId.trim() : null
+  const mine = req.query.mine === 'true'
   const sort = req.query.sort === 'match' ? 'match' : 'recent'
   const statusParam =
     req.query.status === 'OPEN' || req.query.status === 'CLOSED' ? req.query.status : null
-  // The general directory defaults to OPEN-only; a venue's own job list (used
-  // by managers) defaults to showing every status so closed jobs stay visible.
-  const status = statusParam || (venueId ? undefined : 'OPEN')
+  // The general directory defaults to OPEN-only; a venue's own job list and
+  // "My Jobs" default to showing every status so closed jobs stay visible.
+  const status = statusParam || (venueId || mine ? undefined : 'OPEN')
+
+  const managedVenueIds = await getManagedVenueIds(req.userId)
+
+  if (mine && managedVenueIds.length === 0) {
+    return res.json({ jobs: [], sort: 'recent' })
+  }
 
   const where = {
     ...(status ? { status } : {}),
-    ...(venueId ? { venueId } : {}),
     ...(cityId ? { venue: { cityId } } : {}),
+    ...(mine
+      ? { venueId: { in: managedVenueIds } }
+      : {
+          ...(venueId ? { venueId } : {}),
+          // Jobs at venues the viewer manages are excluded from the general
+          // directory — those surface on "My Jobs" instead. Doesn't apply
+          // when browsing one specific venue's own job list (venueId given).
+          ...(!venueId && managedVenueIds.length > 0 ? { venueId: { notIn: managedVenueIds } } : {}),
+        }),
   }
 
   const jobs = await prisma.job.findMany({ where, include: jobInclude, orderBy: { createdAt: 'desc' } })
 
   const ctx = await getViewerContext(req.userId)
-  const venueIds = [...new Set(jobs.map((j) => j.venueId))]
-  const mutualConnectionsMap = await getMutualConnectionsAtVenues(venueIds, ctx.myConnections)
+  const jobVenueIds = [...new Set(jobs.map((j) => j.venueId))]
+  const mutualConnectionsMap = await getMutualConnectionsAtVenues(jobVenueIds, ctx.myConnections)
+  const appliedJobIds = await getAppliedJobIds(req.userId, jobs.map((j) => j.id))
 
-  const shaped = jobs.map((j) => shapeJob(j, ctx, mutualConnectionsMap))
+  const shaped = jobs.map((j) => shapeJob(j, ctx, mutualConnectionsMap, appliedJobIds))
+
+  if (mine) {
+    return res.json({ jobs: shaped.sort(compareJobsRecent), sort: 'recent' })
+  }
 
   const comparator = sort === 'match' ? compareJobsMatch : compareJobsRecent
   const followed = shaped.filter((j) => j.venue.isFollowing).sort(comparator)
@@ -154,12 +192,12 @@ router.get('/jobs/:id', async (req, res) => {
       where: { jobId_applicantUserId: { jobId: job.id, applicantUserId: req.userId } },
     }),
   ])
+  const appliedJobIds = myApplication ? new Set([job.id]) : new Set()
 
   res.json({
     job: {
-      ...shapeJob(job, ctx, mutualConnectionsMap),
+      ...shapeJob(job, ctx, mutualConnectionsMap, appliedJobIds),
       canEdit,
-      hasApplied: Boolean(myApplication),
       myApplicationNote: myApplication?.note || null,
     },
   })
@@ -209,7 +247,9 @@ router.post('/jobs', async (req, res) => {
 
   const ctx = await getViewerContext(req.userId)
   const mutualConnectionsMap = await getMutualConnectionsAtVenues([job.venueId], ctx.myConnections)
-  res.status(201).json({ job: { ...shapeJob(job, ctx, mutualConnectionsMap), canEdit: true, hasApplied: false, myApplicationNote: null } })
+  res.status(201).json({
+    job: { ...shapeJob(job, ctx, mutualConnectionsMap, new Set()), canEdit: true, myApplicationNote: null },
+  })
 })
 
 router.put('/jobs/:id', async (req, res) => {
@@ -260,7 +300,8 @@ router.put('/jobs/:id', async (req, res) => {
 
   const ctx = await getViewerContext(req.userId)
   const mutualConnectionsMap = await getMutualConnectionsAtVenues([updated.venueId], ctx.myConnections)
-  res.json({ job: { ...shapeJob(updated, ctx, mutualConnectionsMap), canEdit: true } })
+  const appliedJobIds = await getAppliedJobIds(req.userId, [updated.id])
+  res.json({ job: { ...shapeJob(updated, ctx, mutualConnectionsMap, appliedJobIds), canEdit: true } })
 })
 
 router.post('/jobs/:id/apply', async (req, res) => {
@@ -268,6 +309,12 @@ router.post('/jobs/:id/apply', async (req, res) => {
   if (!job) {
     return res.status(404).json({ error: 'Job not found' })
   }
+
+  const managesVenue = await canEditVenue(req.userId, job.venueId)
+  if (managesVenue) {
+    return res.status(403).json({ error: 'You cannot apply to a job at a venue you manage' })
+  }
+
   if (job.status !== 'OPEN') {
     return res.status(400).json({ error: 'This job is no longer accepting applications' })
   }
@@ -318,6 +365,31 @@ router.get('/jobs/:id/applications', async (req, res) => {
             }
           : null,
       },
+    })),
+  })
+})
+
+// --- Admin listing (admin only) ---
+
+router.get('/admin/jobs', requireAdmin, async (req, res) => {
+  const jobs = await prisma.job.findMany({
+    include: {
+      venue: { select: { id: true, name: true } },
+      postedByUser: { include: { profile: true } },
+      _count: { select: { applications: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  res.json({
+    jobs: jobs.map((j) => ({
+      id: j.id,
+      title: j.title,
+      status: j.status,
+      createdAt: j.createdAt,
+      venue: j.venue,
+      postedBy: { id: j.postedByUser.id, name: displayName(j.postedByUser) },
+      applicationCount: j._count.applications,
     })),
   })
 })

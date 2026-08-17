@@ -51,6 +51,9 @@ model User {
 
   postedJobs      Job[]
   jobApplications JobApplication[]
+
+  receivedNotifications Notification[] @relation("NotificationRecipient")
+  sentNotifications     Notification[] @relation("NotificationSource")
 }
 
 enum ActivityType {
@@ -510,4 +513,35 @@ model Nod {
   createdAt  DateTime             @default(now())
 
   @@unique([targetType, targetId, userId])
+}
+
+enum NotificationType {
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  COMMENT
+  NOD
+}
+
+// Reuses EngagementTargetType's POST/ACTIVITY values plus CONNECTION_REQUEST,
+// mirroring the targetType/targetId discriminator pattern used by Notice,
+// Comment, and Nod rather than a dedicated join table per notification kind.
+enum NotificationTargetType {
+  CONNECTION_REQUEST
+  POST
+  ACTIVITY
+}
+
+model Notification {
+  id           String                 @id @default(uuid())
+  userId       String
+  user         User                   @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  type         NotificationType
+  sourceUserId String?
+  sourceUser   User?                  @relation("NotificationSource", fields: [sourceUserId], references: [id], onDelete: Cascade)
+  targetType   NotificationTargetType
+  targetId     String
+  read         Boolean                @default(false)
+  createdAt    DateTime               @default(now())
+
+  @@index([userId, read])
 }

@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
 const { displayName } = require('../lib/displayName')
 const { buildConnectionStatusMap } = require('../lib/connectionStatus')
+const { createNotification } = require('../lib/notifications')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -40,6 +41,18 @@ async function canEngageWithActivity(userId, activityId) {
 async function canEngageWithTarget(userId, target) {
   if (target.targetType !== 'ACTIVITY') return true
   return canEngageWithActivity(userId, target.targetId)
+}
+
+// Who "owns" a target for notification purposes: a Post's author, or an
+// Activity's actor. Activities without an actor (shouldn't happen in
+// practice) simply don't notify anyone.
+async function getTargetOwnerUserId(targetType, targetId) {
+  if (targetType === 'POST') {
+    const post = await prisma.post.findUnique({ where: { id: targetId }, select: { authorUserId: true } })
+    return post?.authorUserId || null
+  }
+  const activity = await prisma.activity.findUnique({ where: { id: targetId }, select: { actorUserId: true } })
+  return activity?.actorUserId || null
 }
 
 function formatComment(comment) {
@@ -110,6 +123,15 @@ router.post('/comments', async (req, res) => {
     include: { authorUser: { include: { profile: true } } },
   })
 
+  const ownerUserId = await getTargetOwnerUserId(target.targetType, target.targetId)
+  await createNotification({
+    userId: ownerUserId,
+    type: 'COMMENT',
+    sourceUserId: req.userId,
+    targetType: target.targetType,
+    targetId: target.targetId,
+  })
+
   res.status(201).json({ comment: formatComment(comment) })
 })
 
@@ -149,6 +171,15 @@ router.post('/nods/toggle', async (req, res) => {
     await prisma.nod.delete({ where })
   } else {
     await prisma.nod.create({ data: { ...target, userId: req.userId } })
+
+    const ownerUserId = await getTargetOwnerUserId(target.targetType, target.targetId)
+    await createNotification({
+      userId: ownerUserId,
+      type: 'NOD',
+      sourceUserId: req.userId,
+      targetType: target.targetType,
+      targetId: target.targetId,
+    })
   }
 
   const nodCount = await prisma.nod.count({ where: target })

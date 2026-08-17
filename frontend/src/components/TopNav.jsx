@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
+import NotificationBell from './NotificationBell'
 
 function buildLinks(user) {
   return [
@@ -54,15 +55,18 @@ function TopNav() {
     <div className="sticky top-0 z-10 bg-surface">
       <div className="flex items-center justify-between border-b border-border px-4 py-2 text-sm text-text-muted">
         <span>{displayName}</span>
-        <button
-          type="button"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={menuOpen}
-          className="text-xl leading-none text-text-muted hover:text-accent sm:hidden"
-        >
-          {menuOpen ? '✕' : '☰'}
-        </button>
+        <div className="flex items-center gap-4">
+          <NotificationBell />
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            className="text-xl leading-none text-text-muted hover:text-accent sm:hidden"
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
+        </div>
       </div>
 
       <nav className="hidden items-center gap-6 border-b border-border px-4 py-3 sm:flex">

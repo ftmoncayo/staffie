@@ -739,3 +739,21 @@ export async function fetchJobApplications(id) {
   const data = await authRequest(`/api/jobs/${id}/applications`)
   return data.applications
 }
+
+export async function fetchNotifications() {
+  const data = await authRequest('/api/notifications')
+  return data.notifications
+}
+
+export async function fetchUnreadNotificationCount() {
+  const data = await authRequest('/api/notifications/unread-count')
+  return data.count
+}
+
+export async function markNotificationRead(id) {
+  return authRequest(`/api/notifications/${id}/read`, { method: 'PUT' })
+}
+
+export async function markAllNotificationsRead() {
+  return authRequest('/api/notifications/read-all', { method: 'PUT' })
+}

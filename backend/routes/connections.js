@@ -1,6 +1,7 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
+const { createNotification } = require('../lib/notifications')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -57,6 +58,14 @@ router.post('/connections/request', async (req, res) => {
     data: { fromUserId: req.userId, toUserId: targetId },
   })
 
+  await createNotification({
+    userId: targetId,
+    type: 'CONNECTION_REQUEST',
+    sourceUserId: req.userId,
+    targetType: 'CONNECTION_REQUEST',
+    targetId: request.id,
+  })
+
   res.status(201).json({ request, created: true })
 })
 
@@ -97,6 +106,14 @@ async function respondToRequest(req, res, status) {
         { type: 'CONNECTION_MADE', actorUserId: existing.fromUserId, createdAt: respondedAt },
         { type: 'CONNECTION_MADE', actorUserId: existing.toUserId, createdAt: respondedAt },
       ],
+    })
+
+    await createNotification({
+      userId: existing.fromUserId,
+      type: 'CONNECTION_ACCEPTED',
+      sourceUserId: existing.toUserId,
+      targetType: 'CONNECTION_REQUEST',
+      targetId: existing.id,
     })
   }
 

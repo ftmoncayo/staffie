@@ -14,6 +14,7 @@ const postsRouter = require('./routes/posts')
 const invitesRouter = require('./routes/invites')
 const engagementRouter = require('./routes/engagement')
 const jobsRouter = require('./routes/jobs')
+const notificationsRouter = require('./routes/notifications')
 
 const app = express()
 const port = process.env.PORT || 3001
@@ -38,6 +39,7 @@ app.use('/api', postsRouter)
 app.use('/api', invitesRouter)
 app.use('/api', engagementRouter)
 app.use('/api', jobsRouter)
+app.use('/api', notificationsRouter)
 
 app.listen(port, () => {
   console.log(`Backend listening on port ${port}`)

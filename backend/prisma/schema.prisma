@@ -345,14 +345,15 @@ model Venue {
   createdByUser      User                    @relation(fields: [createdByUserId], references: [id])
   createdAt          DateTime                @default(now())
 
-  specialties    VenueSpecialty[]
-  experiences    Experience[]
-  managers       VenueManager[]
-  followers      VenueFollow[]
-  activities     Activity[]
-  invites        Invite[]
-  jobs           Job[]
-  locationEvents Event[]
+  specialties     VenueSpecialty[]
+  experiences     Experience[]
+  managers        VenueManager[]
+  followers       VenueFollow[]
+  activities      Activity[]
+  invites         Invite[]
+  jobs            Job[]
+  locationEvents  Event[]
+  waitlistEntries Waitlist[]
 }
 
 model VenueManager {
@@ -730,4 +731,28 @@ model EventInterest {
   createdAt DateTime            @default(now())
 
   @@unique([eventId, userId])
+}
+
+// Single-row settings, always at the fixed id "singleton" (seeded by its own
+// migration so app code never has to handle a missing row). Lightweight,
+// testing-phase feature: setting a new currentCode immediately invalidates
+// the previous one — no history is kept, only the current value is ever
+// checked against.
+model RegistrationSettings {
+  id          String  @id @default("singleton")
+  requireCode Boolean @default(false)
+  currentCode String?
+}
+
+// venueId and otherVenueName are mutually exclusive (enforced in the route,
+// not the schema) — an applicant either points at a venue already on
+// Staffie or names one that isn't listed yet, never both.
+model Waitlist {
+  id             String   @id @default(uuid())
+  email          String
+  name           String?
+  venueId        String?
+  venue          Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  otherVenueName String?
+  createdAt      DateTime @default(now())
 }

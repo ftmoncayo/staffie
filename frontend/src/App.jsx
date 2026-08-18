@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import Waitlist from './pages/Waitlist'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
@@ -18,6 +19,7 @@ import AdminBusinesses from './pages/AdminBusinesses'
 import AdminUsers from './pages/AdminUsers'
 import AdminJobs from './pages/AdminJobs'
 import AdminLookups from './pages/AdminLookups'
+import AdminRegistration from './pages/AdminRegistration'
 import DiscoverPeople from './pages/DiscoverPeople'
 import InviteSomeone from './pages/InviteSomeone'
 import ConnectionRequests from './pages/ConnectionRequests'
@@ -42,6 +44,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/waitlist" element={<Waitlist />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route
@@ -289,6 +292,14 @@ function App() {
           element={
             <AdminRoute>
               <AdminLookups />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/registration"
+          element={
+            <AdminRoute>
+              <AdminRegistration />
             </AdminRoute>
           }
         />

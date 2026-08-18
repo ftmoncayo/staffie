@@ -17,6 +17,7 @@ const jobsRouter = require('./routes/jobs')
 const eventsRouter = require('./routes/events')
 const notificationsRouter = require('./routes/notifications')
 const lookupAdminRouter = require('./routes/lookupAdmin')
+const registrationRouter = require('./routes/registration')
 
 const app = express()
 const port = process.env.PORT || 3001
@@ -30,6 +31,13 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
+// Mounted before the routers below on purpose: they each apply requireAuth
+// unconditionally via router.use(), which — since it's plain Express
+// middleware with no path — intercepts and 401s *any* request reaching that
+// router, matched route or not. Since registrationRouter has genuinely
+// public routes (GET /registration-settings, POST /waitlist) under the same
+// bare /api prefix, it has to run first or those requests never reach it.
+app.use('/api', registrationRouter)
 app.use('/api', lookupsRouter)
 app.use('/api', venuesRouter)
 app.use('/api', businessesRouter)

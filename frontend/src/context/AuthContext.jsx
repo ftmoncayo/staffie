@@ -34,8 +34,8 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  async function signup(email, password, inviteToken) {
-    const data = await api.signup(email, password, inviteToken)
+  async function signup(email, password, inviteToken, code) {
+    const data = await api.signup(email, password, inviteToken, code)
     api.setToken(data.token)
     setUser(data.user)
     if (data.inviteVenue) {

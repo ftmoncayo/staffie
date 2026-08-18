@@ -64,10 +64,10 @@ async function authRequest(path, options = {}) {
   }
 }
 
-export function signup(email, password, inviteToken) {
+export function signup(email, password, inviteToken, code) {
   return request('/api/auth/signup', {
     method: 'POST',
-    body: JSON.stringify({ email, password, inviteToken: inviteToken || undefined }),
+    body: JSON.stringify({ email, password, inviteToken: inviteToken || undefined, code: code || undefined }),
   })
 }
 
@@ -76,6 +76,41 @@ export function login(email, password) {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
+}
+
+export async function fetchRegistrationSettings() {
+  return request('/api/registration-settings')
+}
+
+export async function fetchWaitlistVenues() {
+  const data = await request('/api/waitlist/venues')
+  return data.venues
+}
+
+export async function joinWaitlist(entry) {
+  const data = await request('/api/waitlist', {
+    method: 'POST',
+    body: JSON.stringify(entry),
+  })
+  return data.waitlistEntry
+}
+
+export async function fetchAdminRegistrationSettings() {
+  const data = await authRequest('/api/admin/registration-settings')
+  return data.settings
+}
+
+export async function updateAdminRegistrationSettings(settings) {
+  const data = await authRequest('/api/admin/registration-settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
+  return data.settings
+}
+
+export async function fetchWaitlist() {
+  const data = await authRequest('/api/admin/waitlist')
+  return data.waitlist
 }
 
 export function forgotPassword(email) {

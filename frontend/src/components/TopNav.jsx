@@ -41,6 +41,7 @@ function buildAdminLinks(user, unverifiedVenueCount, unverifiedBusinessCount) {
     ...(user?.isAdmin ? [{ to: '/admin/users', label: 'Users' }] : []),
     ...(user?.isAdmin ? [{ to: '/admin/jobs', label: 'Job Admin' }] : []),
     ...(user?.isAdmin ? [{ to: '/admin/lookups', label: 'Lookup Data' }] : []),
+    ...(user?.isAdmin ? [{ to: '/admin/registration', label: 'Registration' }] : []),
   ]
 }
 

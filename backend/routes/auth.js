@@ -32,13 +32,20 @@ async function computeManagerFlags(userId) {
 }
 
 router.post('/signup', async (req, res) => {
-  const { email, password, inviteToken } = req.body || {}
+  const { email, password, inviteToken, code } = req.body || {}
 
   if (typeof email !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ error: 'Email and password are required' })
   }
   if (password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters' })
+  }
+
+  const registrationSettings = await prisma.registrationSettings.findUnique({ where: { id: 'singleton' } })
+  if (registrationSettings?.requireCode) {
+    if (typeof code !== 'string' || !code.trim() || code.trim() !== registrationSettings.currentCode) {
+      return res.status(403).json({ error: 'Invalid or missing registration code' })
+    }
   }
 
   const normalizedEmail = email.trim().toLowerCase()

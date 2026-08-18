@@ -240,6 +240,29 @@ router.post('/venue-types', async (req, res) => {
   res.status(201).json({ venueType })
 })
 
+// --- Event categories ---
+
+router.get('/event-categories', async (req, res) => {
+  const eventCategories = await prisma.eventCategory.findMany({
+    where: searchFilter(getSearch(req)),
+    orderBy: { name: 'asc' },
+    take: SEARCH_LIMIT,
+  })
+  res.json({ eventCategories })
+})
+
+router.post('/event-categories', async (req, res) => {
+  const name = validateName(req, res)
+  if (!name) return
+
+  const eventCategory = await prisma.eventCategory.upsert({
+    where: { name },
+    create: { name },
+    update: {},
+  })
+  res.status(201).json({ eventCategory })
+})
+
 // --- Business categories ---
 
 router.get('/business-categories', async (req, res) => {

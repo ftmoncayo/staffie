@@ -7,6 +7,7 @@ import SkillsEditor from '../components/profile/SkillsEditor'
 import KnowledgeAreaEditor from '../components/profile/KnowledgeAreaEditor'
 import RequestEndorsementsPanel from '../components/profile/RequestEndorsementsPanel'
 import ExperienceEditor from '../components/profile/ExperienceEditor'
+import TrainingHistory from '../components/profile/TrainingHistory'
 import CertificationsEditor from '../components/profile/CertificationsEditor'
 import ConnectionsList from '../components/profile/ConnectionsList'
 import AboutSection from '../components/AboutSection'
@@ -221,6 +222,8 @@ function Profile() {
           onDelete={handleDeleteExperience}
           prefillVenue={prefillVenue}
         />
+
+        <TrainingHistory />
 
         <CertificationsEditor
           profile={profile}

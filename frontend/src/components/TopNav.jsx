@@ -12,6 +12,7 @@ function buildPrimaryLinks() {
     { to: '/venues', label: 'Venues' },
     { to: '/businesses', label: 'Businesses' },
     { to: '/jobs', label: 'Jobs' },
+    { to: '/events', label: 'Events' },
   ]
 }
 

@@ -220,6 +220,18 @@ function VenueDetail() {
           ))}
         </div>
 
+        {venue.canEdit && (
+          <div className="flex items-center justify-between rounded-lg border border-border bg-surface p-4">
+            <h2 className="text-lg font-semibold text-text">Events</h2>
+            <Link
+              to={`/venues/${id}/events/new`}
+              className="text-sm text-accent hover:text-accent-hover hover:underline"
+            >
+              + Create event
+            </Link>
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-text">Recent activity</h2>
           <ShowMore

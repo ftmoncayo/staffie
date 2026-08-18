@@ -3,6 +3,7 @@ import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 import Tag from '../Tag'
 import TagLevelInfo from '../TagLevelInfo'
+import { levelLabel } from '../../lib/levelLabel'
 
 function SkillsEditor({ profile, onAdd, onRemove }) {
   const [error, setError] = useState('')
@@ -74,7 +75,7 @@ function SkillsEditor({ profile, onAdd, onRemove }) {
                 <tr key={skill.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-2 text-text">{skill.name}</td>
                   <td className="px-4 py-2">
-                    <Tag level={skill.level}>Level {skill.level}</Tag>
+                    <Tag level={skill.level}>{levelLabel(skill.level)}</Tag>
                   </td>
                   <td className="px-4 py-2 text-text-muted">{skill.verifiedBy}</td>
                   <td className="px-4 py-2 text-right">

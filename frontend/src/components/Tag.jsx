@@ -1,5 +1,6 @@
 const LEVEL_STYLES = {
   1: { wrapper: 'bg-surface border border-border-strong text-text-muted', remove: 'text-text-faint hover:text-text' },
+  UPSKILLING: { wrapper: 'bg-neutral-700 text-white', remove: 'text-white/80 hover:text-white' },
   2: { wrapper: 'bg-black text-white', remove: 'text-white/80 hover:text-white' },
   3: { wrapper: 'bg-black text-white', remove: 'text-white/80 hover:text-white' },
 }
@@ -9,6 +10,7 @@ function Tag({ children, onRemove, removeLabel, removeDisabled = false, level })
 
   return (
     <span className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm ${style.wrapper}`}>
+      {level === 'UPSKILLING' && <span aria-hidden="true">↑</span>}
       {level === 2 && <span aria-hidden="true">✓</span>}
       {level === 3 && <span aria-hidden="true">⭐</span>}
       {children}

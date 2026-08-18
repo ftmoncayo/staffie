@@ -27,6 +27,9 @@ import JobsDirectory from './pages/JobsDirectory'
 import JobCreate from './pages/JobCreate'
 import JobDetail from './pages/JobDetail'
 import JobApplications from './pages/JobApplications'
+import EventsDirectory from './pages/EventsDirectory'
+import EventCreate from './pages/EventCreate'
+import EventDetail from './pages/EventDetail'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import TopNav from './components/TopNav'
@@ -166,6 +169,38 @@ function App() {
           element={
             <ProtectedRoute>
               <JobCreate />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events"
+          element={
+            <ProtectedRoute>
+              <EventsDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/:id"
+          element={
+            <ProtectedRoute>
+              <EventDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/venues/:ownerId/events/new"
+          element={
+            <ProtectedRoute>
+              <EventCreate ownerType="VENUE" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/businesses/:ownerId/events/new"
+          element={
+            <ProtectedRoute>
+              <EventCreate ownerType="BUSINESS" />
             </ProtectedRoute>
           }
         />

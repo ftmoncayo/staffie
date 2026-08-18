@@ -81,6 +81,30 @@ router.get('/', async (req, res) => {
   res.json({ profile })
 })
 
+// DID_NOT_ATTEND rows are excluded here entirely, not just hidden client-side
+// — they never appear in training history anywhere in the app.
+router.get('/training', async (req, res) => {
+  const interests = await prisma.eventInterest.findMany({
+    where: { userId: req.userId, status: { in: ['INTERESTED', 'ATTENDED'] } },
+    include: { event: { include: { category: true } } },
+    orderBy: { event: { startAt: 'desc' } },
+  })
+
+  res.json({
+    training: interests.map((i) => ({
+      id: i.id,
+      status: i.status,
+      event: {
+        id: i.event.id,
+        title: i.event.title,
+        startAt: i.event.startAt,
+        endAt: i.event.endAt,
+        category: i.event.category,
+      },
+    })),
+  })
+})
+
 router.put('/', async (req, res) => {
   const { firstName, lastName, cityId, suburbId, professionalTitle, rightToWork, culturalIdentity } =
     req.body || {}

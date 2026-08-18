@@ -3,6 +3,7 @@ import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 import Tag from '../Tag'
 import TagLevelInfo from '../TagLevelInfo'
+import { levelLabel } from '../../lib/levelLabel'
 
 function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
   const [error, setError] = useState('')
@@ -77,7 +78,7 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
                 <tr key={area.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-2 text-text">{area.name}</td>
                   <td className="px-4 py-2">
-                    <Tag level={area.level}>Level {area.level}</Tag>
+                    <Tag level={area.level}>{levelLabel(area.level)}</Tag>
                   </td>
                   <td className="px-4 py-2 text-text-muted">{area.verifiedBy}</td>
                   <td className="px-4 py-2 text-right">

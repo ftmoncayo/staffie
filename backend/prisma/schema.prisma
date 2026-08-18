@@ -56,6 +56,9 @@ model User {
   sentNotifications     Notification[] @relation("NotificationSource")
 
   endorsementsGiven Endorsement[]
+
+  createdEvents  Event[]
+  eventInterests EventInterest[]
 }
 
 enum ActivityType {
@@ -217,6 +220,7 @@ model Profile {
   experiences    Experience[]
   certifications Certification[]
   endorsements   Endorsement[]
+  upskillings    Upskilling[]
 }
 
 model Country {
@@ -224,6 +228,7 @@ model Country {
   name      String @unique
   states    State[]
   businesses Business[]
+  events    Event[]
 }
 
 model State {
@@ -232,6 +237,7 @@ model State {
   countryId String
   country   Country @relation(fields: [countryId], references: [id])
   cities    City[]
+  events    Event[]
 }
 
 model City {
@@ -244,6 +250,7 @@ model City {
   suburbs           Suburb[]
   posts             Post[]
   businessLocations BusinessLocation[]
+  events            Event[]
 }
 
 model Post {
@@ -263,22 +270,25 @@ model Suburb {
   city     City      @relation(fields: [cityId], references: [id])
   venues   Venue[]
   profiles Profile[]
+  events   Event[]
 
   @@unique([name, cityId])
 }
 
 model Skill {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  profiles  Profile[]
-  jobSkills JobSkill[]
+  id          String       @id @default(uuid())
+  name        String       @unique
+  profiles    Profile[]
+  jobSkills   JobSkill[]
+  eventSkills EventSkill[]
 }
 
 model KnowledgeArea {
-  id                String             @id @default(uuid())
-  name              String             @unique
-  profiles          Profile[]
-  jobKnowledgeAreas JobKnowledgeArea[]
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  profiles            Profile[]
+  jobKnowledgeAreas   JobKnowledgeArea[]
+  eventKnowledgeAreas EventKnowledgeArea[]
 }
 
 model Experience {
@@ -528,19 +538,25 @@ enum NotificationType {
   COMMENT
   NOD
   ENDORSEMENT_REQUEST
+  EVENT_INTEREST
+  ATTENDANCE_CONFIRM
 }
 
 // Reuses EngagementTargetType's POST/ACTIVITY values plus CONNECTION_REQUEST,
 // mirroring the targetType/targetId discriminator pattern used by Notice,
 // Comment, and Nod rather than a dedicated join table per notification kind.
 // SKILL/KNOWLEDGE_AREA (targetId = Skill.id / KnowledgeArea.id) back
-// ENDORSEMENT_REQUEST notifications the same way.
+// ENDORSEMENT_REQUEST notifications the same way. EVENT (targetId =
+// Event.id) backs both EVENT_INTEREST (sourceUserId is the interested
+// worker; the note is looked up via the eventId+sourceUserId EventInterest
+// row at read time) and ATTENDANCE_CONFIRM (system-generated, no source).
 enum NotificationTargetType {
   CONNECTION_REQUEST
   POST
   ACTIVITY
   SKILL
   KNOWLEDGE_AREA
+  EVENT
 }
 
 enum EndorsementItemType {
@@ -585,4 +601,104 @@ model Notification {
   createdAt    DateTime               @default(now())
 
   @@index([userId, read])
+}
+
+// A self-declared item upgrades to this tier once training attendance is
+// confirmed for it, sitting between the self-declared default (Level 1) and
+// a peer Endorsement (Level 2) — order: 1 < Upskilling < 2 < 3. Never
+// created if a peer/manager Endorsement already exists for the item (see
+// PUT /api/events/:id/confirm-attendance).
+model Upskilling {
+  id        String              @id @default(uuid())
+  profileId String
+  profile   Profile             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  itemType  EndorsementItemType
+  itemId    String
+  createdAt DateTime            @default(now())
+
+  @@unique([profileId, itemType, itemId])
+}
+
+model EventCategory {
+  id     String  @id @default(uuid())
+  name   String  @unique
+  events Event[]
+}
+
+// ownerType/ownerId is a plain discriminator (no FK), mirroring how Notice
+// and ManagerNomination point at either a Venue or a Business — creating
+// and editing an event follows that owner entity's own edit permission
+// (canEditVenue/canEditBusiness), checked in routes/events.js.
+model Event {
+  id              String            @id @default(uuid())
+  title           String
+  description     String
+  categoryId      String
+  category        EventCategory     @relation(fields: [categoryId], references: [id])
+  ownerType       ManagerTargetType
+  ownerId         String
+  startAt         DateTime
+  endAt           DateTime?
+  countryId       String?
+  country         Country?          @relation(fields: [countryId], references: [id])
+  stateId         String?
+  state           State?            @relation(fields: [stateId], references: [id])
+  cityId          String?
+  city            City?             @relation(fields: [cityId], references: [id])
+  suburbId        String?
+  suburb          Suburb?           @relation(fields: [suburbId], references: [id])
+  createdByUserId String
+  createdByUser   User              @relation(fields: [createdByUserId], references: [id])
+  createdAt       DateTime          @default(now())
+
+  skills         EventSkill[]
+  knowledgeAreas EventKnowledgeArea[]
+  interests      EventInterest[]
+
+  @@index([ownerType, ownerId])
+}
+
+model EventSkill {
+  id      String @id @default(uuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  skillId String
+  skill   Skill  @relation(fields: [skillId], references: [id])
+
+  @@unique([eventId, skillId])
+}
+
+model EventKnowledgeArea {
+  id              String        @id @default(uuid())
+  eventId         String
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  knowledgeAreaId String
+  knowledgeArea   KnowledgeArea @relation(fields: [knowledgeAreaId], references: [id])
+
+  @@unique([eventId, knowledgeAreaId])
+}
+
+enum EventInterestStatus {
+  INTERESTED
+  ATTENDED
+  DID_NOT_ATTEND
+}
+
+// A DID_NOT_ATTEND row is kept (not deleted) so it can never be re-asked via
+// the lazy attendance-confirmation check (askedAt already set), but every
+// profile-facing query explicitly excludes it — it never appears in training
+// history, unlike INTERESTED/ATTENDED which both show (as "Interested" and
+// "Attended" respectively).
+model EventInterest {
+  id        String              @id @default(uuid())
+  eventId   String
+  event     Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note      String?
+  status    EventInterestStatus @default(INTERESTED)
+  askedAt   DateTime?
+  createdAt DateTime            @default(now())
+
+  @@unique([eventId, userId])
 }

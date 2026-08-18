@@ -599,3 +599,4 @@ router.put('/businesses/manager-nominations/:nominationId/decline', requireAdmin
 })
 
 module.exports = router
+module.exports.canEditBusiness = canEditBusiness

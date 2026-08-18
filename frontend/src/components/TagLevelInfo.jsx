@@ -26,10 +26,14 @@ function TagLevelInfo() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-10 mt-2 w-56 rounded-lg border border-border bg-surface p-3 text-xs text-text shadow-lg shadow-black/40">
+        <div className="absolute left-0 top-full z-10 mt-2 w-64 rounded-lg border border-border bg-surface p-3 text-xs text-text shadow-lg shadow-black/40">
           <p className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 shrink-0 rounded-full border border-border-strong bg-surface" />
-            Grey = self-declared
+            Grey outline = self-declared
+          </p>
+          <p className="mt-1.5 flex items-center gap-2">
+            <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-neutral-700" />
+            Dark grey ↑ = Upskilling, gained through training
           </p>
           <p className="mt-1.5 flex items-center gap-2">
             <span className="w-3 shrink-0 text-center">✓</span>

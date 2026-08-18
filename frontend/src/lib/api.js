@@ -797,6 +797,69 @@ export async function requestEndorsements(items, recipientScope) {
   })
 }
 
+export async function fetchEventCategories(search) {
+  const data = await authRequest(`/api/event-categories?search=${encodeURIComponent(search || '')}`)
+  return data.eventCategories
+}
+
+export async function createEventCategory(name) {
+  const data = await authRequest('/api/event-categories', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  return data.eventCategory
+}
+
+export async function fetchEvents({ cityId, categoryId } = {}) {
+  const params = new URLSearchParams()
+  if (cityId) params.set('cityId', cityId)
+  if (categoryId) params.set('categoryId', categoryId)
+  const data = await authRequest(`/api/events?${params.toString()}`)
+  return data.events
+}
+
+export async function fetchEvent(id) {
+  const data = await authRequest(`/api/events/${id}`)
+  return data.event
+}
+
+export async function createEvent(event) {
+  const data = await authRequest('/api/events', {
+    method: 'POST',
+    body: JSON.stringify(event),
+  })
+  return data.event
+}
+
+export async function updateEvent(id, event) {
+  const data = await authRequest(`/api/events/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(event),
+  })
+  return data.event
+}
+
+export async function submitEventInterest(id, note) {
+  const data = await authRequest(`/api/events/${id}/interest`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  })
+  return data.interest
+}
+
+export async function confirmEventAttendance(id, attended) {
+  const data = await authRequest(`/api/events/${id}/confirm-attendance`, {
+    method: 'PUT',
+    body: JSON.stringify({ attended }),
+  })
+  return data.interest
+}
+
+export async function fetchTraining() {
+  const data = await authRequest('/api/profile/training')
+  return data.training
+}
+
 export async function fetchLookupTypes() {
   const data = await authRequest('/api/admin/lookup-types')
   return data.types

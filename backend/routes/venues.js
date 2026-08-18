@@ -788,3 +788,4 @@ router.put('/venues/manager-nominations/:nominationId/decline', async (req, res)
 
 module.exports = router
 module.exports.canEditVenue = canEditVenue
+module.exports.getVerifiedManagers = getVerifiedManagers

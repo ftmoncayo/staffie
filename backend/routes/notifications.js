@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
 const { displayName } = require('../lib/displayName')
 const { isEligibleManagerFor, isEligiblePeerFor, clearPendingEndorsementRequests } = require('../lib/endorsements')
+const { createNotification } = require('../lib/notifications')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -29,7 +30,7 @@ async function getEndorsementItemNames(notifications) {
   return map
 }
 
-function formatNotification(n, itemNameById) {
+function formatNotification(n, itemNameById, eventInfoById) {
   return {
     id: n.id,
     type: n.type,
@@ -40,6 +41,69 @@ function formatNotification(n, itemNameById) {
     sourceUser: n.sourceUser ? { id: n.sourceUser.id, name: displayName(n.sourceUser) } : null,
     itemName:
       n.type === 'ENDORSEMENT_REQUEST' ? itemNameById.get(`${n.targetType}:${n.targetId}`) || null : undefined,
+    eventTitle:
+      n.type === 'EVENT_INTEREST' || n.type === 'ATTENDANCE_CONFIRM'
+        ? eventInfoById.get(n.id)?.eventTitle || null
+        : undefined,
+    eventInterestNote: n.type === 'EVENT_INTEREST' ? eventInfoById.get(n.id)?.note || null : undefined,
+  }
+}
+
+// Batches Event title (and, for EVENT_INTEREST, the interest note) lookups
+// for a page of notifications in one pair of queries rather than resolving
+// each one individually.
+async function getEventNotificationInfo(notifications) {
+  const eventNotifications = notifications.filter(
+    (n) => n.type === 'EVENT_INTEREST' || n.type === 'ATTENDANCE_CONFIRM',
+  )
+  if (eventNotifications.length === 0) return new Map()
+
+  const eventIds = [...new Set(eventNotifications.map((n) => n.targetId))]
+  const events = await prisma.event.findMany({ where: { id: { in: eventIds } }, select: { id: true, title: true } })
+  const titleById = new Map(events.map((e) => [e.id, e.title]))
+
+  const interestNotifications = eventNotifications.filter((n) => n.type === 'EVENT_INTEREST' && n.sourceUserId)
+  const interests = interestNotifications.length
+    ? await prisma.eventInterest.findMany({
+        where: {
+          OR: interestNotifications.map((n) => ({ eventId: n.targetId, userId: n.sourceUserId })),
+        },
+      })
+    : []
+  const noteByEventUser = new Map(interests.map((i) => [`${i.eventId}:${i.userId}`, i.note]))
+
+  const map = new Map()
+  for (const n of eventNotifications) {
+    map.set(n.id, {
+      eventTitle: titleById.get(n.targetId) || null,
+      note: n.type === 'EVENT_INTEREST' ? noteByEventUser.get(`${n.targetId}:${n.sourceUserId}`) || null : null,
+    })
+  }
+  return map
+}
+
+// For every INTERESTED EventInterest of this user whose event has finished
+// (endAt, or startAt if the event has no endAt) and hasn't been asked about
+// yet, creates an ATTENDANCE_CONFIRM notification and stamps askedAt so it's
+// only ever asked once. Runs lazily before every notifications read rather
+// than on a schedule, since there's no background job runner in this app.
+async function runAttendanceConfirmChecks(userId) {
+  const now = new Date()
+  const pending = await prisma.eventInterest.findMany({
+    where: { userId, status: 'INTERESTED', askedAt: null },
+    include: { event: { select: { id: true, startAt: true, endAt: true } } },
+  })
+
+  const due = pending.filter((ei) => (ei.event.endAt || ei.event.startAt) < now)
+  for (const ei of due) {
+    await prisma.eventInterest.update({ where: { id: ei.id }, data: { askedAt: now } })
+    await createNotification({
+      userId,
+      type: 'ATTENDANCE_CONFIRM',
+      sourceUserId: null,
+      targetType: 'EVENT',
+      targetId: ei.eventId,
+    })
   }
 }
 
@@ -73,6 +137,8 @@ async function filterVisibleNotifications(notifications) {
 }
 
 router.get('/notifications', async (req, res) => {
+  await runAttendanceConfirmChecks(req.userId)
+
   const notifications = await prisma.notification.findMany({
     where: { userId: req.userId, dismissed: false },
     include: { sourceUser: { include: { profile: true } } },
@@ -82,10 +148,13 @@ router.get('/notifications', async (req, res) => {
 
   const visible = await filterVisibleNotifications(notifications)
   const itemNameById = await getEndorsementItemNames(visible)
-  res.json({ notifications: visible.map((n) => formatNotification(n, itemNameById)) })
+  const eventInfoById = await getEventNotificationInfo(visible)
+  res.json({ notifications: visible.map((n) => formatNotification(n, itemNameById, eventInfoById)) })
 })
 
 router.get('/notifications/unread-count', async (req, res) => {
+  await runAttendanceConfirmChecks(req.userId)
+
   const unread = await prisma.notification.findMany({
     where: { userId: req.userId, read: false, dismissed: false },
     select: { id: true, type: true, targetId: true },
@@ -128,6 +197,9 @@ router.put('/notifications/:id/dismiss', async (req, res) => {
       return res.status(400).json({ error: 'Accept or decline this connection request instead of dismissing it' })
     }
   }
+  if (notification.type === 'ATTENDANCE_CONFIRM') {
+    return res.status(400).json({ error: 'Answer Yes or No instead of dismissing this notification' })
+  }
 
   const updated = await prisma.notification.update({
     where: { id: notification.id },
@@ -145,7 +217,7 @@ router.put('/notifications/dismiss-all', async (req, res) => {
 
   const statusById = await getConnectionRequestStatusMap(notifications)
   const idsToDismiss = notifications
-    .filter((n) => !isPendingConnectionRequest(n, statusById))
+    .filter((n) => n.type !== 'ATTENDANCE_CONFIRM' && !isPendingConnectionRequest(n, statusById))
     .map((n) => n.id)
 
   if (idsToDismiss.length > 0) {

@@ -23,6 +23,10 @@ function notificationText(n) {
       const label = n.targetType === 'SKILL' ? 'skill' : 'knowledge area'
       return `${name} asked you to endorse their ${label} "${n.itemName || ''}"`
     }
+    case 'EVENT_INTEREST':
+      return `${name} is interested in "${n.eventTitle || ''}"${n.eventInterestNote ? `: ${n.eventInterestNote}` : ''}`
+    case 'ATTENDANCE_CONFIRM':
+      return `Did you attend "${n.eventTitle || ''}"?`
     default:
       return 'New notification'
   }
@@ -32,6 +36,7 @@ function notificationLink(n) {
   if (n.type === 'CONNECTION_REQUEST') return '/connections/requests'
   if (n.type === 'CONNECTION_ACCEPTED') return n.sourceUser ? `/profile/${n.sourceUser.id}` : '/connections'
   if (n.type === 'ENDORSEMENT_REQUEST') return n.sourceUser ? `/profile/${n.sourceUser.id}` : '/discover'
+  if (n.type === 'EVENT_INTEREST' || n.type === 'ATTENDANCE_CONFIRM') return `/events/${n.targetId}`
   // Comments/nods target either a Post or an Activity, neither of which has
   // its own page — Home is where Posts render, and a person's own Activity
   // always shows on their own Profile regardless of feed reach.
@@ -113,6 +118,19 @@ function Notifications() {
     }
   }
 
+  async function handleConfirmAttendance(n, attended) {
+    setError('')
+    setRespondingId(n.id)
+    try {
+      await api.confirmEventAttendance(n.targetId, attended)
+      removeNotification(n.id)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRespondingId('')
+    }
+  }
+
   async function handleDismiss(n) {
     setError('')
     setDismissingId(n.id)
@@ -140,7 +158,7 @@ function Notifications() {
     }
   }
 
-  const canDismissAll = notifications.some((n) => n.type !== 'CONNECTION_REQUEST')
+  const canDismissAll = notifications.some((n) => n.type !== 'CONNECTION_REQUEST' && n.type !== 'ATTENDANCE_CONFIRM')
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
@@ -217,6 +235,25 @@ function Notifications() {
                     className="rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover disabled:opacity-50"
                   >
                     Dismiss
+                  </button>
+                </div>
+              ) : n.type === 'ATTENDANCE_CONFIRM' ? (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={respondingId === n.id}
+                    onClick={() => handleConfirmAttendance(n, true)}
+                    className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    disabled={respondingId === n.id}
+                    onClick={() => handleConfirmAttendance(n, false)}
+                    className="rounded border border-border-strong px-3 py-1.5 text-sm text-text-muted hover:bg-surface-hover disabled:opacity-50"
+                  >
+                    No
                   </button>
                 </div>
               ) : (

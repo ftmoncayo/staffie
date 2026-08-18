@@ -4,16 +4,22 @@ const { getAcceptedConnectionUserIds } = require('./connectionStatus')
 
 const PEER_NOTIFY_LIMIT = 6
 
-function computeLevel(rows) {
+// Level order: 1 < 'UPSKILLING' < 2 < 3. A Upskilling row only ever matters
+// when there's no peer/manager Endorsement yet — once either exists it wins
+// outright, regardless of Upskilling (see PUT /api/events/:id/confirm-attendance,
+// which never even writes the row in that case).
+function computeLevel(rows, hasUpskilling) {
   if (rows.some((r) => r.endorserRole === 'MANAGER')) return 3
   if (rows.some((r) => r.endorserRole === 'PEER')) return 2
+  if (hasUpskilling) return 'UPSKILLING'
   return 1
 }
 
 // "Verified by" for the item's current level: every MANAGER endorser's name
 // once any manager has weighed in (that's what makes it Level 3), else every
-// PEER endorser's name (Level 2), else "Not yet verified" (Level 1).
-function computeVerifiedBy(rows, nameById) {
+// PEER endorser's name (Level 2), else a training credit (Upskilling), else
+// "Not yet verified" (Level 1).
+function computeVerifiedBy(rows, nameById, hasUpskilling) {
   const managerNames = [
     ...new Set(rows.filter((r) => r.endorserRole === 'MANAGER').map((r) => nameById.get(r.endorserUserId))),
   ]
@@ -24,17 +30,23 @@ function computeVerifiedBy(rows, nameById) {
   ]
   if (peerNames.length > 0) return peerNames.join(', ')
 
+  if (hasUpskilling) return 'Gained through training'
+
   return 'Not yet verified'
 }
 
-// Attaches a derived `level` (1/2/3) and `verifiedBy` to every
-// skill/knowledgeArea on a profile via one batched Endorsement query
-// (grouped in memory) plus one batched User lookup for endorser names —
-// never query per item, that's an N+1 on every profile view.
+// Attaches a derived `level` (1/'UPSKILLING'/2/3) and `verifiedBy` to every
+// skill/knowledgeArea on a profile via one batched Endorsement query, one
+// batched Upskilling query (grouped in memory) plus one batched User lookup
+// for endorser names — never query per item, that's an N+1 on every profile
+// view.
 async function attachEndorsementLevels(profile) {
   if (!profile) return profile
 
-  const endorsements = await prisma.endorsement.findMany({ where: { profileId: profile.id } })
+  const [endorsements, upskillings] = await Promise.all([
+    prisma.endorsement.findMany({ where: { profileId: profile.id } }),
+    prisma.upskilling.findMany({ where: { profileId: profile.id } }),
+  ])
 
   const endorserUserIds = [...new Set(endorsements.map((e) => e.endorserUserId))]
   const endorserUsers = endorserUserIds.length
@@ -48,14 +60,25 @@ async function attachEndorsementLevels(profile) {
     if (!byItem.has(key)) byItem.set(key, [])
     byItem.get(key).push(e)
   }
+  const upskilledKeys = new Set(upskillings.map((u) => `${u.itemType}:${u.itemId}`))
 
   const skills = (profile.skills || []).map((s) => {
-    const rows = byItem.get(`SKILL:${s.id}`) || []
-    return { ...s, level: computeLevel(rows), verifiedBy: computeVerifiedBy(rows, nameById) }
+    const key = `SKILL:${s.id}`
+    const rows = byItem.get(key) || []
+    return {
+      ...s,
+      level: computeLevel(rows, upskilledKeys.has(key)),
+      verifiedBy: computeVerifiedBy(rows, nameById, upskilledKeys.has(key)),
+    }
   })
   const knowledgeAreas = (profile.knowledgeAreas || []).map((k) => {
-    const rows = byItem.get(`KNOWLEDGE_AREA:${k.id}`) || []
-    return { ...k, level: computeLevel(rows), verifiedBy: computeVerifiedBy(rows, nameById) }
+    const key = `KNOWLEDGE_AREA:${k.id}`
+    const rows = byItem.get(key) || []
+    return {
+      ...k,
+      level: computeLevel(rows, upskilledKeys.has(key)),
+      verifiedBy: computeVerifiedBy(rows, nameById, upskilledKeys.has(key)),
+    }
   })
 
   return { ...profile, skills, knowledgeAreas }

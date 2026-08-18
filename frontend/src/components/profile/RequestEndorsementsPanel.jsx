@@ -12,7 +12,10 @@ function groupItems(profile) {
   const knowledgeAreas = (profile?.knowledgeAreas || []).map((k) => ({ ...k, itemType: 'KNOWLEDGE_AREA' }))
   const all = [...skills, ...knowledgeAreas]
   return {
-    unendorsed: all.filter((i) => i.level === 1),
+    // Upskilling sits below Level 2 — it isn't a peer/manager Endorsement,
+    // so it belongs in "not yet endorsed" alongside plain self-declared
+    // items, not in the peer-only bucket.
+    unendorsed: all.filter((i) => i.level === 1 || i.level === 'UPSKILLING'),
     peerOnly: all.filter((i) => i.level === 2),
   }
 }

@@ -1,26 +1,16 @@
 import { useState } from 'react'
 import LocationCascade from '../LocationCascade'
-
-function rightToWorkLabel(countryName) {
-  return countryName ? `Eligible to work in ${countryName}` : 'Eligible to work here'
-}
-
-function locationString(profile) {
-  return (
-    [profile.suburb?.name, profile.city?.name, profile.city?.state?.name, profile.city?.state?.country?.name]
-      .filter(Boolean)
-      .join(', ') || '—'
-  )
-}
+import { initialLocationSelection, locationCountryName, locationString, rightToWorkLabel } from '../../lib/location'
 
 function ProfileDetails({ profile, onSave }) {
   const [editing, setEditing] = useState(!profile)
   const [firstName, setFirstName] = useState(profile?.firstName || '')
   const [lastName, setLastName] = useState(profile?.lastName || '')
-  const [country, setCountry] = useState(profile?.city?.state?.country || null)
-  const [state, setState] = useState(profile?.city?.state || null)
-  const [city, setCity] = useState(profile?.city || null)
-  const [suburb, setSuburb] = useState(profile?.suburb || null)
+  const initialLocation = initialLocationSelection(profile)
+  const [country, setCountry] = useState(initialLocation.country)
+  const [state, setState] = useState(initialLocation.state)
+  const [city, setCity] = useState(initialLocation.city)
+  const [suburb, setSuburb] = useState(initialLocation.suburb)
   const [professionalTitle, setProfessionalTitle] = useState(profile?.professionalTitle || '')
   const [rightToWork, setRightToWork] = useState(profile?.rightToWork ?? false)
   const [culturalIdentity, setCulturalIdentity] = useState(profile?.culturalIdentity || '')
@@ -53,6 +43,8 @@ function ProfileDetails({ profile, onSave }) {
       await onSave({
         firstName,
         lastName,
+        countryId: country?.id || null,
+        stateId: state?.id || null,
         cityId: city?.id || null,
         suburbId: suburb?.id || null,
         professionalTitle,
@@ -95,7 +87,7 @@ function ProfileDetails({ profile, onSave }) {
             <dd className="text-text">{profile.professionalTitle}</dd>
           </div>
           <div>
-            <dt className="text-sm text-text-faint">{rightToWorkLabel(profile.city?.state?.country?.name)}</dt>
+            <dt className="text-sm text-text-faint">{rightToWorkLabel(locationCountryName(profile))}</dt>
             <dd className="text-text">{profile.rightToWork ? 'Yes' : 'No'}</dd>
           </div>
           <div>

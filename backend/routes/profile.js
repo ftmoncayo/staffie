@@ -22,8 +22,10 @@ router.use(requireAuth)
 const ACTIVITY_LIMIT = 50
 
 const profileInclude = {
+  country: true,
+  state: { include: { country: true } },
   city: { include: { state: { include: { country: true } } } },
-  suburb: true,
+  suburb: { include: { city: { include: { state: { include: { country: true } } } } } },
   skills: true,
   knowledgeAreas: true,
   experiences: {
@@ -53,18 +55,42 @@ async function requesterIsAdmin(userId) {
   return Boolean(requester?.isAdmin)
 }
 
-async function validateSuburbId(suburbId, cityId) {
-  if (typeof suburbId !== 'string' || !suburbId.trim()) {
-    return { ok: true, suburbId: null }
+// Resolves whichever location level the cascading control was left on -
+// suburb, city, state, or country, checked in that order from deepest to
+// shallowest - and returns data with only that one field populated. This
+// mirrors how LocationCascade already clears descendant levels client-side
+// when a parent changes; here we also clear ancestor levels, since a deeper
+// selection makes them redundant (they're derivable via the relation chain).
+async function resolveLocationFields({ countryId, stateId, cityId, suburbId }) {
+  if (typeof suburbId === 'string' && suburbId.trim()) {
+    const suburb = await prisma.suburb.findUnique({ where: { id: suburbId.trim() } })
+    if (!suburb) {
+      return { ok: false, error: 'Selected suburb was not found' }
+    }
+    return { ok: true, data: { countryId: null, stateId: null, cityId: null, suburbId: suburb.id } }
   }
-  const suburb = await prisma.suburb.findUnique({ where: { id: suburbId.trim() } })
-  if (!suburb) {
-    return { ok: false, error: 'Selected suburb was not found' }
+  if (typeof cityId === 'string' && cityId.trim()) {
+    const city = await prisma.city.findUnique({ where: { id: cityId.trim() } })
+    if (!city) {
+      return { ok: false, error: 'Selected city was not found' }
+    }
+    return { ok: true, data: { countryId: null, stateId: null, cityId: city.id, suburbId: null } }
   }
-  if (cityId && suburb.cityId !== cityId) {
-    return { ok: false, error: 'Selected suburb does not belong to the selected city' }
+  if (typeof stateId === 'string' && stateId.trim()) {
+    const state = await prisma.state.findUnique({ where: { id: stateId.trim() } })
+    if (!state) {
+      return { ok: false, error: 'Selected state was not found' }
+    }
+    return { ok: true, data: { countryId: null, stateId: state.id, cityId: null, suburbId: null } }
   }
-  return { ok: true, suburbId: suburb.id }
+  if (typeof countryId === 'string' && countryId.trim()) {
+    const country = await prisma.country.findUnique({ where: { id: countryId.trim() } })
+    if (!country) {
+      return { ok: false, error: 'Selected country was not found' }
+    }
+    return { ok: true, data: { countryId: country.id, stateId: null, cityId: null, suburbId: null } }
+  }
+  return { ok: true, data: { countryId: null, stateId: null, cityId: null, suburbId: null } }
 }
 
 async function requireProfile(req, res, next) {
@@ -106,8 +132,17 @@ router.get('/training', async (req, res) => {
 })
 
 router.put('/', async (req, res) => {
-  const { firstName, lastName, cityId, suburbId, professionalTitle, rightToWork, culturalIdentity } =
-    req.body || {}
+  const {
+    firstName,
+    lastName,
+    countryId,
+    stateId,
+    cityId,
+    suburbId,
+    professionalTitle,
+    rightToWork,
+    culturalIdentity,
+  } = req.body || {}
 
   if (typeof firstName !== 'string' || !firstName.trim()) {
     return res.status(400).json({ error: 'First name is required' })
@@ -119,25 +154,15 @@ router.put('/', async (req, res) => {
     return res.status(400).json({ error: 'Right to work status is required' })
   }
 
-  let validatedCityId = null
-  if (typeof cityId === 'string' && cityId.trim()) {
-    const city = await prisma.city.findUnique({ where: { id: cityId.trim() } })
-    if (!city) {
-      return res.status(400).json({ error: 'Selected city was not found' })
-    }
-    validatedCityId = city.id
-  }
-
-  const suburbResult = await validateSuburbId(suburbId, validatedCityId)
-  if (!suburbResult.ok) {
-    return res.status(400).json({ error: suburbResult.error })
+  const locationResult = await resolveLocationFields({ countryId, stateId, cityId, suburbId })
+  if (!locationResult.ok) {
+    return res.status(400).json({ error: locationResult.error })
   }
 
   const data = {
     firstName: firstName.trim(),
     lastName: typeof lastName === 'string' && lastName.trim() ? lastName.trim() : null,
-    cityId: validatedCityId,
-    suburbId: suburbResult.suburbId,
+    ...locationResult.data,
     professionalTitle: professionalTitle.trim(),
     rightToWork,
     culturalIdentity:

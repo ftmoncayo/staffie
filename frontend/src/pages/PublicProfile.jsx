@@ -9,22 +9,11 @@ import TagLevelInfo from '../components/TagLevelInfo'
 import PersonCard from '../components/PersonCard'
 import ActivityItem from '../components/ActivityItem'
 import ShowMore from '../components/ShowMore'
+import { locationCountryName, locationString, rightToWorkLabel } from '../lib/location'
 
 function formatDate(value) {
   if (!value) return ''
   return value.slice(0, 10)
-}
-
-function rightToWorkLabel(countryName) {
-  return countryName ? `Eligible to work in ${countryName}` : 'Eligible to work here'
-}
-
-function locationString(profile) {
-  return (
-    [profile.suburb?.name, profile.city?.name, profile.city?.state?.name, profile.city?.state?.country?.name]
-      .filter(Boolean)
-      .join(', ') || '—'
-  )
 }
 
 function PublicProfile() {
@@ -151,7 +140,7 @@ function PublicProfile() {
               <dd className="text-text">{profile.professionalTitle}</dd>
             </div>
             <div>
-              <dt className="text-sm text-text-faint">{rightToWorkLabel(profile.city?.state?.country?.name)}</dt>
+              <dt className="text-sm text-text-faint">{rightToWorkLabel(locationCountryName(profile))}</dt>
               <dd className="text-text">{profile.rightToWork ? 'Yes' : 'No'}</dd>
             </div>
             <div>

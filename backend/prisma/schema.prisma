@@ -223,6 +223,14 @@ model Profile {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   firstName         String
   lastName          String?
+  // Flexible-precision location: at most one of these four is ever set at a
+  // time (the deepest level the person chose) - see resolveLocationScope in
+  // lib/location.js, which every location-aware feature reads through rather
+  // than inspecting these columns directly.
+  countryId         String?
+  country           Country? @relation(fields: [countryId], references: [id])
+  stateId           String?
+  state             State?   @relation(fields: [stateId], references: [id])
   cityId            String?
   city              City?    @relation(fields: [cityId], references: [id])
   suburbId          String?
@@ -247,6 +255,7 @@ model Country {
   name      String @unique
   states    State[]
   businesses Business[]
+  profiles  Profile[]
 }
 
 model State {
@@ -255,6 +264,7 @@ model State {
   countryId String
   country   Country @relation(fields: [countryId], references: [id])
   cities    City[]
+  profiles  Profile[]
 }
 
 model City {

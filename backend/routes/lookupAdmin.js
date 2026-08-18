@@ -121,26 +121,33 @@ async function mergeBusinessCategoryRefs(tx, sourceId, targetId) {
 }
 
 async function countCountryRefs(tx, id) {
-  const [stateCount, businessCount] = await Promise.all([
+  const [stateCount, businessCount, profileCount] = await Promise.all([
     tx.state.count({ where: { countryId: id } }),
     tx.business.count({ where: { countryId: id } }),
+    tx.profile.count({ where: { countryId: id } }),
   ])
-  return stateCount + businessCount
+  return stateCount + businessCount + profileCount
 }
 
 async function mergeCountryRefs(tx, sourceId, targetId) {
   await tx.state.updateMany({ where: { countryId: sourceId }, data: { countryId: targetId } })
   await tx.business.updateMany({ where: { countryId: sourceId }, data: { countryId: targetId } })
+  await tx.profile.updateMany({ where: { countryId: sourceId }, data: { countryId: targetId } })
 }
 
 async function countStateRefs(tx, id) {
-  return tx.city.count({ where: { stateId: id } })
+  const [cityCount, profileCount] = await Promise.all([
+    tx.city.count({ where: { stateId: id } }),
+    tx.profile.count({ where: { stateId: id } }),
+  ])
+  return cityCount + profileCount
 }
 
 async function mergeStateRefs(tx, sourceId, targetId) {
   // City.name is globally unique, so cities moving from source to target
   // state can never collide with an existing city there.
   await tx.city.updateMany({ where: { stateId: sourceId }, data: { stateId: targetId } })
+  await tx.profile.updateMany({ where: { stateId: sourceId }, data: { stateId: targetId } })
 }
 
 async function getStateParent(tx, id) {

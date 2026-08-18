@@ -8,11 +8,9 @@ function personName(profile) {
   return [profile.firstName, profile.lastName].filter(Boolean).join(' ')
 }
 
-function formatMonthYear(value) {
+function formatDate(value) {
   if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  return value.slice(0, 10)
 }
 
 function WorkerCard({ worker, showEndDate, currentUserId, onChange }) {
@@ -47,7 +45,7 @@ function WorkerCard({ worker, showEndDate, currentUserId, onChange }) {
           </Link>
           <p className="text-sm text-text-faint">
             {worker.roleTitle}
-            {showEndDate && worker.endDate ? ` · until ${formatMonthYear(worker.endDate)}` : ''}
+            {showEndDate && worker.endDate ? ` · until ${formatDate(worker.endDate)}` : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">

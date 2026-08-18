@@ -7,9 +7,16 @@ import Modal from '../Modal'
 
 const emptyForm = { venue: null, roleTitle: '', startDate: '', endDate: '', isCurrent: false }
 
-function formatDate(value) {
+function toMonthInput(value) {
   if (!value) return ''
-  return value.slice(0, 10)
+  return value.slice(0, 7)
+}
+
+function formatMonthYear(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 function ExperienceForm({ initial, onSubmit, onCancel }) {
@@ -86,7 +93,7 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
           <label className="flex flex-col gap-1 text-sm text-text-muted">
             Start date
             <input
-              type="date"
+              type="month"
               required
               value={form.startDate}
               onChange={(e) => setForm({ ...form, startDate: e.target.value })}
@@ -96,7 +103,7 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
           <label className="flex flex-col gap-1 text-sm text-text-muted">
             End date
             <input
-              type="date"
+              type="month"
               disabled={form.isCurrent}
               value={form.endDate}
               onChange={(e) => setForm({ ...form, endDate: e.target.value })}
@@ -203,7 +210,7 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete, 
                 {exp.venue.name}
               </Link>
               <p className="text-sm text-text-faint">
-                {formatDate(exp.startDate)} – {exp.isCurrent ? 'Current' : formatDate(exp.endDate) || '—'}
+                {formatMonthYear(exp.startDate)} – {exp.isCurrent ? 'Current' : formatMonthYear(exp.endDate) || '—'}
               </p>
             </div>
             <div className="flex gap-3 text-sm">
@@ -243,8 +250,8 @@ function ExperienceEditor({ profile, experiences, onCreate, onUpdate, onDelete, 
             initial={{
               venue: editingExp.venue,
               roleTitle: editingExp.roleTitle,
-              startDate: formatDate(editingExp.startDate),
-              endDate: formatDate(editingExp.endDate),
+              startDate: toMonthInput(editingExp.startDate),
+              endDate: toMonthInput(editingExp.endDate),
               isCurrent: editingExp.isCurrent,
             }}
             onCancel={() => setEditingId(null)}

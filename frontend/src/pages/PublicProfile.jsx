@@ -15,6 +15,13 @@ function formatDate(value) {
   return value.slice(0, 10)
 }
 
+function formatMonthYear(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
 function rightToWorkLabel(countryName) {
   return countryName ? `Eligible to work in ${countryName}` : 'Eligible to work here'
 }
@@ -219,7 +226,7 @@ function PublicProfile() {
                   {exp.venue.name}
                 </Link>
                 <p className="text-sm text-text-faint">
-                  {formatDate(exp.startDate)} – {exp.isCurrent ? 'Current' : formatDate(exp.endDate) || '—'}
+                  {formatMonthYear(exp.startDate)} – {exp.isCurrent ? 'Current' : formatMonthYear(exp.endDate) || '—'}
                 </p>
               </div>
             ))}

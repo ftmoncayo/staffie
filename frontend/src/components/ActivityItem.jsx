@@ -15,7 +15,7 @@ function formatDate(value) {
 function ActorLink({ user }) {
   if (!user) return <span>Someone</span>
   return (
-    <Link to={`/profile/${user.id}`} className="font-medium text-text hover:text-accent hover:underline">
+    <Link to={`/profile/${user.id}`} className="font-medium text-success hover:text-success-hover hover:underline">
       {personName(user.profile) || user.email}
     </Link>
   )

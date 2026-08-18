@@ -78,7 +78,7 @@ function AdminJobs() {
                   <td className="px-4 py-3 text-text-muted">
                     <Link
                       to={`/profile/${job.postedBy.id}`}
-                      className="text-accent hover:text-accent-hover hover:underline"
+                      className="text-success hover:text-success-hover hover:underline"
                     >
                       {job.postedBy.name}
                     </Link>

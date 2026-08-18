@@ -260,7 +260,7 @@ function VenueDetail() {
                 {i > 0 && ', '}
                 <Link
                   to={`/profile/${manager.id}`}
-                  className="text-accent hover:text-accent-hover hover:underline"
+                  className="text-success hover:text-success-hover hover:underline"
                 >
                   {manager.name}
                 </Link>

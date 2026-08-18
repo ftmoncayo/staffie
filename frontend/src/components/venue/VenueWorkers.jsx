@@ -39,7 +39,7 @@ function WorkerCard({ worker, showEndDate, currentUserId, onChange }) {
         <div>
           <Link
             to={`/profile/${worker.id}`}
-            className="text-sm font-medium text-text hover:text-accent hover:underline"
+            className="text-sm font-medium text-success hover:text-success-hover hover:underline"
           >
             {personName(worker.profile) || worker.email}
           </Link>

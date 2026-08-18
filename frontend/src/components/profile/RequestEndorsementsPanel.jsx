@@ -91,7 +91,7 @@ function RequestEndorsementsPanel({ profile, onClose }) {
           Requests sent to{' '}
           {recipients.map((recipient, index) => (
             <span key={recipient.id}>
-              <Link to={`/profile/${recipient.id}`} className="font-medium hover:underline">
+              <Link to={`/profile/${recipient.id}`} className="font-medium text-success hover:text-success-hover hover:underline">
                 {recipientName(recipient)}
               </Link>
               {index < recipients.length - 1 ? ', ' : ''}

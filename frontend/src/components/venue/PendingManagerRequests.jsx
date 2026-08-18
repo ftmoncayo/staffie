@@ -62,7 +62,7 @@ function PendingManagerRequests({ venueId }) {
                 <p className="text-sm text-text">
                   <Link
                     to={`/profile/${nomination.nominee?.id}`}
-                    className="font-medium text-accent hover:text-accent-hover hover:underline"
+                    className="font-medium text-success hover:text-success-hover hover:underline"
                   >
                     {nomination.nominee?.name}
                   </Link>{' '}

@@ -97,7 +97,7 @@ function AdminVenues() {
                   <p className="text-sm text-text">
                     <Link
                       to={`/profile/${nomination.nominee?.id}`}
-                      className="font-medium text-accent hover:text-accent-hover hover:underline"
+                      className="font-medium text-success hover:text-success-hover hover:underline"
                     >
                       {nomination.nominee?.name}
                     </Link>{' '}
@@ -195,7 +195,7 @@ function AdminVenues() {
                               {i > 0 && ', '}
                               <Link
                                 to={`/profile/${m.id}`}
-                                className="text-accent hover:text-accent-hover hover:underline"
+                                className="text-success hover:text-success-hover hover:underline"
                               >
                                 {m.name}
                               </Link>

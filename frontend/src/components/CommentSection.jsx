@@ -18,7 +18,7 @@ function CommentSection({ loading, comments, canEngage, content, setContent, sub
               <div>
                 <Link
                   to={`/profile/${comment.author.id}`}
-                  className="text-xs font-medium text-text hover:text-accent hover:underline"
+                  className="text-xs font-medium text-success hover:text-success-hover hover:underline"
                 >
                   {comment.author.name}
                 </Link>

@@ -10,7 +10,7 @@ function PersonCard({ person, extra, children }) {
       <div>
         <Link
           to={`/profile/${person.id}`}
-          className="font-semibold text-text hover:text-accent hover:underline"
+          className="font-semibold text-success hover:text-success-hover hover:underline"
         >
           {personName(person.profile) || person.email}
         </Link>

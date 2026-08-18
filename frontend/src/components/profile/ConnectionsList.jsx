@@ -50,7 +50,7 @@ function ConnectionsList() {
             <div>
               <Link
                 to={`/profile/${c.id}`}
-                className="text-sm text-text hover:text-accent hover:underline"
+                className="text-sm text-success hover:text-success-hover hover:underline"
               >
                 {personName(c.profile) || c.email}
               </Link>

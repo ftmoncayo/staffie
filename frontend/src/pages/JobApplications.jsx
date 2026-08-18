@@ -70,7 +70,7 @@ function JobApplications() {
                     <td className="px-4 py-3">
                       <Link
                         to={`/profile/${applicant.id}`}
-                        className="font-medium text-text hover:text-accent hover:underline"
+                        className="font-medium text-success hover:text-success-hover hover:underline"
                       >
                         {name}
                       </Link>

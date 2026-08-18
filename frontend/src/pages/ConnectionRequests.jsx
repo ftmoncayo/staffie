@@ -72,7 +72,7 @@ function ConnectionRequests() {
               <div>
                 <Link
                   to={`/profile/${request.fromUser.id}`}
-                  className="font-medium text-text hover:text-accent hover:underline"
+                  className="font-medium text-success hover:text-success-hover hover:underline"
                 >
                   {personName(request.fromUser.profile) || request.fromUser.email}
                 </Link>

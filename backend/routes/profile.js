@@ -416,7 +416,7 @@ router.post('/request-endorsements', requireProfile, async (req, res) => {
   recipientUserIds = [...new Set(recipientUserIds)]
 
   if (recipientUserIds.length === 0) {
-    return res.status(400).json({ error: 'No eligible people found to request endorsements from' })
+    return res.status(400).json({ error: 'Endorsements can only be sent to present and past colleagues and managers that you are connected to.' })
   }
 
   for (const recipientUserId of recipientUserIds) {

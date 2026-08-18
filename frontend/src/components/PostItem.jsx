@@ -23,7 +23,7 @@ function PostItem({ post, canDelete, onDelete }) {
           <p className="whitespace-pre-wrap text-sm text-text">
             <Link
               to={`/profile/${post.author.id}`}
-              className="font-medium text-text hover:text-accent hover:underline"
+              className="font-medium text-success hover:text-success-hover hover:underline"
             >
               {personName(post.author.profile) || post.author.email}
             </Link>{' '}

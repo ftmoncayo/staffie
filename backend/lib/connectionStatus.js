@@ -28,6 +28,17 @@ function connectionStatusFor(statusByUserId, otherUserId) {
   }
 }
 
+// Every userId this user has an ACCEPTED connection with — used to gate
+// eligibility (e.g. endorsements) on being connected, not just meeting the
+// underlying colleague/manager criteria.
+async function getAcceptedConnectionUserIds(userId) {
+  const accepted = await prisma.connectionRequest.findMany({
+    where: { status: 'ACCEPTED', OR: [{ fromUserId: userId }, { toUserId: userId }] },
+    select: { fromUserId: true, toUserId: true },
+  })
+  return new Set(accepted.map((r) => (r.fromUserId === userId ? r.toUserId : r.fromUserId)))
+}
+
 async function buildConnectionsAdjacency() {
   const accepted = await prisma.connectionRequest.findMany({ where: { status: 'ACCEPTED' } })
 
@@ -43,4 +54,9 @@ async function buildConnectionsAdjacency() {
   return adjacency
 }
 
-module.exports = { buildConnectionStatusMap, connectionStatusFor, buildConnectionsAdjacency }
+module.exports = {
+  buildConnectionStatusMap,
+  connectionStatusFor,
+  getAcceptedConnectionUserIds,
+  buildConnectionsAdjacency,
+}

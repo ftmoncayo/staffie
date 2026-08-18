@@ -1,5 +1,6 @@
 const prisma = require('./prisma')
 const { displayName } = require('./displayName')
+const { getAcceptedConnectionUserIds } = require('./connectionStatus')
 
 const PEER_NOTIFY_LIMIT = 6
 
@@ -82,10 +83,11 @@ function overlapRank(a, b) {
 }
 
 // Other users with date-overlapping Experience at any venue the worker has
-// also worked (past or present), ranked by how recent that overlap was.
-// Returns the full ranked list (uncapped) — callers that are deciding who to
-// NOTIFY should slice to PEER_NOTIFY_LIMIT; callers checking whether a
-// specific person is still allowed to endorse should use the full list.
+// also worked (past or present) who are also an accepted connection of the
+// worker, ranked by how recent that overlap was. Returns the full ranked
+// list (uncapped) — callers that are deciding who to NOTIFY should slice to
+// PEER_NOTIFY_LIMIT; callers checking whether a specific person is still
+// allowed to endorse should use the full list.
 async function getEligiblePeerUserIds(workerProfileId, workerUserId) {
   const workerExperiences = await prisma.experience.findMany({ where: { profileId: workerProfileId } })
   if (workerExperiences.length === 0) return []
@@ -97,12 +99,15 @@ async function getEligiblePeerUserIds(workerProfileId, workerUserId) {
     include: { profile: { select: { userId: true, user: { select: { isBlocked: true } } } } },
   })
 
+  const connectedUserIds = await getAcceptedConnectionUserIds(workerUserId)
+
   const bestRankByUserId = new Map()
   for (const mine of workerExperiences) {
     for (const theirs of otherExperiences) {
       if (theirs.venueId !== mine.venueId) continue
       if (theirs.profile.userId === workerUserId) continue
       if (theirs.profile.user.isBlocked) continue
+      if (!connectedUserIds.has(theirs.profile.userId)) continue
       if (!experiencesOverlap(mine, theirs)) continue
 
       const rank = overlapRank(mine, theirs)
@@ -117,23 +122,29 @@ async function getEligiblePeerUserIds(workerProfileId, workerUserId) {
 }
 
 // All current, verified managers of any venue in the worker's Experience
-// history — no recency cap, unlike peers.
-async function getEligibleManagerUserIds(venueIds, excludeUserId) {
+// history who are also an accepted connection of the worker — no recency
+// cap, unlike peers.
+async function getEligibleManagerUserIds(venueIds, workerUserId) {
   if (venueIds.length === 0) return []
   const managers = await prisma.venueManager.findMany({
     where: { venueId: { in: venueIds }, verified: true },
     select: { userId: true },
   })
-  return [...new Set(managers.map((m) => m.userId))].filter((id) => id !== excludeUserId)
+  const connectedUserIds = await getAcceptedConnectionUserIds(workerUserId)
+  return [...new Set(managers.map((m) => m.userId))].filter(
+    (id) => id !== workerUserId && connectedUserIds.has(id),
+  )
 }
 
-async function isEligibleManagerFor(managerUserId, workerProfileId) {
+async function isEligibleManagerFor(managerUserId, workerProfileId, workerUserId) {
   const venueIds = await getWorkerVenueIds(workerProfileId)
   if (venueIds.length === 0) return false
   const manager = await prisma.venueManager.findFirst({
     where: { userId: managerUserId, venueId: { in: venueIds }, verified: true },
   })
-  return Boolean(manager)
+  if (!manager) return false
+  const connectedUserIds = await getAcceptedConnectionUserIds(workerUserId)
+  return connectedUserIds.has(managerUserId)
 }
 
 async function isEligiblePeerFor(candidateUserId, workerProfileId, workerUserId) {

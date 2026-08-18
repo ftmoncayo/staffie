@@ -180,7 +180,7 @@ router.put('/notifications/:id/endorse', async (req, res) => {
     return res.status(404).json({ error: 'This person no longer has a profile' })
   }
 
-  const isManager = await isEligibleManagerFor(req.userId, workerProfile.id)
+  const isManager = await isEligibleManagerFor(req.userId, workerProfile.id, workerUserId)
   const isPeer = !isManager && (await isEligiblePeerFor(req.userId, workerProfile.id, workerUserId))
   if (!isManager && !isPeer) {
     return res.status(403).json({ error: 'You are no longer eligible to endorse this' })

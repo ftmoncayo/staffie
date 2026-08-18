@@ -83,6 +83,8 @@ model Activity {
   notice      Notice?      @relation(fields: [noticeId], references: [id], onDelete: Cascade)
   jobId       String?      @unique
   job         Job?         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  experienceId String?     @unique
+  experience   Experience? @relation(fields: [experienceId], references: [id], onDelete: Cascade)
   createdAt   DateTime     @default(now())
 }
 
@@ -289,6 +291,8 @@ model Experience {
   startDate DateTime
   endDate   DateTime?
   isCurrent Boolean   @default(false)
+
+  activity Activity?
 }
 
 enum VenueVerificationStatus {

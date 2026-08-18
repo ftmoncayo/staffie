@@ -31,7 +31,7 @@ function EntityLink({ entity, to }) {
 }
 
 function activityContent(activity) {
-  const { type, actor, counterpart, venue, business, notice, job } = activity
+  const { type, actor, counterpart, venue, business, notice, job, experience } = activity
 
   switch (type) {
     case 'SIGNUP': {
@@ -54,7 +54,16 @@ function activityContent(activity) {
     case 'EXPERIENCE_ADDED':
       return (
         <>
-          <ActorLink user={actor} /> added a new experience
+          <ActorLink user={actor} /> added a new role
+          {experience?.roleTitle ? `: ${experience.roleTitle}` : ''}
+          {venue ? (
+            <>
+              {' '}
+              at <EntityLink entity={venue} to={`/venues/${venue.id}`} />
+            </>
+          ) : (
+            ''
+          )}
         </>
       )
     case 'CERTIFICATION_ADDED':

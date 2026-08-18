@@ -7,7 +7,7 @@ const {
   connectionStatusFor,
   buildConnectionsAdjacency,
 } = require('../lib/connectionStatus')
-const { formatActivities } = require('../lib/activityFeed')
+const { formatActivities, formatActor } = require('../lib/activityFeed')
 const {
   PEER_NOTIFY_LIMIT,
   attachEndorsementLevels,
@@ -233,6 +233,7 @@ router.get('/:userId/activity', async (req, res) => {
       business: { select: { id: true, name: true } },
       notice: true,
       job: { select: { id: true, title: true } },
+      experience: { select: { roleTitle: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: ACTIVITY_LIMIT,
@@ -402,7 +403,19 @@ router.post('/request-endorsements', requireProfile, async (req, res) => {
     }
   }
 
-  res.status(201).json({ ok: true, recipientCount: recipientUserIds.length, itemCount: validItems.length })
+  const recipientUsers = await prisma.user.findMany({
+    where: { id: { in: recipientUserIds } },
+    include: { profile: { include: { city: true } } },
+  })
+  const recipientById = new Map(recipientUsers.map((u) => [u.id, u]))
+  const recipients = recipientUserIds.map((id) => formatActor(recipientById.get(id)))
+
+  res.status(201).json({
+    ok: true,
+    recipientCount: recipientUserIds.length,
+    itemCount: validItems.length,
+    recipients,
+  })
 })
 
 // A verified manager of a venue where :userId has current/previous Experience
@@ -536,7 +549,9 @@ router.post('/experience', requireProfile, async (req, res) => {
     include: { venue: { include: { city: true } } },
   })
 
-  await prisma.activity.create({ data: { type: 'EXPERIENCE_ADDED', actorUserId: req.userId } })
+  await prisma.activity.create({
+    data: { type: 'EXPERIENCE_ADDED', actorUserId: req.userId, venueId: venue.id, experienceId: experience.id },
+  })
 
   res.status(201).json({ experience })
 })

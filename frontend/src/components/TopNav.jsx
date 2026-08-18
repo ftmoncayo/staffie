@@ -23,11 +23,32 @@ function buildMineLinks(user) {
   ]
 }
 
+function buildAdminLinks(user, unverifiedVenueCount, unverifiedBusinessCount) {
+  return [
+    ...(user?.isAdmin || user?.isVenueAdmin
+      ? [{ to: '/admin/venues', label: `Venue Admin${unverifiedVenueCount !== null ? ` (${unverifiedVenueCount})` : ''}` }]
+      : []),
+    ...(user?.isAdmin
+      ? [
+          {
+            to: '/admin/businesses',
+            label: `Business Admin${unverifiedBusinessCount !== null ? ` (${unverifiedBusinessCount})` : ''}`,
+          },
+        ]
+      : []),
+    ...(user?.isAdmin ? [{ to: '/admin/users', label: 'Users' }] : []),
+    ...(user?.isAdmin ? [{ to: '/admin/jobs', label: 'Job Admin' }] : []),
+    ...(user?.isAdmin ? [{ to: '/admin/lookups', label: 'Lookup Data' }] : []),
+  ]
+}
+
 function TopNav() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [unverifiedVenueCount, setUnverifiedVenueCount] = useState(null)
+  const [unverifiedBusinessCount, setUnverifiedBusinessCount] = useState(null)
   const menuRef = useRef(null)
   const toggleButtonRef = useRef(null)
 
@@ -40,6 +61,23 @@ function TopNav() {
       .fetchProfile()
       .then((data) => setProfile(data.profile))
       .catch(() => {})
+  }, [user])
+
+  useEffect(() => {
+    if (user?.isAdmin || user?.isVenueAdmin) {
+      api
+        .fetchVenues({ status: 'UNVERIFIED', includeManaged: true })
+        .then((venues) => setUnverifiedVenueCount(venues.length))
+    } else {
+      setUnverifiedVenueCount(null)
+    }
+    if (user?.isAdmin) {
+      api
+        .fetchBusinesses({ status: 'UNVERIFIED', includeManaged: true })
+        .then((businesses) => setUnverifiedBusinessCount(businesses.length))
+    } else {
+      setUnverifiedBusinessCount(null)
+    }
   }, [user])
 
   useEffect(() => {
@@ -63,6 +101,7 @@ function TopNav() {
   const displayName = name || user.email
   const primaryLinks = buildPrimaryLinks()
   const mineLinks = buildMineLinks(user)
+  const adminLinks = buildAdminLinks(user, unverifiedVenueCount, unverifiedBusinessCount)
 
   function handleLogout() {
     setMenuOpen(false)
@@ -101,10 +140,10 @@ function TopNav() {
             {link.label}
           </NavLink>
         ))}
-        {mineLinks.length > 0 && (
+        {(mineLinks.length > 0 || adminLinks.length > 0) && (
           <>
             <span className="h-4 w-px bg-border" aria-hidden="true" />
-            {mineLinks.map((link) => (
+            {[...mineLinks, ...adminLinks].map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
@@ -143,10 +182,10 @@ function TopNav() {
               {link.label}
             </NavLink>
           ))}
-          {mineLinks.length > 0 && (
+          {(mineLinks.length > 0 || adminLinks.length > 0) && (
             <>
               <hr className="my-2 border-border" />
-              {mineLinks.map((link) => (
+              {[...mineLinks, ...adminLinks].map((link) => (
                 <NavLink
                   key={link.to}
                   to={link.to}

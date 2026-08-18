@@ -509,6 +509,7 @@ router.get('/venues/:id/activity', async (req, res) => {
       business: { select: { id: true, name: true } },
       notice: true,
       job: { select: { id: true, title: true } },
+      experience: { select: { roleTitle: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: 50,

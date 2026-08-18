@@ -71,6 +71,7 @@ router.get('/feed', async (req, res) => {
           business: { select: { id: true, name: true } },
           notice: true,
           job: { select: { id: true, title: true } },
+          experience: { select: { roleTitle: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: ACTIVITY_LIMIT,

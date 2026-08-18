@@ -62,6 +62,7 @@ async function formatActivities(activities, { isFavourited = () => false } = {})
       business: a.business || null,
       notice: a.notice ? { content: a.notice.content } : null,
       job: a.job ? { id: a.job.id, title: a.job.title } : null,
+      experience: a.experience ? { roleTitle: a.experience.roleTitle } : null,
     }
   })
 }

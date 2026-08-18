@@ -20,8 +20,6 @@ function Dashboard() {
   const [postError, setPostError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [unverifiedVenueCount, setUnverifiedVenueCount] = useState(null)
-  const [unverifiedBusinessCount, setUnverifiedBusinessCount] = useState(null)
   const [profileComplete, setProfileComplete] = useState(true)
 
   useEffect(() => {
@@ -42,19 +40,6 @@ function Dashboard() {
       })
       .catch(() => {})
   }, [])
-
-  useEffect(() => {
-    if (user?.isAdmin || user?.isVenueAdmin) {
-      api
-        .fetchVenues({ status: 'UNVERIFIED', includeManaged: true })
-        .then((venues) => setUnverifiedVenueCount(venues.length))
-    }
-    if (user?.isAdmin) {
-      api
-        .fetchBusinesses({ status: 'UNVERIFIED', includeManaged: true })
-        .then((businesses) => setUnverifiedBusinessCount(businesses.length))
-    }
-  }, [user])
 
   useEffect(() => {
     if (!cityFilter) {
@@ -129,32 +114,6 @@ function Dashboard() {
             <Link to="/invite" className="text-accent hover:text-accent-hover hover:underline">
               Invite someone
             </Link>
-            {(user?.isAdmin || user?.isVenueAdmin) && (
-              <Link to="/admin/venues" className="text-accent hover:text-accent-hover hover:underline">
-                Venue Admin{unverifiedVenueCount !== null ? ` (${unverifiedVenueCount})` : ''}
-              </Link>
-            )}
-            {user?.isAdmin && (
-              <Link to="/admin/businesses" className="text-accent hover:text-accent-hover hover:underline">
-                Business Admin
-                {unverifiedBusinessCount !== null ? ` (${unverifiedBusinessCount})` : ''}
-              </Link>
-            )}
-            {user?.isAdmin && (
-              <Link to="/admin/users" className="text-accent hover:text-accent-hover hover:underline">
-                Users
-              </Link>
-            )}
-            {user?.isAdmin && (
-              <Link to="/admin/jobs" className="text-accent hover:text-accent-hover hover:underline">
-                Job Admin
-              </Link>
-            )}
-            {user?.isAdmin && (
-              <Link to="/admin/lookups" className="text-accent hover:text-accent-hover hover:underline">
-                Lookup Data
-              </Link>
-            )}
           </div>
         </div>
 

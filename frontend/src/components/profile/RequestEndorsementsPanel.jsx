@@ -1,5 +1,11 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
+
+function recipientName(recipient) {
+  const name = [recipient?.profile?.firstName, recipient?.profile?.lastName].filter(Boolean).join(' ')
+  return name || recipient?.email || 'Someone'
+}
 
 function groupItems(profile) {
   const skills = (profile?.skills || []).map((s) => ({ ...s, itemType: 'SKILL' }))
@@ -23,7 +29,7 @@ function RequestEndorsementsPanel({ profile, onClose }) {
   const [scope, setScope] = useState('BOTH')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [recipients, setRecipients] = useState(null)
 
   function toggle(item) {
     setSelected((prev) => {
@@ -38,7 +44,7 @@ function RequestEndorsementsPanel({ profile, onClose }) {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    setSuccess('')
+    setRecipients(null)
     const items = allItems
       .filter((item) => selected.has(itemKey(item)))
       .map((item) => ({ itemId: item.id, itemType: item.itemType }))
@@ -49,9 +55,7 @@ function RequestEndorsementsPanel({ profile, onClose }) {
     setSubmitting(true)
     try {
       const result = await api.requestEndorsements(items, scope)
-      setSuccess(
-        `Requested endorsements from ${result.recipientCount} ${result.recipientCount === 1 ? 'person' : 'people'}.`,
-      )
+      setRecipients(result.recipients)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -79,7 +83,20 @@ function RequestEndorsementsPanel({ profile, onClose }) {
   return (
     <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4 rounded-lg border border-border bg-bg p-4">
       {error && <p className="text-sm text-danger">{error}</p>}
-      {success && <p className="text-sm text-success">{success}</p>}
+      {recipients && (
+        <p className="text-sm text-success">
+          Requests sent to{' '}
+          {recipients.map((recipient, index) => (
+            <span key={recipient.id}>
+              <Link to={`/profile/${recipient.id}`} className="font-medium hover:underline">
+                {recipientName(recipient)}
+              </Link>
+              {index < recipients.length - 1 ? ', ' : ''}
+            </span>
+          ))}
+          .
+        </p>
+      )}
 
       {unendorsed.length > 0 && (
         <div>

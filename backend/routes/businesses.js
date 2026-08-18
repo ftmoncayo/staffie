@@ -378,6 +378,7 @@ router.get('/businesses/:id/activity', async (req, res) => {
       venue: { select: { id: true, name: true } },
       business: { select: { id: true, name: true } },
       notice: true,
+      experience: { select: { roleTitle: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: 50,

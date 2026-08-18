@@ -21,6 +21,7 @@ function buildMineLinks(user) {
     ...(user?.managesVenue ? [{ to: '/venues/mine', label: 'My Venues' }] : []),
     ...(user?.managesBusiness ? [{ to: '/businesses/mine', label: 'My Businesses' }] : []),
     ...(user?.managesVenue ? [{ to: '/jobs/mine', label: 'My Jobs' }] : []),
+    ...(user?.managesVenue || user?.managesBusiness ? [{ to: '/events/mine', label: 'My Events' }] : []),
   ]
 }
 

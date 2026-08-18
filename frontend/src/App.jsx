@@ -181,6 +181,14 @@ function App() {
           }
         />
         <Route
+          path="/events/mine"
+          element={
+            <ProtectedRoute>
+              <EventsDirectory mine />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/events/:id"
           element={
             <ProtectedRoute>

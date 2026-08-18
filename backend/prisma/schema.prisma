@@ -51,6 +51,7 @@ model User {
 
   postedJobs      Job[]
   jobApplications JobApplication[]
+  hiredForJobs    Job[]            @relation("JobHiredApplicant")
 
   receivedNotifications Notification[] @relation("NotificationRecipient")
   sentNotifications     Notification[] @relation("NotificationSource")
@@ -113,6 +114,11 @@ enum JobStatus {
   CLOSED
 }
 
+enum JobFilledStatus {
+  FILLED
+  NOT_FILLED
+}
+
 model Job {
   id             String    @id @default(uuid())
   title          String
@@ -123,6 +129,14 @@ model Job {
   postedByUserId String
   postedByUser   User      @relation(fields: [postedByUserId], references: [id], onDelete: Cascade)
   createdAt      DateTime  @default(now())
+  // Captured once, when the manager closes the job: did they find the right
+  // person? Null until then (and stays null for jobs that are still OPEN).
+  filledStatus         JobFilledStatus?
+  hiredApplicantUserId String?
+  // SetNull rather than Cascade (unlike postedByUserId) — losing the hired
+  // user's account shouldn't destroy the job listing, just the pointer to
+  // who filled it.
+  hiredApplicantUser   User?            @relation("JobHiredApplicant", fields: [hiredApplicantUserId], references: [id], onDelete: SetNull)
 
   skills         JobSkill[]
   knowledgeAreas JobKnowledgeArea[]
@@ -233,7 +247,6 @@ model Country {
   name      String @unique
   states    State[]
   businesses Business[]
-  events    Event[]
 }
 
 model State {
@@ -242,7 +255,6 @@ model State {
   countryId String
   country   Country @relation(fields: [countryId], references: [id])
   cities    City[]
-  events    Event[]
 }
 
 model City {
@@ -255,7 +267,6 @@ model City {
   suburbs           Suburb[]
   posts             Post[]
   businessLocations BusinessLocation[]
-  events            Event[]
 }
 
 model Post {
@@ -280,7 +291,6 @@ model Suburb {
   city     City      @relation(fields: [cityId], references: [id])
   venues   Venue[]
   profiles Profile[]
-  events   Event[]
 
   @@unique([name, cityId])
 }
@@ -335,13 +345,14 @@ model Venue {
   createdByUser      User                    @relation(fields: [createdByUserId], references: [id])
   createdAt          DateTime                @default(now())
 
-  specialties VenueSpecialty[]
-  experiences Experience[]
-  managers    VenueManager[]
-  followers   VenueFollow[]
-  activities  Activity[]
-  invites     Invite[]
-  jobs        Job[]
+  specialties    VenueSpecialty[]
+  experiences    Experience[]
+  managers       VenueManager[]
+  followers      VenueFollow[]
+  activities     Activity[]
+  invites        Invite[]
+  jobs           Job[]
+  locationEvents Event[]
 }
 
 model VenueManager {
@@ -656,14 +667,15 @@ model Event {
   ownerId         String
   startAt         DateTime
   endAt           DateTime?
-  countryId       String?
-  country         Country?          @relation(fields: [countryId], references: [id])
-  stateId         String?
-  state           State?            @relation(fields: [stateId], references: [id])
-  cityId          String?
-  city            City?             @relation(fields: [cityId], references: [id])
-  suburbId        String?
-  suburb          Suburb?           @relation(fields: [suburbId], references: [id])
+  // Where the event happens. Defaults to the owning Venue itself when
+  // ownerType is VENUE; left unset for BUSINESS-owned events (a business has
+  // no single fixed location) unless the creator explicitly picks one.
+  // SetNull (not the Cascade every other Venue relation in this schema
+  // uses) because this is just a location reference — deleting the venue
+  // shouldn't destroy the event, especially for business-owned events that
+  // merely met there.
+  locationVenueId String?
+  locationVenue   Venue?            @relation(fields: [locationVenueId], references: [id], onDelete: SetNull)
   createdByUserId String
   createdByUser   User              @relation(fields: [createdByUserId], references: [id])
   createdAt       DateTime          @default(now())

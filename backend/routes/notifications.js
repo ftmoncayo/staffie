@@ -111,8 +111,9 @@ async function getEventNotificationInfo(notifications) {
   return map
 }
 
-// For every INTERESTED EventInterest of this user whose event has finished
-// (endAt, or startAt if the event has no endAt) and hasn't been asked about
+// For every INTERESTED EventInterest of this user whose event has started
+// (by startAt — never endAt, which is optional and often unset or far later
+// than a session actually needs confirmation) and hasn't been asked about
 // yet, creates an ATTENDANCE_CONFIRM notification and stamps askedAt so it's
 // only ever asked once. Runs lazily before every notifications read rather
 // than on a schedule, since there's no background job runner in this app.
@@ -120,10 +121,10 @@ async function runAttendanceConfirmChecks(userId) {
   const now = new Date()
   const pending = await prisma.eventInterest.findMany({
     where: { userId, status: 'INTERESTED', askedAt: null },
-    include: { event: { select: { id: true, startAt: true, endAt: true } } },
+    include: { event: { select: { id: true, startAt: true } } },
   })
 
-  const due = pending.filter((ei) => (ei.event.endAt || ei.event.startAt) < now)
+  const due = pending.filter((ei) => ei.event.startAt < now)
   for (const ei of due) {
     await prisma.eventInterest.update({ where: { id: ei.id }, data: { askedAt: now } })
     await createNotification({

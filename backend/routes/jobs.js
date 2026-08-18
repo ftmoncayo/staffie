@@ -12,6 +12,7 @@ const jobInclude = {
   venue: { include: { city: { include: { state: { include: { country: true } } } }, suburb: true } },
   skills: { include: { skill: true } },
   knowledgeAreas: { include: { knowledgeArea: true } },
+  hiredApplicantUser: { include: { profile: true } },
   _count: { select: { applications: true } },
 }
 
@@ -95,6 +96,10 @@ function shapeJob(job, ctx, mutualConnectionsMap, appliedJobIds) {
     title: job.title,
     description: job.description,
     status: job.status,
+    filledStatus: job.filledStatus,
+    hiredApplicant: job.hiredApplicantUser
+      ? { id: job.hiredApplicantUser.id, name: displayName(job.hiredApplicantUser) }
+      : null,
     createdAt: job.createdAt,
     postedByUserId: job.postedByUserId,
     venueId: job.venueId,
@@ -263,7 +268,8 @@ router.put('/jobs/:id', async (req, res) => {
     return res.status(403).json({ error: 'You do not have permission to edit this job' })
   }
 
-  const { title, description, status, skillIds, knowledgeAreaIds } = req.body || {}
+  const { title, description, status, filledStatus, hiredApplicantUserId, skillIds, knowledgeAreaIds } =
+    req.body || {}
   const data = {}
 
   if (title !== undefined) {
@@ -283,6 +289,29 @@ router.put('/jobs/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid job status' })
     }
     data.status = status
+  }
+  // Captured once when closing: "Did you find the right person?" Yes/No,
+  // and (only if Yes) optionally which applicant. hiredApplicantUserId must
+  // reference an actual applicant of this job, not just any user.
+  if (filledStatus !== undefined) {
+    if (filledStatus !== null && filledStatus !== 'FILLED' && filledStatus !== 'NOT_FILLED') {
+      return res.status(400).json({ error: 'Invalid filled status' })
+    }
+    data.filledStatus = filledStatus
+    if (filledStatus !== 'FILLED') data.hiredApplicantUserId = null
+  }
+  if (hiredApplicantUserId !== undefined && filledStatus === 'FILLED') {
+    if (hiredApplicantUserId === null || hiredApplicantUserId === '') {
+      data.hiredApplicantUserId = null
+    } else {
+      const application = await prisma.jobApplication.findUnique({
+        where: { jobId_applicantUserId: { jobId: job.id, applicantUserId: hiredApplicantUserId } },
+      })
+      if (!application) {
+        return res.status(400).json({ error: 'Selected user did not apply to this job' })
+      }
+      data.hiredApplicantUserId = hiredApplicantUserId
+    }
   }
   if (skillIds !== undefined) {
     const validSkillIds = await validateSkillIds(parseIds(skillIds))

@@ -3,6 +3,13 @@ import { Link, useParams } from 'react-router-dom'
 import * as api from '../lib/api'
 import JobForm from '../components/job/JobForm'
 import Tag from '../components/Tag'
+import Modal from '../components/Modal'
+
+function applicantName(applicant) {
+  return applicant.profile
+    ? [applicant.profile.firstName, applicant.profile.lastName].filter(Boolean).join(' ') || applicant.email
+    : applicant.email
+}
 
 function JobDetail() {
   const { id } = useParams()
@@ -14,6 +21,16 @@ function JobDetail() {
   const [applying, setApplying] = useState(false)
   const [applyError, setApplyError] = useState('')
 
+  // Closing prompt: "Did you find the right person for this role?" — shown
+  // only on the OPEN -> CLOSED transition, not on every save of an
+  // already-closed job. `pendingData` holds the rest of the JobForm save
+  // waiting on the answer; `hireStep` drives which part of the modal shows.
+  const [pendingData, setPendingData] = useState(null)
+  const [hireStep, setHireStep] = useState(null)
+  const [applicants, setApplicants] = useState([])
+  const [hireSubmitting, setHireSubmitting] = useState(false)
+  const [hireError, setHireError] = useState('')
+
   useEffect(() => {
     api
       .fetchJob(id)
@@ -22,10 +39,61 @@ function JobDetail() {
       .finally(() => setLoading(false))
   }, [id])
 
-  async function handleSave(data) {
+  async function finalizeSave(data) {
     const updated = await api.updateJob(id, data)
     setJob(updated)
     setEditing(false)
+    setPendingData(null)
+    setHireStep(null)
+  }
+
+  async function handleSave(data) {
+    if (data.status === 'CLOSED' && job.status !== 'CLOSED') {
+      setPendingData(data)
+      setHireStep('ask')
+      return
+    }
+    await finalizeSave(data)
+  }
+
+  async function handleFilledAnswer(foundPerson) {
+    setHireError('')
+    if (!foundPerson) {
+      setHireSubmitting(true)
+      try {
+        await finalizeSave({ ...pendingData, filledStatus: 'NOT_FILLED', hiredApplicantUserId: null })
+      } catch (err) {
+        setHireError(err.message)
+      } finally {
+        setHireSubmitting(false)
+      }
+      return
+    }
+    try {
+      const apps = await api.fetchJobApplications(id)
+      setApplicants(apps)
+      setHireStep('pick')
+    } catch (err) {
+      setHireError(err.message)
+    }
+  }
+
+  async function handlePickHire(hiredApplicantUserId) {
+    setHireError('')
+    setHireSubmitting(true)
+    try {
+      await finalizeSave({ ...pendingData, filledStatus: 'FILLED', hiredApplicantUserId })
+    } catch (err) {
+      setHireError(err.message)
+    } finally {
+      setHireSubmitting(false)
+    }
+  }
+
+  function closeHireModal() {
+    setPendingData(null)
+    setHireStep(null)
+    setHireError('')
   }
 
   async function handleApply(e) {
@@ -114,6 +182,14 @@ function JobDetail() {
 
             <p className="mt-4 whitespace-pre-wrap text-text">{job.description}</p>
 
+            {job.canEdit && job.filledStatus && (
+              <p className="mt-4 text-sm text-text-faint">
+                {job.filledStatus === 'FILLED'
+                  ? `Filled${job.hiredApplicant ? ` — hired ${job.hiredApplicant.name}` : ''}`
+                  : 'Closed without filling the role'}
+              </p>
+            )}
+
             {job.skills.length > 0 && (
               <div className="mt-4">
                 <p className="text-sm text-text-faint">Desired skills</p>
@@ -176,6 +252,58 @@ function JobDetail() {
           </div>
         )}
       </div>
+
+      <Modal open={hireStep === 'ask'} onClose={closeHireModal} title="Closing this job">
+        {hireError && <p className="mb-2 text-sm text-danger">{hireError}</p>}
+        <p className="text-sm text-text">Did you find the right person for this role?</p>
+        <div className="mt-4 flex gap-3">
+          <button
+            type="button"
+            disabled={hireSubmitting}
+            onClick={() => handleFilledAnswer(true)}
+            className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            disabled={hireSubmitting}
+            onClick={() => handleFilledAnswer(false)}
+            className="rounded border border-border-strong px-4 py-2 text-sm text-text-muted hover:bg-surface-hover disabled:opacity-50"
+          >
+            No
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={hireStep === 'pick'} onClose={closeHireModal} title="Who did you hire?">
+        {hireError && <p className="mb-2 text-sm text-danger">{hireError}</p>}
+        <p className="text-sm text-text-muted">Optional — pick from the people who applied.</p>
+        <div className="mt-4 flex flex-col gap-2">
+          {applicants.map((application) => (
+            <button
+              key={application.id}
+              type="button"
+              disabled={hireSubmitting}
+              onClick={() => handlePickHire(application.applicant.id)}
+              className="rounded border border-border-strong px-3 py-2 text-left text-sm text-text hover:bg-surface-hover disabled:opacity-50"
+            >
+              {applicantName(application.applicant)}
+            </button>
+          ))}
+          {applicants.length === 0 && (
+            <p className="text-sm text-text-faint">No applicants to choose from.</p>
+          )}
+        </div>
+        <button
+          type="button"
+          disabled={hireSubmitting}
+          onClick={() => handlePickHire(null)}
+          className="mt-4 text-sm text-accent hover:text-accent-hover hover:underline disabled:opacity-50"
+        >
+          Skip — don't record who
+        </button>
+      </Modal>
     </div>
   )
 }

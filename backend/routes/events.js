@@ -9,10 +9,13 @@ router.use(requireAuth)
 
 const eventInclude = {
   category: true,
-  country: true,
-  state: true,
-  city: true,
-  suburb: true,
+  locationVenue: {
+    select: {
+      id: true,
+      name: true,
+      city: { include: { state: { include: { country: true } } } },
+    },
+  },
   skills: { include: { skill: true } },
   knowledgeAreas: { include: { knowledgeArea: true } },
 }
@@ -34,51 +37,14 @@ async function validateKnowledgeAreaIds(ids) {
   return found.map((k) => k.id)
 }
 
-// Every level is optional and independently editable, but whichever levels
-// are given must nest correctly (a suburb must belong to the given city, a
-// city to the given state, a state to the given country) — the same
-// cross-check style validateSuburbId already applies to Venue's two-level
-// city/suburb pair, extended here to all four levels.
-async function validateEventLocation({ countryId, stateId, cityId, suburbId }) {
-  const result = { countryId: null, stateId: null, cityId: null, suburbId: null }
-
-  if (typeof countryId === 'string' && countryId.trim()) {
-    const country = await prisma.country.findUnique({ where: { id: countryId.trim() } })
-    if (!country) return { ok: false, error: 'Selected country was not found' }
-    result.countryId = country.id
+// null/undefined/empty clears the location; otherwise the venue must exist.
+async function validateLocationVenueId(locationVenueId) {
+  if (typeof locationVenueId !== 'string' || !locationVenueId.trim()) {
+    return { ok: true, locationVenueId: null }
   }
-
-  if (typeof stateId === 'string' && stateId.trim()) {
-    const state = await prisma.state.findUnique({ where: { id: stateId.trim() } })
-    if (!state) return { ok: false, error: 'Selected state was not found' }
-    if (result.countryId && state.countryId !== result.countryId) {
-      return { ok: false, error: 'Selected state does not belong to the selected country' }
-    }
-    result.stateId = state.id
-    if (!result.countryId) result.countryId = state.countryId
-  }
-
-  if (typeof cityId === 'string' && cityId.trim()) {
-    const city = await prisma.city.findUnique({ where: { id: cityId.trim() } })
-    if (!city) return { ok: false, error: 'Selected city was not found' }
-    if (result.stateId && city.stateId !== result.stateId) {
-      return { ok: false, error: 'Selected city does not belong to the selected state' }
-    }
-    result.cityId = city.id
-    if (!result.stateId) result.stateId = city.stateId
-  }
-
-  if (typeof suburbId === 'string' && suburbId.trim()) {
-    const suburb = await prisma.suburb.findUnique({ where: { id: suburbId.trim() } })
-    if (!suburb) return { ok: false, error: 'Selected suburb was not found' }
-    if (result.cityId && suburb.cityId !== result.cityId) {
-      return { ok: false, error: 'Selected suburb does not belong to the selected city' }
-    }
-    result.suburbId = suburb.id
-    if (!result.cityId) result.cityId = suburb.cityId
-  }
-
-  return { ok: true, ...result }
+  const venue = await prisma.venue.findUnique({ where: { id: locationVenueId.trim() } })
+  if (!venue) return { ok: false, error: 'Selected venue was not found' }
+  return { ok: true, locationVenueId: venue.id }
 }
 
 async function attachOwnerNames(events) {
@@ -106,10 +72,7 @@ function shapeEvent(event) {
     ownerId: event.ownerId,
     startAt: event.startAt,
     endAt: event.endAt,
-    country: event.country,
-    state: event.state,
-    city: event.city,
-    suburb: event.suburb,
+    locationVenue: event.locationVenue,
     createdByUserId: event.createdByUserId,
     createdAt: event.createdAt,
     skills: event.skills.map((es) => es.skill),
@@ -117,20 +80,56 @@ function shapeEvent(event) {
   }
 }
 
+async function getManagedVenueIds(userId) {
+  const rows = await prisma.venueManager.findMany({ where: { userId }, select: { venueId: true } })
+  return rows.map((r) => r.venueId)
+}
+
+async function getManagedBusinessIds(userId) {
+  const rows = await prisma.businessManager.findMany({ where: { userId }, select: { businessId: true } })
+  return rows.map((r) => r.businessId)
+}
+
 router.get('/events', async (req, res) => {
   const cityId = typeof req.query.cityId === 'string' && req.query.cityId.trim() ? req.query.cityId.trim() : null
   const categoryId =
     typeof req.query.categoryId === 'string' && req.query.categoryId.trim() ? req.query.categoryId.trim() : null
+  const ownerType = req.query.ownerType === 'VENUE' || req.query.ownerType === 'BUSINESS' ? req.query.ownerType : null
+  const ownerId = typeof req.query.ownerId === 'string' && req.query.ownerId.trim() ? req.query.ownerId.trim() : null
+  const when = req.query.when === 'past' ? 'past' : 'upcoming'
+  const mine = req.query.mine === 'true'
 
   const now = new Date()
+  const and = [
+    when === 'past'
+      ? { startAt: { lt: now } }
+      : { OR: [{ endAt: { gte: now } }, { endAt: null, startAt: { gte: now } }] },
+  ]
+  if (cityId) and.push({ locationVenue: { cityId } })
+  if (categoryId) and.push({ categoryId })
+
+  if (mine) {
+    const [managedVenueIds, managedBusinessIds] = await Promise.all([
+      getManagedVenueIds(req.userId),
+      getManagedBusinessIds(req.userId),
+    ])
+    if (managedVenueIds.length === 0 && managedBusinessIds.length === 0) {
+      return res.json({ events: [] })
+    }
+    and.push({
+      OR: [
+        managedVenueIds.length ? { ownerType: 'VENUE', ownerId: { in: managedVenueIds } } : null,
+        managedBusinessIds.length ? { ownerType: 'BUSINESS', ownerId: { in: managedBusinessIds } } : null,
+      ].filter(Boolean),
+    })
+  } else if (ownerType && ownerId) {
+    and.push({ ownerType, ownerId })
+  }
+
   const events = await prisma.event.findMany({
-    where: {
-      ...(cityId ? { cityId } : {}),
-      ...(categoryId ? { categoryId } : {}),
-      OR: [{ endAt: { gte: now } }, { endAt: null, startAt: { gte: now } }],
-    },
+    where: { AND: and },
     include: eventInclude,
-    orderBy: { startAt: 'asc' },
+    orderBy: { startAt: when === 'past' ? 'desc' : 'asc' },
   })
 
   const shaped = await attachOwnerNames(events.map(shapeEvent))
@@ -167,10 +166,7 @@ router.post('/events', async (req, res) => {
     ownerId,
     startAt,
     endAt,
-    countryId,
-    stateId,
-    cityId,
-    suburbId,
+    locationVenueId,
     skillIds,
     knowledgeAreaIds,
   } = req.body || {}
@@ -219,10 +215,16 @@ router.post('/events', async (req, res) => {
     }
   }
 
-  const location = await validateEventLocation({ countryId, stateId, cityId, suburbId })
+  const location = await validateLocationVenueId(locationVenueId)
   if (!location.ok) {
     return res.status(400).json({ error: location.error })
   }
+  // A VENUE-owned event with no explicit location defaults to the venue
+  // itself; BUSINESS-owned events (no single fixed location) stay unset
+  // unless the creator picked one. Applied server-side too as a safety net
+  // beyond the form's own default pre-fill.
+  const resolvedLocationVenueId =
+    location.locationVenueId || (ownerType === 'VENUE' ? ownerId.trim() : null)
 
   const validSkillIds = await validateSkillIds(parseIds(skillIds))
   const validKnowledgeAreaIds = await validateKnowledgeAreaIds(parseIds(knowledgeAreaIds))
@@ -236,10 +238,7 @@ router.post('/events', async (req, res) => {
       ownerId: ownerId.trim(),
       startAt: parsedStart,
       endAt: parsedEnd,
-      countryId: location.countryId,
-      stateId: location.stateId,
-      cityId: location.cityId,
-      suburbId: location.suburbId,
+      locationVenueId: resolvedLocationVenueId,
       createdByUserId: req.userId,
       skills: { create: validSkillIds.map((skillId) => ({ skillId })) },
       knowledgeAreas: { create: validKnowledgeAreaIds.map((knowledgeAreaId) => ({ knowledgeAreaId })) },
@@ -268,10 +267,7 @@ router.put('/events/:id', async (req, res) => {
     categoryId,
     startAt,
     endAt,
-    countryId,
-    stateId,
-    cityId,
-    suburbId,
+    locationVenueId,
     skillIds,
     knowledgeAreaIds,
   } = req.body || {}
@@ -314,15 +310,12 @@ router.put('/events/:id', async (req, res) => {
       data.endAt = parsedEnd
     }
   }
-  if (countryId !== undefined || stateId !== undefined || cityId !== undefined || suburbId !== undefined) {
-    const location = await validateEventLocation({ countryId, stateId, cityId, suburbId })
+  if (locationVenueId !== undefined) {
+    const location = await validateLocationVenueId(locationVenueId)
     if (!location.ok) {
       return res.status(400).json({ error: location.error })
     }
-    data.countryId = location.countryId
-    data.stateId = location.stateId
-    data.cityId = location.cityId
-    data.suburbId = location.suburbId
+    data.locationVenueId = location.locationVenueId
   }
   if (skillIds !== undefined) {
     const validSkillIds = await validateSkillIds(parseIds(skillIds))

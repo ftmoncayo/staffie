@@ -10,6 +10,7 @@ import NominateManagerButton from '../components/NominateManagerButton'
 import PostNoticeBox from '../components/PostNoticeBox'
 import ActivityItem from '../components/ActivityItem'
 import ShowMore from '../components/ShowMore'
+import PastEvents from '../components/event/PastEvents'
 
 function locationSummary(business) {
   if (business.locationScope === 'GLOBAL') return 'Operates globally'
@@ -203,6 +204,8 @@ function BusinessDetail() {
             renderItem={(item) => <ActivityItem key={item.id} activity={item} />}
           />
         </div>
+
+        <PastEvents ownerType="BUSINESS" ownerId={id} canEdit={business.canEdit} />
 
         {user?.isAdmin && <BusinessManagersPanel businessId={id} />}
       </div>

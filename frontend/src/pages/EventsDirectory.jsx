@@ -27,16 +27,16 @@ function EventCard({ event }) {
         </span>
       </div>
       <p className="text-sm text-text-faint">{formatDateTime(event.startAt)}</p>
-      {event.city && (
+      {event.locationVenue && (
         <p className="text-sm text-text-faint">
-          {[event.suburb?.name, event.city.name].filter(Boolean).join(', ')}
+          {[event.locationVenue.name, event.locationVenue.city?.name].filter(Boolean).join(', ')}
         </p>
       )}
     </Link>
   )
 }
 
-function EventsDirectory() {
+function EventsDirectory({ mine = false }) {
   const [events, setEvents] = useState([])
   const [city, setCity] = useState(null)
   const [category, setCategory] = useState(null)
@@ -46,17 +46,17 @@ function EventsDirectory() {
   useEffect(() => {
     setLoading(true)
     api
-      .fetchEvents({ cityId: city?.id, categoryId: category?.id })
+      .fetchEvents({ cityId: city?.id, categoryId: category?.id, mine })
       .then(setEvents)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [city, category])
+  }, [city, category, mine])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-text">Events</h1>
+          <h1 className="text-2xl font-semibold text-text">{mine ? 'My Events' : 'Events'}</h1>
           <Link to="/home" className="text-sm text-accent hover:text-accent-hover hover:underline">
             Back to home
           </Link>
@@ -86,7 +86,11 @@ function EventsDirectory() {
         {error && <p className="text-sm text-danger">{error}</p>}
 
         <div className="flex flex-col gap-3">
-          {!loading && events.length === 0 && <p className="text-sm text-text-faint">No upcoming events found.</p>}
+          {!loading && events.length === 0 && (
+            <p className="text-sm text-text-faint">
+              {mine ? 'No upcoming events at anything you manage.' : 'No upcoming events found.'}
+            </p>
+          )}
           {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}

@@ -13,6 +13,7 @@ import NominateManagerButton from '../components/NominateManagerButton'
 import PostNoticeBox from '../components/PostNoticeBox'
 import ActivityItem from '../components/ActivityItem'
 import ShowMore from '../components/ShowMore'
+import PastEvents from '../components/event/PastEvents'
 
 function VenueDetail() {
   const { id } = useParams()
@@ -244,6 +245,8 @@ function VenueDetail() {
         </div>
 
         <VenueWorkers venueId={id} />
+
+        <PastEvents ownerType="VENUE" ownerId={id} canEdit={venue.canEdit} />
 
         {venue.canManageNominations && <PendingManagerRequests venueId={id} />}
 

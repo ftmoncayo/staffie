@@ -810,10 +810,14 @@ export async function createEventCategory(name) {
   return data.eventCategory
 }
 
-export async function fetchEvents({ cityId, categoryId } = {}) {
+export async function fetchEvents({ cityId, categoryId, ownerType, ownerId, when, mine } = {}) {
   const params = new URLSearchParams()
   if (cityId) params.set('cityId', cityId)
   if (categoryId) params.set('categoryId', categoryId)
+  if (ownerType) params.set('ownerType', ownerType)
+  if (ownerId) params.set('ownerId', ownerId)
+  if (when) params.set('when', when)
+  if (mine) params.set('mine', 'true')
   const data = await authRequest(`/api/events?${params.toString()}`)
   return data.events
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
-import LocationCascade from '../LocationCascade'
 import Tag from '../Tag'
 
 function toInputValue(iso) {
@@ -11,20 +10,17 @@ function toInputValue(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// `initialLocation` prefills country/state/city/suburb from the owner
-// venue/business at creation time only — once set, the location lives on
-// the Event itself and is independently editable thereafter (see `initial`,
-// used instead when editing an existing event).
-function EventForm({ initial, initialLocation, onSubmit, onCancel, submitLabel = 'Create event' }) {
+// `initialLocationVenue` prefills the location venue from the owner venue
+// itself at creation time only — once set, the location lives on the Event
+// itself and is independently editable thereafter (see `initial`, used
+// instead when editing an existing event).
+function EventForm({ initial, initialLocationVenue, onSubmit, onCancel, submitLabel = 'Create event' }) {
   const [title, setTitle] = useState(initial?.title || '')
   const [description, setDescription] = useState(initial?.description || '')
   const [category, setCategory] = useState(initial?.category || null)
   const [startAt, setStartAt] = useState(toInputValue(initial?.startAt))
   const [endAt, setEndAt] = useState(toInputValue(initial?.endAt))
-  const [country, setCountry] = useState(initial?.country || initialLocation?.country || null)
-  const [state, setState] = useState(initial?.state || initialLocation?.state || null)
-  const [city, setCity] = useState(initial?.city || initialLocation?.city || null)
-  const [suburb, setSuburb] = useState(initial?.suburb || initialLocation?.suburb || null)
+  const [locationVenue, setLocationVenue] = useState(initial?.locationVenue || initialLocationVenue || null)
   const [skills, setSkills] = useState(initial?.skills || [])
   const [knowledgeAreas, setKnowledgeAreas] = useState(initial?.knowledgeAreas || [])
   const [error, setError] = useState('')
@@ -32,24 +28,6 @@ function EventForm({ initial, initialLocation, onSubmit, onCancel, submitLabel =
 
   const skillNames = skills.map((s) => s.name)
   const knowledgeAreaNames = knowledgeAreas.map((k) => k.name)
-
-  function handleCountryChange(newCountry) {
-    setCountry(newCountry)
-    setState(null)
-    setCity(null)
-    setSuburb(null)
-  }
-
-  function handleStateChange(newState) {
-    setState(newState)
-    setCity(null)
-    setSuburb(null)
-  }
-
-  function handleCityChange(newCity) {
-    setCity(newCity)
-    setSuburb(null)
-  }
 
   function handleAddSkill(item) {
     setSkills((prev) => (prev.some((s) => s.name === item.name) ? prev : [...prev, item]))
@@ -86,10 +64,7 @@ function EventForm({ initial, initialLocation, onSubmit, onCancel, submitLabel =
         categoryId: category.id,
         startAt: new Date(startAt).toISOString(),
         endAt: endAt ? new Date(endAt).toISOString() : null,
-        countryId: country?.id || null,
-        stateId: state?.id || null,
-        cityId: city?.id || null,
-        suburbId: suburb?.id || null,
+        locationVenueId: locationVenue?.id || null,
         skillIds: skills.map((s) => s.id),
         knowledgeAreaIds: knowledgeAreas.map((k) => k.id),
       })
@@ -159,21 +134,16 @@ function EventForm({ initial, initialLocation, onSubmit, onCancel, submitLabel =
         </label>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <span className="text-sm text-text-muted">Location</span>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <LocationCascade
-            country={country}
-            state={state}
-            city={city}
-            suburb={suburb}
-            onCountryChange={handleCountryChange}
-            onStateChange={handleStateChange}
-            onCityChange={handleCityChange}
-            onSuburbChange={setSuburb}
-          />
-        </div>
-      </div>
+      <label className="flex flex-col gap-1 text-sm text-text-muted">
+        Location (optional)
+        <SearchCombobox
+          fetchOptions={api.fetchVenueOptions}
+          onSelect={setLocationVenue}
+          allowCreate={false}
+          initialQuery={locationVenue?.name || ''}
+          placeholder="Search for a venue..."
+        />
+      </label>
 
       <div className="flex flex-col gap-2">
         <span className="text-sm text-text-muted">Skills developed (optional)</span>

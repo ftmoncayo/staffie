@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../lib/api'
 import EventForm from '../components/event/EventForm'
 import Tag from '../components/Tag'
@@ -16,12 +16,6 @@ function ownerLink(event) {
   return event.ownerType === 'VENUE' ? `/venues/${event.ownerId}` : `/businesses/${event.ownerId}`
 }
 
-function locationSummary(event) {
-  return (
-    [event.suburb?.name, event.city?.name, event.state?.name, event.country?.name].filter(Boolean).join(', ') || '—'
-  )
-}
-
 const INTEREST_LABELS = {
   INTERESTED: 'Interested',
   ATTENDED: 'Attended',
@@ -30,6 +24,7 @@ const INTEREST_LABELS = {
 
 function EventDetail() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const [event, setEvent] = useState(null)
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -41,9 +36,13 @@ function EventDetail() {
   useEffect(() => {
     api
       .fetchEvent(id)
-      .then(setEvent)
+      .then((data) => {
+        setEvent(data)
+        if (searchParams.get('edit') === 'true' && data.canEdit) setEditing(true)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function handleSave(data) {
@@ -131,7 +130,18 @@ function EventDetail() {
               </div>
               <div>
                 <dt className="text-sm text-text-faint">Location</dt>
-                <dd className="text-text">{locationSummary(event)}</dd>
+                <dd className="text-text">
+                  {event.locationVenue ? (
+                    <Link
+                      to={`/venues/${event.locationVenue.id}`}
+                      className="text-accent hover:text-accent-hover hover:underline"
+                    >
+                      {event.locationVenue.name}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </dd>
               </div>
             </dl>
 

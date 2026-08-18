@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import * as api from '../lib/api'
+import Modal from '../components/Modal'
+
+const NOTE_WORD_LIMIT = 8
 
 function formatDate(value) {
   if (!value) return ''
   return value.slice(0, 10)
+}
+
+function truncateNote(note) {
+  const words = note.trim().split(/\s+/)
+  if (words.length <= NOTE_WORD_LIMIT) return note
+  return `${words.slice(0, NOTE_WORD_LIMIT).join(' ')}…`
 }
 
 function JobApplications() {
@@ -12,6 +21,7 @@ function JobApplications() {
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [openNote, setOpenNote] = useState(null)
 
   useEffect(() => {
     api
@@ -52,6 +62,8 @@ function JobApplications() {
                 const name = applicant.profile
                   ? [applicant.profile.firstName, applicant.profile.lastName].filter(Boolean).join(' ')
                   : applicant.email
+                const truncated = note ? truncateNote(note) : ''
+                const isTruncated = truncated !== note
 
                 return (
                   <tr key={application.id} className="border-b border-border last:border-0">
@@ -66,7 +78,21 @@ function JobApplications() {
                     <td className="px-4 py-3 text-text-muted">{skillMatchCount}</td>
                     <td className="px-4 py-3 text-text-muted">{knowledgeMatchCount}</td>
                     <td className="px-4 py-3 text-text-muted">{mutualConnectionsAtVenue}</td>
-                    <td className="px-4 py-3 text-text-muted">{note || '—'}</td>
+                    <td className="px-4 py-3 text-text-muted">
+                      {!note && '—'}
+                      {note &&
+                        (isTruncated ? (
+                          <button
+                            type="button"
+                            onClick={() => setOpenNote({ name, note })}
+                            className="text-left text-accent hover:text-accent-hover hover:underline"
+                          >
+                            {truncated}
+                          </button>
+                        ) : (
+                          note
+                        ))}
+                    </td>
                     <td className="px-4 py-3 text-text-muted">{formatDate(createdAt)}</td>
                   </tr>
                 )
@@ -82,6 +108,10 @@ function JobApplications() {
           </table>
         </div>
       </div>
+
+      <Modal open={Boolean(openNote)} onClose={() => setOpenNote(null)} title={openNote ? `${openNote.name}'s note` : ''}>
+        <p className="whitespace-pre-wrap text-sm text-text">{openNote?.note}</p>
+      </Modal>
     </div>
   )
 }

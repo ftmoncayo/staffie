@@ -9,11 +9,8 @@ function Tag({ children, onRemove, removeLabel, removeDisabled = false, level })
 
   return (
     <span className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm ${style.wrapper}`}>
-      {level === 3 && (
-        <span className="text-danger" aria-hidden="true">
-          ✓
-        </span>
-      )}
+      {level === 2 && <span aria-hidden="true">✓</span>}
+      {level === 3 && <span aria-hidden="true">⭐</span>}
       {children}
       {onRemove && (
         <button

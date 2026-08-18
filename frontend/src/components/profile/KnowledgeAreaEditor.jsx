@@ -2,6 +2,7 @@ import { useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 import Tag from '../Tag'
+import TagLevelInfo from '../TagLevelInfo'
 
 function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
   const [error, setError] = useState('')
@@ -33,7 +34,10 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
 
   return (
     <div className="rounded-lg border border-border bg-surface p-6">
-      <h2 className="text-xl font-semibold text-text">Knowledge Bank</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-text">Knowledge Bank</h2>
+        <TagLevelInfo />
+      </div>
       <p className="mt-1 text-sm text-text-faint">
         Informal know-how, e.g. "Japanese Whiskey," "Wine," "Beer Brewing."
       </p>
@@ -57,22 +61,44 @@ function KnowledgeAreaEditor({ profile, onAdd, onRemove }) {
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {knowledgeAreas.map((area) => (
-          <Tag
-            key={area.id}
-            level={area.level}
-            onRemove={() => handleRemove(area.name)}
-            removeDisabled={removing === area.name}
-            removeLabel={`Remove ${area.name}`}
-          >
-            {area.name}
-          </Tag>
-        ))}
-        {profile && knowledgeAreas.length === 0 && (
-          <p className="text-sm text-text-faint">No knowledge areas added yet.</p>
-        )}
-      </div>
+      {knowledgeAreas.length > 0 && (
+        <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-text-faint">
+                <th className="px-4 py-2 font-medium">Knowledge area</th>
+                <th className="px-4 py-2 font-medium">Level</th>
+                <th className="px-4 py-2 font-medium">Verified by</th>
+                <th className="px-4 py-2 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {knowledgeAreas.map((area) => (
+                <tr key={area.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-2 text-text">{area.name}</td>
+                  <td className="px-4 py-2">
+                    <Tag level={area.level}>Level {area.level}</Tag>
+                  </td>
+                  <td className="px-4 py-2 text-text-muted">{area.verifiedBy}</td>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      type="button"
+                      disabled={removing === area.name}
+                      onClick={() => handleRemove(area.name)}
+                      className="text-sm text-text-muted hover:text-danger disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {profile && knowledgeAreas.length === 0 && (
+        <p className="mt-4 text-sm text-text-faint">No knowledge areas added yet.</p>
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import AboutSection from '../components/AboutSection'
 import ConnectionButton from '../components/ConnectionButton'
 import Tag from '../components/Tag'
+import TagLevelInfo from '../components/TagLevelInfo'
 import PersonCard from '../components/PersonCard'
 import ActivityItem from '../components/ActivityItem'
 import ShowMore from '../components/ShowMore'
@@ -174,7 +175,10 @@ function PublicProfile() {
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-6">
-          <h2 className="text-xl font-semibold text-text">Skills</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-text">Skills</h2>
+            <TagLevelInfo />
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {profile.skills.map((skill) => (
               <Tag key={skill.id} level={skill.level}>
@@ -186,7 +190,10 @@ function PublicProfile() {
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-6">
-          <h2 className="text-xl font-semibold text-text">Knowledge Bank</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-text">Knowledge Bank</h2>
+            <TagLevelInfo />
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {profile.knowledgeAreas.map((area) => (
               <Tag key={area.id} level={area.level}>

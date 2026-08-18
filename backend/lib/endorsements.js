@@ -1,4 +1,5 @@
 const prisma = require('./prisma')
+const { displayName } = require('./displayName')
 
 const PEER_NOTIFY_LIMIT = 6
 
@@ -8,13 +9,37 @@ function computeLevel(rows) {
   return 1
 }
 
-// Attaches a derived `level` (1/2/3) to every skill/knowledgeArea on a
-// profile via a single batched Endorsement query, grouped in memory — never
-// query per item, that's an N+1 on every profile view.
+// "Verified by" for the item's current level: every MANAGER endorser's name
+// once any manager has weighed in (that's what makes it Level 3), else every
+// PEER endorser's name (Level 2), else "Not yet verified" (Level 1).
+function computeVerifiedBy(rows, nameById) {
+  const managerNames = [
+    ...new Set(rows.filter((r) => r.endorserRole === 'MANAGER').map((r) => nameById.get(r.endorserUserId))),
+  ]
+  if (managerNames.length > 0) return managerNames.join(', ')
+
+  const peerNames = [
+    ...new Set(rows.filter((r) => r.endorserRole === 'PEER').map((r) => nameById.get(r.endorserUserId))),
+  ]
+  if (peerNames.length > 0) return peerNames.join(', ')
+
+  return 'Not yet verified'
+}
+
+// Attaches a derived `level` (1/2/3) and `verifiedBy` to every
+// skill/knowledgeArea on a profile via one batched Endorsement query
+// (grouped in memory) plus one batched User lookup for endorser names —
+// never query per item, that's an N+1 on every profile view.
 async function attachEndorsementLevels(profile) {
   if (!profile) return profile
 
   const endorsements = await prisma.endorsement.findMany({ where: { profileId: profile.id } })
+
+  const endorserUserIds = [...new Set(endorsements.map((e) => e.endorserUserId))]
+  const endorserUsers = endorserUserIds.length
+    ? await prisma.user.findMany({ where: { id: { in: endorserUserIds } }, include: { profile: true } })
+    : []
+  const nameById = new Map(endorserUsers.map((u) => [u.id, displayName(u)]))
 
   const byItem = new Map()
   for (const e of endorsements) {
@@ -23,14 +48,14 @@ async function attachEndorsementLevels(profile) {
     byItem.get(key).push(e)
   }
 
-  const skills = (profile.skills || []).map((s) => ({
-    ...s,
-    level: computeLevel(byItem.get(`SKILL:${s.id}`) || []),
-  }))
-  const knowledgeAreas = (profile.knowledgeAreas || []).map((k) => ({
-    ...k,
-    level: computeLevel(byItem.get(`KNOWLEDGE_AREA:${k.id}`) || []),
-  }))
+  const skills = (profile.skills || []).map((s) => {
+    const rows = byItem.get(`SKILL:${s.id}`) || []
+    return { ...s, level: computeLevel(rows), verifiedBy: computeVerifiedBy(rows, nameById) }
+  })
+  const knowledgeAreas = (profile.knowledgeAreas || []).map((k) => {
+    const rows = byItem.get(`KNOWLEDGE_AREA:${k.id}`) || []
+    return { ...k, level: computeLevel(rows), verifiedBy: computeVerifiedBy(rows, nameById) }
+  })
 
   return { ...profile, skills, knowledgeAreas }
 }

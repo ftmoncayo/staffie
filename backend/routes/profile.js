@@ -260,7 +260,9 @@ router.get('/:userId/activity', async (req, res) => {
       job: { select: { id: true, title: true } },
       experience: { select: { roleTitle: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    // See feed.js: ordering/limiting by lastEngagementAt lets a bumped
+    // notice resurface even when its raw createdAt would exclude it.
+    orderBy: { lastEngagementAt: 'desc' },
     take: ACTIVITY_LIMIT,
   })
   res.json({ activities: await formatActivities(activities) })

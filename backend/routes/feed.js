@@ -73,7 +73,10 @@ router.get('/feed', async (req, res) => {
           job: { select: { id: true, title: true } },
           experience: { select: { roleTitle: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        // Ordering/limiting by lastEngagementAt (not createdAt) so a notice
+        // bumped by a fresh comment can resurface even if its original post
+        // time would otherwise put it outside the take window.
+        orderBy: { lastEngagementAt: 'desc' },
         take: ACTIVITY_LIMIT,
       })
     : []

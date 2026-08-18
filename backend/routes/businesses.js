@@ -381,7 +381,9 @@ router.get('/businesses/:id/activity', async (req, res) => {
       notice: true,
       experience: { select: { roleTitle: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    // See feed.js: ordering/limiting by lastEngagementAt lets a bumped
+    // notice resurface even when its raw createdAt would exclude it.
+    orderBy: { lastEngagementAt: 'desc' },
     take: 50,
   })
 

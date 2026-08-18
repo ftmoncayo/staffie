@@ -8,6 +8,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Registered once for the app's lifetime: whenever ANY authenticated
+    // request comes back 401 (token expired, revoked, account blocked...),
+    // this clears the session immediately so every consumer of useAuth()
+    // (TopNav, ProtectedRoute, etc.) reflects logged-out on the very next
+    // render — not just whichever page happened to make the failing call.
+    api.setUnauthorizedHandler(() => {
+      api.clearToken()
+      setUser(null)
+    })
+
     const token = api.getToken()
     if (!token) {
       setLoading(false)
@@ -17,7 +27,10 @@ export function AuthProvider({ children }) {
     api
       .fetchMe(token)
       .then(setUser)
-      .catch(() => api.clearToken())
+      .catch(() => {
+        api.clearToken()
+        setUser(null)
+      })
       .finally(() => setLoading(false))
   }, [])
 

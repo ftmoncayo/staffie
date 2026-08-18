@@ -14,6 +14,16 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
 }
 
+// Lets AuthContext learn about a 401 the instant ANY authenticated request
+// hits one, not just the one-off check at initial page load — otherwise a
+// token that goes bad mid-session (expiry, revocation, block) leaves `user`
+// stale in memory while every subsequent call silently 401s underneath it.
+let onUnauthorized = null
+
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -26,20 +36,32 @@ async function request(path, options = {}) {
   const data = await res.json().catch(() => null)
 
   if (!res.ok) {
-    throw new Error(data?.error || 'Request failed')
+    const error = new Error(data?.error || 'Request failed')
+    error.status = res.status
+    throw error
   }
 
   return data
 }
 
-function authRequest(path, options = {}) {
-  return request(path, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      ...options.headers,
-    },
-  })
+async function authRequest(path, options = {}) {
+  try {
+    return await request(path, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        ...options.headers,
+      },
+    })
+  } catch (err) {
+    // Only a 401 on an already-authenticated call means the session itself
+    // is invalid — a login attempt's own 401 (wrong password) goes through
+    // plain request(), never authRequest(), so it can't trigger this.
+    if (err.status === 401) {
+      onUnauthorized?.()
+    }
+    throw err
+  }
 }
 
 export function signup(email, password, inviteToken) {

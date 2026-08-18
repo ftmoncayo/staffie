@@ -119,11 +119,12 @@ function activityContent(activity) {
 }
 
 function ActivityItem({ activity }) {
-  // Jobs don't support nodding/commenting at all — hide engagement entirely
-  // rather than fetching engagement state that will never be used.
-  const isJobPosted = activity.type === 'JOB_POSTED'
+  // Jobs and connections don't support nodding/commenting at all — hide
+  // engagement entirely rather than fetching engagement state that will
+  // never be used.
+  const hidesEngagement = activity.type === 'JOB_POSTED' || activity.type === 'CONNECTION_MADE'
   const { comments, canEngage, loading, error, content, setContent, submitting, handleSubmit, handleDelete } =
-    useEngagement('ACTIVITY', activity.id, { enabled: !isJobPosted })
+    useEngagement('ACTIVITY', activity.id, { enabled: !hidesEngagement })
 
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
@@ -135,7 +136,7 @@ function ActivityItem({ activity }) {
         </div>
       </div>
 
-      {!isJobPosted && (
+      {!hidesEngagement && (
         <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
           {error && <p className="text-xs text-danger">{error}</p>}
           {!loading && comments.length > 0 && (

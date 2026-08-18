@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
 import { useAuth } from '../../context/AuthContext'
 import ConnectionButton from '../ConnectionButton'
-import SearchCombobox from '../SearchCombobox'
 
 function personName(profile) {
   return [profile.firstName, profile.lastName].filter(Boolean).join(' ')
@@ -14,65 +13,7 @@ function formatDate(value) {
   return value.slice(0, 10)
 }
 
-function AddWorkerItemForm({ workerId, onAdded }) {
-  const [itemType, setItemType] = useState('SKILL')
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSelect(item) {
-    setError('')
-    setSubmitting(true)
-    try {
-      if (itemType === 'SKILL') {
-        await api.addWorkerSkill(workerId, item.name)
-      } else {
-        await api.addWorkerKnowledgeArea(workerId, item.name)
-      }
-      onAdded()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="mt-2 flex flex-col gap-2 rounded border border-border-strong bg-bg p-3">
-      <div className="flex gap-3 text-xs">
-        <button
-          type="button"
-          onClick={() => setItemType('SKILL')}
-          className={itemType === 'SKILL' ? 'font-semibold text-accent' : 'text-text-muted hover:text-text'}
-        >
-          Skill
-        </button>
-        <button
-          type="button"
-          onClick={() => setItemType('KNOWLEDGE_AREA')}
-          className={
-            itemType === 'KNOWLEDGE_AREA' ? 'font-semibold text-accent' : 'text-text-muted hover:text-text'
-          }
-        >
-          Knowledge area
-        </button>
-      </div>
-      {error && <p className="text-xs text-danger">{error}</p>}
-      <SearchCombobox
-        key={itemType}
-        fetchOptions={itemType === 'SKILL' ? api.fetchSkillOptions : api.fetchKnowledgeAreaOptions}
-        onCreate={async (name) => ({ id: name, name })}
-        onSelect={handleSelect}
-        clearOnSelect
-        disabled={submitting}
-        placeholder={`Search or add a ${itemType === 'SKILL' ? 'skill' : 'knowledge area'}...`}
-      />
-    </div>
-  )
-}
-
-function WorkerCard({ worker, showEndDate, currentUserId, canManage, onChange }) {
-  const [addingItem, setAddingItem] = useState(false)
-
+function WorkerCard({ worker, showEndDate, currentUserId, onChange }) {
   function updateStatus(changes) {
     onChange({ ...worker, ...changes })
   }
@@ -108,15 +49,6 @@ function WorkerCard({ worker, showEndDate, currentUserId, canManage, onChange })
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          {canManage && (
-            <button
-              type="button"
-              onClick={() => setAddingItem((prev) => !prev)}
-              className="text-xs text-accent hover:text-accent-hover hover:underline"
-            >
-              {addingItem ? 'Cancel' : '+ Add skill/knowledge'}
-            </button>
-          )}
           {worker.id !== currentUserId && (
             <ConnectionButton
               status={worker.connectionStatus}
@@ -127,14 +59,11 @@ function WorkerCard({ worker, showEndDate, currentUserId, canManage, onChange })
           )}
         </div>
       </div>
-      {addingItem && (
-        <AddWorkerItemForm workerId={worker.id} onAdded={() => setAddingItem(false)} />
-      )}
     </div>
   )
 }
 
-function VenueWorkers({ venueId, canManage = false }) {
+function VenueWorkers({ venueId }) {
   const { user } = useAuth()
   const [current, setCurrent] = useState([])
   const [previous, setPrevious] = useState([])
@@ -178,7 +107,6 @@ function VenueWorkers({ venueId, canManage = false }) {
                 key={w.id}
                 worker={w}
                 currentUserId={user?.id}
-                canManage={canManage}
                 onChange={handleCurrentChange}
               />
             ))}
@@ -197,7 +125,6 @@ function VenueWorkers({ venueId, canManage = false }) {
                 worker={w}
                 showEndDate
                 currentUserId={user?.id}
-                canManage={canManage}
                 onChange={handlePreviousChange}
               />
             ))}

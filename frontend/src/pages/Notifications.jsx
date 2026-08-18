@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import * as api from '../lib/api'
+import { useNotifications } from '../context/NotificationsContext'
 
 function formatDate(value) {
   if (!value) return ''
@@ -45,6 +46,7 @@ function Notifications() {
   const [dismissingId, setDismissingId] = useState('')
   const [dismissingAll, setDismissingAll] = useState(false)
   const navigate = useNavigate()
+  const { refreshUnreadCount } = useNotifications()
 
   function refresh() {
     setLoading(true)
@@ -62,11 +64,12 @@ function Notifications() {
 
   function removeNotification(id) {
     setNotifications((prev) => prev.filter((n) => n.id !== id))
+    refreshUnreadCount()
   }
 
   function handleClick(n) {
     if (!n.read) {
-      api.markNotificationRead(n.id).catch(() => {})
+      api.markNotificationRead(n.id).then(refreshUnreadCount).catch(() => {})
     }
     navigate(notificationLink(n))
   }
@@ -129,6 +132,7 @@ function Notifications() {
     try {
       await api.dismissAllNotifications()
       await refresh()
+      refreshUnreadCount()
     } catch (err) {
       setError(err.message)
     } finally {

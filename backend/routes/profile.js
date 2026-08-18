@@ -14,8 +14,6 @@ const {
   getWorkerVenueIds,
   getEligiblePeerUserIds,
   getEligibleManagerUserIds,
-  isEligibleManagerFor,
-  clearPendingEndorsementRequests,
 } = require('../lib/endorsements')
 
 const router = express.Router()
@@ -416,94 +414,6 @@ router.post('/request-endorsements', requireProfile, async (req, res) => {
     itemCount: validItems.length,
     recipients,
   })
-})
-
-// A verified manager of a venue where :userId has current/previous Experience
-// can add a Skill/Knowledge item on that person's behalf, immediately at
-// Level 3 (a MANAGER endorsement from creation).
-async function requireManagerEligibleForWorker(req, res, next) {
-  const targetProfile = await prisma.profile.findUnique({ where: { userId: req.params.userId } })
-  if (!targetProfile) {
-    return res.status(404).json({ error: 'Profile not found' })
-  }
-  const eligible = await isEligibleManagerFor(req.userId, targetProfile.id)
-  if (!eligible) {
-    return res
-      .status(403)
-      .json({ error: 'You must be a verified manager of a venue this person has worked at' })
-  }
-  req.targetProfile = targetProfile
-  next()
-}
-
-async function endorseAsManager({ targetProfileId, itemType, itemId, managerUserId, workerUserId }) {
-  await prisma.endorsement.upsert({
-    where: {
-      profileId_itemType_itemId_endorserUserId: {
-        profileId: targetProfileId,
-        itemType,
-        itemId,
-        endorserUserId: managerUserId,
-      },
-    },
-    create: { profileId: targetProfileId, itemType, itemId, endorserUserId: managerUserId, endorserRole: 'MANAGER' },
-    update: { endorserRole: 'MANAGER' },
-  })
-  await clearPendingEndorsementRequests({ workerUserId, itemType, itemId })
-}
-
-router.post('/:userId/skills', requireManagerEligibleForWorker, async (req, res) => {
-  const { name } = req.body || {}
-  if (typeof name !== 'string' || !name.trim()) {
-    return res.status(400).json({ error: 'Skill name is required' })
-  }
-  const trimmed = name.trim()
-
-  const skill = await prisma.skill.upsert({ where: { name: trimmed }, create: { name: trimmed }, update: {} })
-
-  await prisma.profile.update({
-    where: { id: req.targetProfile.id },
-    data: { skills: { connect: { id: skill.id } } },
-  })
-
-  await endorseAsManager({
-    targetProfileId: req.targetProfile.id,
-    itemType: 'SKILL',
-    itemId: skill.id,
-    managerUserId: req.userId,
-    workerUserId: req.params.userId,
-  })
-
-  res.status(201).json({ skill: { ...skill, level: 3 } })
-})
-
-router.post('/:userId/knowledge-areas', requireManagerEligibleForWorker, async (req, res) => {
-  const { name } = req.body || {}
-  if (typeof name !== 'string' || !name.trim()) {
-    return res.status(400).json({ error: 'Knowledge area name is required' })
-  }
-  const trimmed = name.trim()
-
-  const knowledgeArea = await prisma.knowledgeArea.upsert({
-    where: { name: trimmed },
-    create: { name: trimmed },
-    update: {},
-  })
-
-  await prisma.profile.update({
-    where: { id: req.targetProfile.id },
-    data: { knowledgeAreas: { connect: { id: knowledgeArea.id } } },
-  })
-
-  await endorseAsManager({
-    targetProfileId: req.targetProfile.id,
-    itemType: 'KNOWLEDGE_AREA',
-    itemId: knowledgeArea.id,
-    managerUserId: req.userId,
-    workerUserId: req.params.userId,
-  })
-
-  res.status(201).json({ knowledgeArea: { ...knowledgeArea, level: 3 } })
 })
 
 // --- Experience ---

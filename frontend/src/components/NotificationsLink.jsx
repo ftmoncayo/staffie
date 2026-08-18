@@ -1,16 +1,8 @@
 import { NavLink } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import * as api from '../lib/api'
+import { useNotifications } from '../context/NotificationsContext'
 
 function NotificationsLink() {
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    api
-      .fetchUnreadNotificationCount()
-      .then(setUnreadCount)
-      .catch(() => {})
-  }, [])
+  const { unreadCount } = useNotifications()
 
   return (
     <NavLink

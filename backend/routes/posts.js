@@ -14,7 +14,10 @@ function formatPost(post) {
   return {
     id: post.id,
     content: post.content,
-    createdAt: post.createdAt,
+    // Reports lastEngagementAt here instead of the raw createdAt — both the
+    // displayed date and (via the query's orderBy below) the feed position
+    // track the post's most recent comment.
+    createdAt: post.lastEngagementAt,
     cityId: post.cityId,
     city: post.city,
     author: {
@@ -38,7 +41,7 @@ router.get('/posts', async (req, res) => {
   const posts = await prisma.post.findMany({
     where: { ...(cityId ? { cityId } : {}), authorUser: { isBlocked: false } },
     include: postInclude,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { lastEngagementAt: 'desc' },
   })
 
   res.json({ posts: posts.map(formatPost) })

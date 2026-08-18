@@ -266,6 +266,11 @@ model Post {
   cityId       String?
   city         City?    @relation(fields: [cityId], references: [id])
   createdAt    DateTime @default(now())
+  // Bumped to now() whenever a new comment is added (see routes/engagement.js),
+  // so a Post resurfaces on the city feed after fresh engagement instead of
+  // staying pinned to its original post time. Every Post can bump — unlike
+  // Activity, there's no type restriction here.
+  lastEngagementAt DateTime @default(now())
 }
 
 model Suburb {

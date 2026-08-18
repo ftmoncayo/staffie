@@ -127,14 +127,17 @@ router.post('/comments', async (req, res) => {
     include: { authorUser: { include: { profile: true } } },
   })
 
-  // Scoped to NOTICE_POSTED only: fresh engagement bumps the notice back
-  // toward the top of the feed instead of it staying pinned to its original
-  // post time (see lib/activityFeed.js's effectiveDate).
+  // Fresh engagement bumps the item back toward the top of the feed instead
+  // of it staying pinned to its original post time. Scoped to NOTICE_POSTED
+  // only for Activity (see lib/activityFeed.js's effectiveDate); every Post
+  // bumps since Posts have no other type to restrict on.
   if (target.targetType === 'ACTIVITY') {
     const activity = await prisma.activity.findUnique({ where: { id: target.targetId }, select: { type: true } })
     if (activity?.type === 'NOTICE_POSTED') {
       await prisma.activity.update({ where: { id: target.targetId }, data: { lastEngagementAt: new Date() } })
     }
+  } else if (target.targetType === 'POST') {
+    await prisma.post.update({ where: { id: target.targetId }, data: { lastEngagementAt: new Date() } })
   }
 
   const ownerUserId = await getTargetOwnerUserId(target.targetType, target.targetId)

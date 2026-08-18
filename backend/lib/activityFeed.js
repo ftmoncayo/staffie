@@ -16,6 +16,13 @@ function formatActor(user) {
   }
 }
 
+// NOTICE_POSTED is the only type where lastEngagementAt (bumped on every new
+// comment — see routes/engagement.js) can differ from createdAt; every other
+// type just has the two equal, so using this everywhere is safe.
+function effectiveDate(a) {
+  return a.type === 'NOTICE_POSTED' ? a.lastEngagementAt : a.createdAt
+}
+
 // Resolves the "other party" for CONNECTION_MADE activities by matching on the
 // exact respondedAt timestamp shared with the Activity.createdAt at creation time.
 async function formatActivities(activities, { isFavourited = () => false } = {}) {
@@ -49,12 +56,15 @@ async function formatActivities(activities, { isFavourited = () => false } = {})
     : []
   const counterpartById = new Map(counterpartUsers.map((u) => [u.id, u]))
 
-  return activities.map((a) => {
+  const formatted = activities.map((a) => {
     const counterpartId = counterpartByActorAndTime.get(`${a.actorUserId}_${a.createdAt.getTime()}`)
     return {
       id: a.id,
       type: a.type,
-      createdAt: a.createdAt,
+      // NOTICE_POSTED reports lastEngagementAt here instead of the raw
+      // createdAt — both its displayed date and (via the sort below) its
+      // feed position track the notice's most recent comment.
+      createdAt: effectiveDate(a),
       favourited: Boolean(isFavourited(a)),
       actor: formatActor(a.actorUser),
       counterpart: counterpartId ? formatActor(counterpartById.get(counterpartId)) : null,
@@ -65,6 +75,8 @@ async function formatActivities(activities, { isFavourited = () => false } = {})
       experience: a.experience ? { roleTitle: a.experience.roleTitle } : null,
     }
   })
+
+  return formatted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 }
 
 module.exports = { formatActor, formatActivities }

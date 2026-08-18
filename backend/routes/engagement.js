@@ -21,7 +21,11 @@ async function targetExists(targetType, targetId) {
   if (targetType === 'POST') {
     return Boolean(await prisma.post.findUnique({ where: { id: targetId } }))
   }
-  return Boolean(await prisma.activity.findUnique({ where: { id: targetId } }))
+  // PROFILE_UPDATED is no longer emitted and excluded from every feed/activity
+  // query, but defensively reject it here too in case an old row (or its id)
+  // is hit directly — treated the same as "doesn't exist".
+  const activity = await prisma.activity.findUnique({ where: { id: targetId }, select: { type: true } })
+  return Boolean(activity) && activity.type !== 'PROFILE_UPDATED'
 }
 
 // Engaging (nodding/commenting) with someone else's Activity requires an
@@ -122,6 +126,16 @@ router.post('/comments', async (req, res) => {
     data: { ...target, authorUserId: req.userId, content: content.trim() },
     include: { authorUser: { include: { profile: true } } },
   })
+
+  // Scoped to NOTICE_POSTED only: fresh engagement bumps the notice back
+  // toward the top of the feed instead of it staying pinned to its original
+  // post time (see lib/activityFeed.js's effectiveDate).
+  if (target.targetType === 'ACTIVITY') {
+    const activity = await prisma.activity.findUnique({ where: { id: target.targetId }, select: { type: true } })
+    if (activity?.type === 'NOTICE_POSTED') {
+      await prisma.activity.update({ where: { id: target.targetId }, data: { lastEngagementAt: new Date() } })
+    }
+  }
 
   const ownerUserId = await getTargetOwnerUserId(target.targetType, target.targetId)
   await createNotification({

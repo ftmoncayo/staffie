@@ -31,7 +31,7 @@ function EntityLink({ entity, to }) {
 }
 
 function activityContent(activity) {
-  const { type, actor, counterpart, venue, business, notice, job, experience } = activity
+  const { type, actor, counterpart, venue, notice, job, experience } = activity
 
   switch (type) {
     case 'SIGNUP': {
@@ -72,12 +72,6 @@ function activityContent(activity) {
           <ActorLink user={actor} /> added a certification
         </>
       )
-    case 'PROFILE_UPDATED':
-      return (
-        <>
-          <ActorLink user={actor} /> updated their profile
-        </>
-      )
     case 'VENUE_CREATED':
       return (
         <>
@@ -90,16 +84,12 @@ function activityContent(activity) {
           <ActorLink user={actor} /> created a new business
         </>
       )
-    case 'NOTICE_POSTED': {
-      const target = venue || business
-      const to = venue ? `/venues/${venue.id}` : `/businesses/${business?.id}`
+    case 'NOTICE_POSTED':
       return (
         <>
-          <ActorLink user={actor} /> posted a notice for <EntityLink entity={target} to={to} />
-          {notice?.content ? <>: {notice.content}</> : ''}
+          <ActorLink user={actor} /> says: {notice?.content || ''}
         </>
       )
-    }
     case 'JOB_POSTED':
       return (
         <>

@@ -6,6 +6,7 @@ const { buildConnectionStatusMap, connectionStatusFor } = require('../lib/connec
 const { displayName } = require('../lib/displayName')
 const { formatActivities } = require('../lib/activityFeed')
 const { sendInvite } = require('../lib/invites')
+const { createNotification } = require('../lib/notifications')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -502,7 +503,7 @@ router.post('/venues/:id/notices', requireVenueManager, async (req, res) => {
 
 router.get('/venues/:id/activity', async (req, res) => {
   const activities = await prisma.activity.findMany({
-    where: { venueId: req.params.id },
+    where: { venueId: req.params.id, type: { not: 'PROFILE_UPDATED' } },
     include: {
       actorUser: { include: { profile: { include: { city: true } } } },
       venue: { select: { id: true, name: true } },
@@ -675,7 +676,7 @@ router.post('/venues/:id/nominate-manager', async (req, res) => {
 router.get('/venues/manager-nominations/pending', requireAdminOrVenueAdmin, async (req, res) => {
   const nominations = await prisma.managerNomination.findMany({
     where: { targetType: 'VENUE', status: 'PENDING' },
-    include: { nomineeUser: { select: { id: true, email: true } } },
+    include: { nomineeUser: { select: { id: true, email: true, profile: true } } },
     orderBy: { createdAt: 'asc' },
   })
 
@@ -690,7 +691,7 @@ router.get('/venues/manager-nominations/pending', requireAdminOrVenueAdmin, asyn
       id: n.id,
       message: n.message,
       createdAt: n.createdAt,
-      nominee: n.nomineeUser,
+      nominee: { id: n.nomineeUser.id, email: n.nomineeUser.email, name: displayName(n.nomineeUser) },
       target: venueById.get(n.targetId) || null,
     })),
   })
@@ -754,6 +755,14 @@ router.put('/venues/manager-nominations/:nominationId/approve', async (req, res)
     data: { status: 'APPROVED', respondedByUserId: req.userId, respondedAt: new Date() },
   })
 
+  await createNotification({
+    userId: nomination.nomineeUserId,
+    type: 'MANAGER_NOMINATION_APPROVED',
+    sourceUserId: req.userId,
+    targetType: 'VENUE',
+    targetId: nomination.targetId,
+  })
+
   res.json({ nomination: updated })
 })
 
@@ -781,6 +790,14 @@ router.put('/venues/manager-nominations/:nominationId/decline', async (req, res)
   const updated = await prisma.managerNomination.update({
     where: { id: nomination.id },
     data: { status: 'DECLINED', respondedByUserId: req.userId, respondedAt: new Date() },
+  })
+
+  await createNotification({
+    userId: nomination.nomineeUserId,
+    type: 'MANAGER_NOMINATION_DECLINED',
+    sourceUserId: req.userId,
+    targetType: 'VENUE',
+    targetId: nomination.targetId,
   })
 
   res.json({ nomination: updated })

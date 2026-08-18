@@ -5,6 +5,7 @@ const { sanitize } = require('../lib/sanitizeHtml')
 const { displayName } = require('../lib/displayName')
 const { formatActivities } = require('../lib/activityFeed')
 const { sendInvite } = require('../lib/invites')
+const { createNotification } = require('../lib/notifications')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -372,7 +373,7 @@ router.post('/businesses/:id/notices', requireBusinessManager, async (req, res) 
 
 router.get('/businesses/:id/activity', async (req, res) => {
   const activities = await prisma.activity.findMany({
-    where: { businessId: req.params.id },
+    where: { businessId: req.params.id, type: { not: 'PROFILE_UPDATED' } },
     include: {
       actorUser: { include: { profile: { include: { city: true } } } },
       venue: { select: { id: true, name: true } },
@@ -525,7 +526,7 @@ router.post('/businesses/:id/nominate-manager', async (req, res) => {
 router.get('/businesses/manager-nominations/pending', requireAdmin, async (req, res) => {
   const nominations = await prisma.managerNomination.findMany({
     where: { targetType: 'BUSINESS', status: 'PENDING' },
-    include: { nomineeUser: { select: { id: true, email: true } } },
+    include: { nomineeUser: { select: { id: true, email: true, profile: true } } },
     orderBy: { createdAt: 'asc' },
   })
 
@@ -540,7 +541,7 @@ router.get('/businesses/manager-nominations/pending', requireAdmin, async (req, 
       id: n.id,
       message: n.message,
       createdAt: n.createdAt,
-      nominee: n.nomineeUser,
+      nominee: { id: n.nomineeUser.id, email: n.nomineeUser.email, name: displayName(n.nomineeUser) },
       target: businessById.get(n.targetId) || null,
     })),
   })
@@ -571,6 +572,14 @@ router.put('/businesses/manager-nominations/:nominationId/approve', requireAdmin
     data: { status: 'APPROVED', respondedByUserId: req.userId, respondedAt: new Date() },
   })
 
+  await createNotification({
+    userId: nomination.nomineeUserId,
+    type: 'MANAGER_NOMINATION_APPROVED',
+    sourceUserId: req.userId,
+    targetType: 'BUSINESS',
+    targetId: nomination.targetId,
+  })
+
   res.json({ nomination: updated })
 })
 
@@ -593,6 +602,14 @@ router.put('/businesses/manager-nominations/:nominationId/decline', requireAdmin
   const updated = await prisma.managerNomination.update({
     where: { id: nomination.id },
     data: { status: 'DECLINED', respondedByUserId: req.userId, respondedAt: new Date() },
+  })
+
+  await createNotification({
+    userId: nomination.nomineeUserId,
+    type: 'MANAGER_NOMINATION_DECLINED',
+    sourceUserId: req.userId,
+    targetType: 'BUSINESS',
+    targetId: nomination.targetId,
   })
 
   res.json({ nomination: updated })

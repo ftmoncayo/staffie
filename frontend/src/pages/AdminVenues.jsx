@@ -95,7 +95,13 @@ function AdminVenues() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm text-text">
-                    <span className="font-medium">{nomination.nominee?.email}</span> wants to manage{' '}
+                    <Link
+                      to={`/profile/${nomination.nominee?.id}`}
+                      className="font-medium text-accent hover:text-accent-hover hover:underline"
+                    >
+                      {nomination.nominee?.name}
+                    </Link>{' '}
+                    wants to manage{' '}
                     {nomination.target ? (
                       <Link
                         to={`/venues/${nomination.target.id}`}

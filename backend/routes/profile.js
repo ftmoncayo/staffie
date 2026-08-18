@@ -154,9 +154,12 @@ router.put('/', async (req, res) => {
     update: data,
   })
 
-  await prisma.activity.create({
-    data: { type: existingProfile ? 'PROFILE_UPDATED' : 'SIGNUP', actorUserId: req.userId },
-  })
+  // Only the first-time profile creation gets an activity — routine edits no
+  // longer emit PROFILE_UPDATED at all (see feed.js/venues.js/businesses.js,
+  // which also filter out any pre-existing rows of that type).
+  if (!existingProfile) {
+    await prisma.activity.create({ data: { type: 'SIGNUP', actorUserId: req.userId } })
+  }
 
   const profile = await getOwnedProfile(req.userId)
   res.json({ profile })
@@ -248,7 +251,7 @@ router.get('/:userId/activity', async (req, res) => {
   }
 
   const activities = await prisma.activity.findMany({
-    where: { actorUserId: req.params.userId },
+    where: { actorUserId: req.params.userId, type: { not: 'PROFILE_UPDATED' } },
     include: {
       actorUser: { include: { profile: { include: { city: true } } } },
       venue: { select: { id: true, name: true } },

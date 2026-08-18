@@ -89,6 +89,11 @@ model Activity {
   experienceId String?     @unique
   experience   Experience? @relation(fields: [experienceId], references: [id], onDelete: Cascade)
   createdAt   DateTime     @default(now())
+  // Scoped to NOTICE_POSTED only: bumped to now() whenever a new comment is
+  // added to the notice, so an old notice with fresh engagement resurfaces
+  // in the feed instead of staying buried under its original createdAt.
+  // Every other activity type just leaves this equal to createdAt.
+  lastEngagementAt DateTime @default(now())
 }
 
 model Notice {
@@ -540,6 +545,8 @@ enum NotificationType {
   ENDORSEMENT_REQUEST
   EVENT_INTEREST
   ATTENDANCE_CONFIRM
+  MANAGER_NOMINATION_APPROVED
+  MANAGER_NOMINATION_DECLINED
 }
 
 // Reuses EngagementTargetType's POST/ACTIVITY values plus CONNECTION_REQUEST,
@@ -550,6 +557,9 @@ enum NotificationType {
 // Event.id) backs both EVENT_INTEREST (sourceUserId is the interested
 // worker; the note is looked up via the eventId+sourceUserId EventInterest
 // row at read time) and ATTENDANCE_CONFIRM (system-generated, no source).
+// VENUE/BUSINESS (targetId = Venue.id / Business.id, taken directly from the
+// resolved ManagerNomination's own targetType/targetId) back
+// MANAGER_NOMINATION_APPROVED/DECLINED.
 enum NotificationTargetType {
   CONNECTION_REQUEST
   POST
@@ -557,6 +567,8 @@ enum NotificationTargetType {
   SKILL
   KNOWLEDGE_AREA
   EVENT
+  VENUE
+  BUSINESS
 }
 
 enum EndorsementItemType {

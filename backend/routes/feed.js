@@ -62,7 +62,7 @@ router.get('/feed', async (req, res) => {
   const activities = orConditions.length
     ? await prisma.activity.findMany({
         where: {
-          type: { not: 'SIGNUP' },
+          type: { notIn: ['SIGNUP', 'PROFILE_UPDATED'] },
           AND: [{ OR: orConditions }, { OR: [{ actorUserId: null }, { actorUser: { isBlocked: false } }] }],
         },
         include: {

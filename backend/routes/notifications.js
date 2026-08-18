@@ -30,7 +30,9 @@ async function getEndorsementItemNames(notifications) {
   return map
 }
 
-function formatNotification(n, itemNameById, eventInfoById) {
+const MANAGER_NOMINATION_TYPES = ['MANAGER_NOMINATION_APPROVED', 'MANAGER_NOMINATION_DECLINED']
+
+function formatNotification(n, itemNameById, eventInfoById, nominationTargetNameById) {
   return {
     id: n.id,
     type: n.type,
@@ -46,7 +48,34 @@ function formatNotification(n, itemNameById, eventInfoById) {
         ? eventInfoById.get(n.id)?.eventTitle || null
         : undefined,
     eventInterestNote: n.type === 'EVENT_INTEREST' ? eventInfoById.get(n.id)?.note || null : undefined,
+    targetName: MANAGER_NOMINATION_TYPES.includes(n.type)
+      ? nominationTargetNameById.get(`${n.targetType}:${n.targetId}`) || null
+      : undefined,
   }
+}
+
+// Batches the Venue/Business name lookup for every MANAGER_NOMINATION_
+// APPROVED/DECLINED notification in one pair of queries.
+async function getManagerNominationTargetNames(notifications) {
+  const nominationNotifications = notifications.filter((n) => MANAGER_NOMINATION_TYPES.includes(n.type))
+  if (nominationNotifications.length === 0) return new Map()
+
+  const venueIds = [...new Set(nominationNotifications.filter((n) => n.targetType === 'VENUE').map((n) => n.targetId))]
+  const businessIds = [
+    ...new Set(nominationNotifications.filter((n) => n.targetType === 'BUSINESS').map((n) => n.targetId)),
+  ]
+
+  const [venues, businesses] = await Promise.all([
+    venueIds.length ? prisma.venue.findMany({ where: { id: { in: venueIds } }, select: { id: true, name: true } }) : [],
+    businessIds.length
+      ? prisma.business.findMany({ where: { id: { in: businessIds } }, select: { id: true, name: true } })
+      : [],
+  ])
+
+  const map = new Map()
+  for (const v of venues) map.set(`VENUE:${v.id}`, v.name)
+  for (const b of businesses) map.set(`BUSINESS:${b.id}`, b.name)
+  return map
 }
 
 // Batches Event title (and, for EVENT_INTEREST, the interest note) lookups
@@ -149,7 +178,12 @@ router.get('/notifications', async (req, res) => {
   const visible = await filterVisibleNotifications(notifications)
   const itemNameById = await getEndorsementItemNames(visible)
   const eventInfoById = await getEventNotificationInfo(visible)
-  res.json({ notifications: visible.map((n) => formatNotification(n, itemNameById, eventInfoById)) })
+  const nominationTargetNameById = await getManagerNominationTargetNames(visible)
+  res.json({
+    notifications: visible.map((n) =>
+      formatNotification(n, itemNameById, eventInfoById, nominationTargetNameById),
+    ),
+  })
 })
 
 router.get('/notifications/unread-count', async (req, res) => {

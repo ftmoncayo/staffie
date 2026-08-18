@@ -27,6 +27,10 @@ function notificationText(n) {
       return `${name} is interested in "${n.eventTitle || ''}"${n.eventInterestNote ? `: ${n.eventInterestNote}` : ''}`
     case 'ATTENDANCE_CONFIRM':
       return `Did you attend "${n.eventTitle || ''}"?`
+    case 'MANAGER_NOMINATION_APPROVED':
+      return `Your request to manage ${n.targetName || 'this venue/business'} was approved`
+    case 'MANAGER_NOMINATION_DECLINED':
+      return `Your request to manage ${n.targetName || 'this venue/business'} was declined`
     default:
       return 'New notification'
   }
@@ -37,6 +41,9 @@ function notificationLink(n) {
   if (n.type === 'CONNECTION_ACCEPTED') return n.sourceUser ? `/profile/${n.sourceUser.id}` : '/connections'
   if (n.type === 'ENDORSEMENT_REQUEST') return n.sourceUser ? `/profile/${n.sourceUser.id}` : '/discover'
   if (n.type === 'EVENT_INTEREST' || n.type === 'ATTENDANCE_CONFIRM') return `/events/${n.targetId}`
+  if (n.type === 'MANAGER_NOMINATION_APPROVED' || n.type === 'MANAGER_NOMINATION_DECLINED') {
+    return n.targetType === 'VENUE' ? `/venues/${n.targetId}` : `/businesses/${n.targetId}`
+  }
   // Comments/nods target either a Post or an Activity, neither of which has
   // its own page — Home is where Posts render, and a person's own Activity
   // always shows on their own Profile regardless of feed reach.

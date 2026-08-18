@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
 
 function PendingManagerRequests({ venueId }) {
@@ -59,7 +60,13 @@ function PendingManagerRequests({ venueId }) {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm text-text">
-                  <span className="font-medium">{nomination.nominee?.name}</span> wants to manage this venue
+                  <Link
+                    to={`/profile/${nomination.nominee?.id}`}
+                    className="font-medium text-accent hover:text-accent-hover hover:underline"
+                  >
+                    {nomination.nominee?.name}
+                  </Link>{' '}
+                  wants to manage this venue
                 </p>
                 <p className="mt-1 text-sm text-text-faint">{nomination.message}</p>
               </div>

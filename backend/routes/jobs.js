@@ -4,6 +4,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth')
 const { canEditVenue } = require('./venues')
 const { buildConnectionsAdjacency } = require('../lib/connectionStatus')
 const { displayName } = require('../lib/displayName')
+const { parseScopeParam, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -131,7 +132,8 @@ function compareJobsMatch(a, b) {
 }
 
 router.get('/jobs', async (req, res) => {
-  const cityId = typeof req.query.cityId === 'string' && req.query.cityId.trim() ? req.query.cityId.trim() : null
+  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
+  const scopeAncestors = await resolveScopeAncestors(scope)
   const venueId =
     typeof req.query.venueId === 'string' && req.query.venueId.trim() ? req.query.venueId.trim() : null
   const mine = req.query.mine === 'true'
@@ -148,9 +150,10 @@ router.get('/jobs', async (req, res) => {
     return res.json({ jobs: [], sort: 'recent' })
   }
 
+  const venueScopeWhere = venueLocationWhere(scopeAncestors)
   const where = {
     ...(status ? { status } : {}),
-    ...(cityId ? { venue: { cityId } } : {}),
+    ...(Object.keys(venueScopeWhere).length ? { venue: venueScopeWhere } : {}),
     ...(mine
       ? { venueId: { in: managedVenueIds } }
       : {

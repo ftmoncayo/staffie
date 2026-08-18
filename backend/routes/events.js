@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
 const { canEditEventOwner, getEventOwnerManagers, ownerExists } = require('../lib/events')
 const { createNotification } = require('../lib/notifications')
+const { parseScopeParam, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -91,7 +92,8 @@ async function getManagedBusinessIds(userId) {
 }
 
 router.get('/events', async (req, res) => {
-  const cityId = typeof req.query.cityId === 'string' && req.query.cityId.trim() ? req.query.cityId.trim() : null
+  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
+  const scopeAncestors = await resolveScopeAncestors(scope)
   const categoryId =
     typeof req.query.categoryId === 'string' && req.query.categoryId.trim() ? req.query.categoryId.trim() : null
   const ownerType = req.query.ownerType === 'VENUE' || req.query.ownerType === 'BUSINESS' ? req.query.ownerType : null
@@ -105,7 +107,8 @@ router.get('/events', async (req, res) => {
       ? { startAt: { lt: now } }
       : { OR: [{ endAt: { gte: now } }, { endAt: null, startAt: { gte: now } }] },
   ]
-  if (cityId) and.push({ locationVenue: { cityId } })
+  const venueScopeWhere = venueLocationWhere(scopeAncestors)
+  if (Object.keys(venueScopeWhere).length) and.push({ locationVenue: venueScopeWhere })
   if (categoryId) and.push({ categoryId })
 
   if (mine) {

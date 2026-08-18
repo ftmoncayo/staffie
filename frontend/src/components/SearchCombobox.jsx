@@ -12,6 +12,7 @@ function SearchCombobox({
   excludeNames = [],
   allowCreate = true,
   disabled = false,
+  getOptionLabel = (option) => option.name,
 }) {
   const [query, setQuery] = useState(initialQuery)
   const [options, setOptions] = useState([])
@@ -67,7 +68,7 @@ function SearchCombobox({
   function handleSelect(item) {
     onSelect(item)
     setOpen(false)
-    setQuery(clearOnSelect ? '' : item.name)
+    setQuery(clearOnSelect ? '' : getOptionLabel(item))
     setHasSelection(!clearOnSelect)
   }
 
@@ -79,7 +80,7 @@ function SearchCombobox({
       const item = await onCreate(trimmedQuery)
       onSelect(item)
       setOpen(false)
-      setQuery(clearOnSelect ? '' : item.name)
+      setQuery(clearOnSelect ? '' : getOptionLabel(item))
       setHasSelection(!clearOnSelect)
     } catch (err) {
       setError(err.message)
@@ -134,7 +135,7 @@ function SearchCombobox({
                 onClick={() => handleSelect(item)}
                 className="block w-full px-3 py-2 text-left text-sm text-text hover:bg-surface-hover"
               >
-                {item.name}
+                {getOptionLabel(item)}
               </button>
             ))}
           {!loading && trimmedQuery && !exactMatch && allowCreate && (

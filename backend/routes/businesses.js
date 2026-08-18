@@ -6,6 +6,7 @@ const { displayName } = require('../lib/displayName')
 const { formatActivities } = require('../lib/activityFeed')
 const { sendInvite } = require('../lib/invites')
 const { createNotification } = require('../lib/notifications')
+const { parseScopeParam, resolveScopeAncestors, businessLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -110,6 +111,8 @@ router.get('/businesses', async (req, res) => {
   // the directory exclusion below — only the general Businesses directory
   // should hide managed businesses.
   const includeManaged = req.query.includeManaged === 'true'
+  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
+  const scopeAncestors = await resolveScopeAncestors(scope)
 
   const managedBusinessIds =
     mine || !includeManaged
@@ -132,6 +135,7 @@ router.get('/businesses', async (req, res) => {
         ? { id: { notIn: managedBusinessIds } }
         : {}),
     ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
+    ...businessLocationWhere(scopeAncestors),
   }
 
   const businesses = await prisma.business.findMany({

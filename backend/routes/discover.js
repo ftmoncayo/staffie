@@ -6,6 +6,7 @@ const {
   connectionStatusFor,
   buildConnectionsAdjacency,
 } = require('../lib/connectionStatus')
+const { parseScopeParam, resolveScopeAncestors, profileLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -28,7 +29,7 @@ function compareShared(a, b) {
   return b.shared.knowledgeAreas - a.shared.knowledgeAreas
 }
 
-async function getCommonGroundPeople(userId) {
+async function getCommonGroundPeople(userId, scopeAncestors = null) {
   const myProfile = await prisma.profile.findUnique({
     where: { userId },
     include: { skills: true, knowledgeAreas: true, experiences: { select: { venueId: true } } },
@@ -44,7 +45,11 @@ async function getCommonGroundPeople(userId) {
   const myConnections = adjacency.get(userId) || new Set()
 
   const profiles = await prisma.profile.findMany({
-    where: { userId: { not: userId }, user: { isBlocked: false } },
+    where: {
+      userId: { not: userId },
+      user: { isBlocked: false },
+      ...profileLocationWhere(scopeAncestors),
+    },
     include: {
       user: true,
       city: true,
@@ -86,21 +91,22 @@ async function getCommonGroundPeople(userId) {
 
 router.get('/discover/people', async (req, res) => {
   const lens = req.query.lens === 'common' ? 'common' : 'near'
+  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
+  const scopeAncestors = await resolveScopeAncestors(scope)
 
   if (lens === 'common') {
-    const people = await getCommonGroundPeople(req.userId)
+    const people = await getCommonGroundPeople(req.userId, scopeAncestors)
     return res.json({ lens, people })
-  }
-
-  const myProfile = await prisma.profile.findUnique({ where: { userId: req.userId } })
-  if (!myProfile?.cityId) {
-    return res.json({ lens, people: [] })
   }
 
   const statusByUserId = await buildConnectionStatusMap(req.userId)
 
   const profiles = await prisma.profile.findMany({
-    where: { cityId: myProfile.cityId, userId: { not: req.userId }, user: { isBlocked: false } },
+    where: {
+      userId: { not: req.userId },
+      user: { isBlocked: false },
+      ...profileLocationWhere(scopeAncestors),
+    },
     include: { user: true, city: true },
     orderBy: { firstName: 'asc' },
   })

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
 import ConnectionButton from '../components/ConnectionButton'
 import PersonCard from '../components/PersonCard'
+import LocationScopeFilter from '../components/LocationScopeFilter'
+import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 
 function sharedSummary(shared) {
   if (!shared) return null
@@ -23,16 +25,18 @@ function DiscoverPeople() {
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
 
   useEffect(() => {
+    if (!ready) return
     setLoading(true)
     setError('')
     api
-      .discoverPeople(lens)
+      .discoverPeople(lens, scope)
       .then(setPeople)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [lens])
+  }, [lens, ready, scope?.type, scope?.id])
 
   function updatePerson(userId, changes) {
     setPeople((prev) => prev.map((p) => (p.id === userId ? { ...p, ...changes } : p)))
@@ -67,6 +71,10 @@ function DiscoverPeople() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-3">
+          <LocationScopeFilter {...selection} onChange={setSelection} />
+        </div>
+
         <div className="flex gap-2">
           <button
             type="button"
@@ -96,9 +104,7 @@ function DiscoverPeople() {
 
         {!loading && people.length === 0 && (
           <p className="text-sm text-text-faint">
-            {lens === 'near'
-              ? 'No one else found in your city yet. Set your city in your profile to see people near you.'
-              : 'No one to show yet.'}
+            {lens === 'near' ? 'No one found in this location yet.' : 'No one to show yet.'}
           </p>
         )}
 

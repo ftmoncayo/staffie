@@ -3,6 +3,7 @@ import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
 import LocationCascade from '../LocationCascade'
 import Tag from '../Tag'
+import { initialLocationSelection } from '../../lib/location'
 
 const DEFAULT_COUNTRY_NAME = 'Australia'
 const DEFAULT_STATE_NAME = 'Victoria'
@@ -21,14 +22,26 @@ function VenueForm({ initial, onSubmit, onCancel, submitLabel = 'Save', standalo
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // Pre-select Australia / Victoria / Melbourne on a fresh create — each still
-  // changeable, and skipped entirely when editing an existing venue or a
-  // location has already been set (e.g. by the caller). Suburb is left empty
-  // even on create, since there's no single reasonable default suburb.
+  // Pre-select the creator's own profile location on a fresh create — each
+  // level still changeable, and skipped entirely when editing an existing
+  // venue or a location has already been set (e.g. by the caller). Falls
+  // back to the Australia / Victoria / Melbourne default only when the
+  // creator has no location of their own set (see resolveLocationScope).
   useEffect(() => {
     if (isEditing || city) return
     let cancelled = false
     async function loadDefaults() {
+      const { profile } = await api.fetchProfile()
+      if (cancelled) return
+      const own = initialLocationSelection(profile)
+      if (own.country || own.state || own.city || own.suburb) {
+        setCountry(own.country)
+        setState(own.state)
+        setCity(own.city)
+        setSuburb(own.suburb)
+        return
+      }
+
       const countries = await api.fetchCountries(DEFAULT_COUNTRY_NAME)
       const defaultCountry = countries.find((c) => c.name === DEFAULT_COUNTRY_NAME)
       if (cancelled || !defaultCountry) return

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
 import VerificationBadge from '../components/venue/VerificationBadge'
+import LocationScopeFilter from '../components/LocationScopeFilter'
+import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 
 function VenueDirectory({ mine = false }) {
   const [venues, setVenues] = useState([])
@@ -9,15 +11,17 @@ function VenueDirectory({ mine = false }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
 
   useEffect(() => {
+    if (!ready) return
     setLoading(true)
     api
-      .fetchVenues({ sort, search, mine })
+      .fetchVenues({ sort, search, mine, scope })
       .then(setVenues)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [sort, search, mine])
+  }, [sort, search, mine, ready, scope?.type, scope?.id])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
@@ -45,6 +49,7 @@ function VenueDirectory({ mine = false }) {
             placeholder="Search by name or city..."
             className="w-64 rounded border border-border-strong bg-surface px-3 py-2 text-sm text-text focus:border-accent"
           />
+          <LocationScopeFilter {...selection} onChange={setSelection} />
           <div className="flex items-center gap-2 text-sm">
             <span className="text-text-faint">Sort:</span>
             <button

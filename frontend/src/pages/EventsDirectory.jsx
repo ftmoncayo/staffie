@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
 import SearchCombobox from '../components/SearchCombobox'
+import LocationScopeFilter from '../components/LocationScopeFilter'
+import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 
 function formatDateTime(value) {
   if (!value) return ''
@@ -38,19 +40,20 @@ function EventCard({ event }) {
 
 function EventsDirectory({ mine = false }) {
   const [events, setEvents] = useState([])
-  const [city, setCity] = useState(null)
   const [category, setCategory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
 
   useEffect(() => {
+    if (!ready) return
     setLoading(true)
     api
-      .fetchEvents({ cityId: city?.id, categoryId: category?.id, mine })
+      .fetchEvents({ scope, categoryId: category?.id, mine })
       .then(setEvents)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [city, category, mine])
+  }, [category, mine, ready, scope?.type, scope?.id])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
@@ -63,15 +66,7 @@ function EventsDirectory({ mine = false }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <div className="w-64">
-            <SearchCombobox
-              fetchOptions={api.fetchCities}
-              onSelect={setCity}
-              allowCreate={false}
-              initialQuery={city?.name || ''}
-              placeholder="Filter by city..."
-            />
-          </div>
+          <LocationScopeFilter {...selection} onChange={setSelection} />
           <div className="w-64">
             <SearchCombobox
               fetchOptions={api.fetchEventCategories}

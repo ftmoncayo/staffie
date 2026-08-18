@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
-import SearchCombobox from '../components/SearchCombobox'
+import LocationScopeFilter from '../components/LocationScopeFilter'
+import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 
 function JobCard({ job }) {
   return (
@@ -64,19 +65,20 @@ function MyJobCard({ job }) {
 
 function JobsDirectory({ mine = false }) {
   const [jobs, setJobs] = useState([])
-  const [city, setCity] = useState(null)
   const [sort, setSort] = useState('recent')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
 
   useEffect(() => {
+    if (!mine && !ready) return
     setLoading(true)
     api
-      .fetchJobs({ cityId: mine ? undefined : city?.id, sort: mine ? undefined : sort, mine })
+      .fetchJobs({ scope: mine ? undefined : scope, sort: mine ? undefined : sort, mine })
       .then(setJobs)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [city, sort, mine])
+  }, [sort, mine, ready, scope?.type, scope?.id])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">
@@ -90,15 +92,7 @@ function JobsDirectory({ mine = false }) {
 
         {!mine && (
           <div className="flex flex-wrap items-center gap-4">
-            <div className="w-64">
-              <SearchCombobox
-                fetchOptions={api.fetchCities}
-                onSelect={setCity}
-                allowCreate={false}
-                initialQuery={city?.name || ''}
-                placeholder="Filter by city..."
-              />
-            </div>
+            <LocationScopeFilter {...selection} onChange={setSelection} />
             <div className="flex items-center gap-2 text-sm">
               <span className="text-text-faint">Sort:</span>
               <button

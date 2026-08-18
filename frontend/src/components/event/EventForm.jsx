@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../../lib/api'
 import SearchCombobox from '../SearchCombobox'
+import VenuePicker from '../VenuePicker'
 import Tag from '../Tag'
 
 function toInputValue(iso) {
@@ -136,8 +137,7 @@ function EventForm({ initial, initialLocationVenue, onSubmit, onCancel, submitLa
 
       <label className="flex flex-col gap-1 text-sm text-text-muted">
         Location (optional)
-        <SearchCombobox
-          fetchOptions={api.fetchVenueOptions}
+        <VenuePicker
           onSelect={setLocationVenue}
           allowCreate={false}
           initialQuery={locationVenue?.name || ''}

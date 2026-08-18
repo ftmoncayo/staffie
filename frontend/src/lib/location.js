@@ -70,3 +70,40 @@ export function initialLocationSelection(profile) {
   }
   return { suburb: null, city: null, state: null, country: null }
 }
+
+// Mirrors resolveLocationScope on the backend: the deepest of the four
+// selected levels is the effective scope, null when nothing is selected
+// (unfiltered). Used by LocationScopeFilter and every page that filters by
+// location.
+export function scopeFromSelection({ country, state, city, suburb } = {}) {
+  if (suburb) return { type: 'SUBURB', id: suburb.id }
+  if (city) return { type: 'CITY', id: city.id }
+  if (state) return { type: 'STATE', id: state.id }
+  if (country) return { type: 'COUNTRY', id: country.id }
+  return null
+}
+
+// Short label for a LocationScopeFilter's collapsed summary button.
+export function locationSelectionLabel({ country, state, city, suburb } = {}) {
+  if (suburb) return city ? `${suburb.name}, ${city.name}` : suburb.name
+  if (city) return city.name
+  if (state) return state.name
+  if (country) return country.name
+  return 'All locations'
+}
+
+// First three letters of a city name, capitalized (Melbourne -> Mel).
+export function cityAbbreviation(cityName) {
+  if (!cityName) return ''
+  const letters = cityName.slice(0, 3)
+  return letters.charAt(0).toUpperCase() + letters.slice(1).toLowerCase()
+}
+
+// Display label for a venue option in the venue picker (see VenuePicker).
+// Scoped to the viewer's own location: "Name, Suburb" (just the name if no
+// suburb). Unrestricted search: the city abbreviation is appended too, since
+// suburb/city names alone are no longer enough to place the venue.
+export function venueOptionLabel(venue, { unrestricted = false } = {}) {
+  const abbrev = unrestricted && venue.city ? ` (${cityAbbreviation(venue.city.name)})` : ''
+  return venue.suburb ? `${venue.name}, ${venue.suburb.name}${abbrev}` : `${venue.name}${abbrev}`
+}

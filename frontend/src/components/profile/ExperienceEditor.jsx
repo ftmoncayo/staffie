@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../../lib/api'
-import SearchCombobox from '../SearchCombobox'
+import VenuePicker from '../VenuePicker'
 import VenueForm from '../venue/VenueForm'
 import Modal from '../Modal'
 
@@ -63,12 +63,10 @@ function ExperienceForm({ initial, onSubmit, onCancel }) {
 
         <label className="flex flex-col gap-1 text-sm text-text-muted">
           Venue
-          <SearchCombobox
-            fetchOptions={api.fetchVenueOptions}
+          <VenuePicker
             onCreate={handleVenueCreateRequest}
             onSelect={(venue) => setForm({ ...form, venue })}
             initialQuery={form.venue?.name || ''}
-            placeholder="Search or add a venue..."
           />
         </label>
 

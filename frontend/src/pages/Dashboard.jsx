@@ -8,6 +8,8 @@ import PersonCard from '../components/PersonCard'
 import ConnectionButton from '../components/ConnectionButton'
 import SearchCombobox from '../components/SearchCombobox'
 import ShowMore from '../components/ShowMore'
+import LocationScopeFilter from '../components/LocationScopeFilter'
+import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 
 function Dashboard() {
   const { user } = useAuth()
@@ -21,17 +23,31 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [profileComplete, setProfileComplete] = useState(true)
+  const activityFilter = useLocationScopeFilter()
+  const suggestionFilter = useLocationScopeFilter()
 
   useEffect(() => {
+    if (!activityFilter.ready || !suggestionFilter.ready) return
+    setLoading(true)
     api
-      .fetchFeed()
+      .fetchFeed({ scope: activityFilter.scope, suggestionScope: suggestionFilter.scope })
       .then((data) => {
         setActivities(data.activities)
         setSuggestions(data.suggestions)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activityFilter.ready,
+    activityFilter.scope?.type,
+    activityFilter.scope?.id,
+    suggestionFilter.ready,
+    suggestionFilter.scope?.type,
+    suggestionFilter.scope?.id,
+  ])
 
+  useEffect(() => {
     api
       .fetchProfile()
       .then((data) => {
@@ -169,7 +185,13 @@ function Dashboard() {
         </form>
 
         <div className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold text-text">Activity</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold text-text">Activity</h2>
+            <LocationScopeFilter
+              {...activityFilter.selection}
+              onChange={activityFilter.setSelection}
+            />
+          </div>
           {!loading && (
             <ShowMore
               items={feedItems}
@@ -192,9 +214,18 @@ function Dashboard() {
           )}
         </div>
 
-        {suggestions.length > 0 && (
+        {!loading && (
           <div className="rounded-lg border border-border bg-surface p-6">
-            <h2 className="text-xl font-semibold text-text">People in your industry</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold text-text">People in your industry</h2>
+              <LocationScopeFilter
+                {...suggestionFilter.selection}
+                onChange={suggestionFilter.setSelection}
+              />
+            </div>
+            {suggestions.length === 0 && (
+              <p className="mt-4 text-sm text-text-faint">No one to show yet.</p>
+            )}
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {suggestions.map((person) => (
                 <PersonCard key={person.id} person={person}>

@@ -64,6 +64,16 @@ async function authRequest(path, options = {}) {
   }
 }
 
+// Appends scopeType/scopeId (or a prefixed variant, e.g. "suggestion") to a
+// URLSearchParams for a location-scope filter — omitted entirely when scope
+// is null, which every scope-aware endpoint treats as "don't filter."
+function appendScope(params, scope, prefix = '') {
+  if (!scope) return
+  const key = prefix ? `${prefix}Scope` : 'scope'
+  params.set(`${key}Type`, scope.type)
+  params.set(`${key}Id`, scope.id)
+}
+
 export function signup(email, password, inviteToken, code) {
   return request('/api/auth/signup', {
     method: 'POST',
@@ -329,20 +339,25 @@ export async function createVenueSpecialty(name) {
   return data.venueSpecialty
 }
 
-export async function fetchVenues({ search, sort, status, mine, includeManaged } = {}) {
+export async function fetchVenues({ search, sort, status, mine, includeManaged, scope } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
   if (mine) params.set('mine', 'true')
   if (includeManaged) params.set('includeManaged', 'true')
+  appendScope(params, scope)
   const data = await authRequest(`/api/venues?${params.toString()}`)
   return data.venues
 }
 
-export async function fetchVenueOptions(search) {
-  const venues = await fetchVenues({ search, includeManaged: true })
-  return venues.map((v) => ({ id: v.id, name: v.name }))
+export async function fetchVenueOptions(search, { unrestricted = false, scope = null } = {}) {
+  const venues = await fetchVenues({
+    search,
+    includeManaged: true,
+    scope: unrestricted ? null : scope,
+  })
+  return venues.map((v) => ({ id: v.id, name: v.name, suburb: v.suburb, city: v.city }))
 }
 
 export async function fetchVenueTypes(search) {
@@ -469,8 +484,10 @@ export async function fetchVenueActivity(venueId) {
   return data.activities
 }
 
-export async function discoverPeople(lens) {
-  const data = await authRequest(`/api/discover/people?lens=${encodeURIComponent(lens)}`)
+export async function discoverPeople(lens, scope) {
+  const params = new URLSearchParams({ lens })
+  appendScope(params, scope)
+  const data = await authRequest(`/api/discover/people?${params.toString()}`)
   return data.people
 }
 
@@ -533,13 +550,14 @@ export async function createBusinessCategory(name) {
   return data.businessCategory
 }
 
-export async function fetchBusinesses({ search, sort, status, mine, includeManaged } = {}) {
+export async function fetchBusinesses({ search, sort, status, mine, includeManaged, scope } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
   if (mine) params.set('mine', 'true')
   if (includeManaged) params.set('includeManaged', 'true')
+  appendScope(params, scope)
   const data = await authRequest(`/api/businesses?${params.toString()}`)
   return data.businesses
 }
@@ -661,8 +679,11 @@ export function sendInvite(email, venueId) {
   })
 }
 
-export function fetchFeed() {
-  return authRequest('/api/feed')
+export function fetchFeed({ scope, suggestionScope } = {}) {
+  const params = new URLSearchParams()
+  appendScope(params, scope)
+  appendScope(params, suggestionScope, 'suggestion')
+  return authRequest(`/api/feed?${params.toString()}`)
 }
 
 export async function fetchPosts(cityId) {
@@ -749,13 +770,13 @@ export async function createKnowledgeArea(name) {
   return data.knowledgeArea
 }
 
-export async function fetchJobs({ cityId, venueId, sort, status, mine } = {}) {
+export async function fetchJobs({ venueId, sort, status, mine, scope } = {}) {
   const params = new URLSearchParams()
-  if (cityId) params.set('cityId', cityId)
   if (venueId) params.set('venueId', venueId)
   if (sort) params.set('sort', sort)
   if (status) params.set('status', status)
   if (mine) params.set('mine', 'true')
+  appendScope(params, scope)
   const data = await authRequest(`/api/jobs?${params.toString()}`)
   return data.jobs
 }
@@ -845,14 +866,14 @@ export async function createEventCategory(name) {
   return data.eventCategory
 }
 
-export async function fetchEvents({ cityId, categoryId, ownerType, ownerId, when, mine } = {}) {
+export async function fetchEvents({ categoryId, ownerType, ownerId, when, mine, scope } = {}) {
   const params = new URLSearchParams()
-  if (cityId) params.set('cityId', cityId)
   if (categoryId) params.set('categoryId', categoryId)
   if (ownerType) params.set('ownerType', ownerType)
   if (ownerId) params.set('ownerId', ownerId)
   if (when) params.set('when', when)
   if (mine) params.set('mine', 'true')
+  appendScope(params, scope)
   const data = await authRequest(`/api/events?${params.toString()}`)
   return data.events
 }

@@ -18,20 +18,43 @@ export function AuthProvider({ children }) {
       setUser(null)
     })
 
-    const token = api.getToken()
-    if (!token) {
-      setLoading(false)
-      return
+    // `silent` skips the loading toggle - used for the visibility-triggered
+    // recheck below, so switching back to an already-loaded tab never
+    // flashes a blank ProtectedRoute while it re-validates in the
+    // background. Only the very first (mount) check needs `loading` at all.
+    function checkAuth({ silent = false } = {}) {
+      const token = api.getToken()
+      if (!token) {
+        setUser(null)
+        if (!silent) setLoading(false)
+        return
+      }
+
+      api
+        .fetchMe(token)
+        .then(setUser)
+        .catch(() => {
+          api.clearToken()
+          setUser(null)
+        })
+        .finally(() => {
+          if (!silent) setLoading(false)
+        })
     }
 
-    api
-      .fetchMe(token)
-      .then(setUser)
-      .catch(() => {
-        api.clearToken()
-        setUser(null)
-      })
-      .finally(() => setLoading(false))
+    checkAuth()
+
+    // Mobile browsers suspend a backgrounded tab rather than reloading it,
+    // so its React state (including `user`) stays exactly as it was when it
+    // froze - if the session was logged out elsewhere, or the token simply
+    // expired, while this tab was backgrounded, nothing here would notice
+    // until some unrelated request happened to 401. Re-validating whenever
+    // the tab becomes visible again catches that immediately instead.
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') checkAuth({ silent: true })
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   async function signup(email, password, inviteToken, code) {

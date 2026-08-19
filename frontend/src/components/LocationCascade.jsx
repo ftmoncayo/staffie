@@ -6,6 +6,8 @@ import SearchCombobox from './SearchCombobox'
 // disabled and empty until its parent is chosen; the parent owns the actual
 // selection state and is responsible for clearing descendant levels when a
 // higher level changes (see VenueForm/ProfileDetails' handleXChange).
+// `showSuburb` lets a filter-only caller (LocationScopeFilter) cap the
+// picker at City, since suburb is never a valid filter level there.
 function LocationCascade({
   country,
   state,
@@ -16,6 +18,7 @@ function LocationCascade({
   onCityChange,
   onSuburbChange,
   suburbLabel = 'Suburb',
+  showSuburb = true,
 }) {
   const fetchStateOptions = useCallback(
     (search) => (country ? api.fetchStates(country.id, search) : Promise.resolve([])),
@@ -93,17 +96,19 @@ function LocationCascade({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm text-text-muted">
-        {suburbLabel}
-        <SearchCombobox
-          fetchOptions={fetchSuburbOptions}
-          onCreate={handleCreateSuburb}
-          onSelect={onSuburbChange}
-          initialQuery={suburb?.name || ''}
-          placeholder={city ? 'Search for a suburb...' : 'Select a city first'}
-          disabled={!city}
-        />
-      </label>
+      {showSuburb && (
+        <label className="flex flex-col gap-1 text-sm text-text-muted">
+          {suburbLabel}
+          <SearchCombobox
+            fetchOptions={fetchSuburbOptions}
+            onCreate={handleCreateSuburb}
+            onSelect={onSuburbChange}
+            initialQuery={suburb?.name || ''}
+            placeholder={city ? 'Search for a suburb...' : 'Select a city first'}
+            disabled={!city}
+          />
+        </label>
+      )}
     </>
   )
 }

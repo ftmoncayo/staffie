@@ -2,24 +2,34 @@ const prisma = require('./prisma')
 
 // A Profile records its location at whichever precision the person chose -
 // country, state, city, or suburb - with only the deepest level ever
-// populated (see routes/profile.js's PUT / handler). Every location-aware
-// feature should resolve the effective scope through here rather than
-// inspecting countryId/stateId/cityId/suburbId directly, so the priority
-// order only has to live in one place.
+// populated (see routes/profile.js's PUT / handler). Suburb is still stored
+// and shown (e.g. locationString on the frontend), but it's never a filter
+// dimension: a suburb-precision profile collapses to its parent city here,
+// so filtering treats it exactly like a city-precision profile in that city.
+// Expects `profile.suburb` to be loaded (at least `{ cityId }`) whenever
+// `profile.suburbId` is set - see profileInclude in routes/profile.js.
+// Every location-aware feature should resolve the effective scope through
+// here rather than inspecting countryId/stateId/cityId/suburbId directly.
 function resolveLocationScope(profile) {
   if (!profile) return null
-  if (profile.suburbId) return { type: 'SUBURB', id: profile.suburbId }
+  if (profile.suburbId) {
+    const cityId = profile.suburb?.cityId
+    return cityId ? { type: 'CITY', id: cityId } : null
+  }
   if (profile.cityId) return { type: 'CITY', id: profile.cityId }
   if (profile.stateId) return { type: 'STATE', id: profile.stateId }
   if (profile.countryId) return { type: 'COUNTRY', id: profile.countryId }
   return null
 }
 
-const SCOPE_TYPES = ['COUNTRY', 'STATE', 'CITY', 'SUBURB']
+// Suburb is deliberately excluded - it's descriptive data only (venue
+// location display, the venue picker's "Name, Suburb" labels), never a
+// filter level. See resolveLocationScope and LocationScopeFilter.
+const SCOPE_TYPES = ['COUNTRY', 'STATE', 'CITY']
 
 // Reads a {type, id} scope out of two request-query fields, validating the
-// type against the four known levels. Returns null for anything malformed or
-// absent - callers treat a null scope as "don't filter."
+// type against the three known levels. Returns null for anything malformed
+// or absent - callers treat a null scope as "don't filter."
 function parseScopeParam(type, id) {
   if (!SCOPE_TYPES.includes(type)) return null
   if (typeof id !== 'string' || !id.trim()) return null
@@ -27,9 +37,11 @@ function parseScopeParam(type, id) {
 }
 
 // Resolves a scope up to its full ancestor chain (countryId always present;
-// stateId/cityId/suburbId present only at-or-above the scope's own depth) by
-// looking up the actual row. Returns null for an unresolvable scope (bad id)
-// or no scope at all - callers treat that the same as "don't filter."
+// stateId/cityId present only at-or-above the scope's own depth) by looking
+// up the actual row. Returns null for an unresolvable scope (bad id) or no
+// scope at all - callers treat that the same as "don't filter." Scope can
+// only ever be COUNTRY/STATE/CITY (see SCOPE_TYPES) - suburb is descriptive
+// data only, never a filter level.
 async function resolveScopeAncestors(scope) {
   if (!scope) return null
   if (scope.type === 'COUNTRY') {
@@ -46,34 +58,19 @@ async function resolveScopeAncestors(scope) {
     })
     return city ? { countryId: city.state.countryId, stateId: city.stateId, cityId: scope.id } : null
   }
-  if (scope.type === 'SUBURB') {
-    const suburb = await prisma.suburb.findUnique({
-      where: { id: scope.id },
-      select: { cityId: true, city: { select: { stateId: true, state: { select: { countryId: true } } } } },
-    })
-    return suburb
-      ? {
-          countryId: suburb.city.state.countryId,
-          stateId: suburb.city.stateId,
-          cityId: suburb.cityId,
-          suburbId: scope.id,
-        }
-      : null
-  }
   return null
 }
 
 // Prisma where-fragment matching Profiles located at-or-within the resolved
 // scope. A profile recorded at a shallower precision than the scope is
 // excluded (its exact placement within the scope can't be confirmed) - e.g.
-// a country-only profile never matches a city-level scope. Every branch
-// below has to OR in the suburb/city alternatives too, since Profile keeps
-// only its deepest field populated (unlike Venue, see venueLocationWhere).
+// a country-only profile never matches a city-level scope. Scope itself can
+// only be COUNTRY/STATE/CITY (see SCOPE_TYPES), but a *profile* can still be
+// suburb-precision, so every branch below has to OR in the suburb/city
+// alternatives too, since Profile keeps only its deepest field populated
+// (unlike Venue, see venueLocationWhere).
 function profileLocationWhere(ancestors) {
   if (!ancestors) return {}
-  if (ancestors.suburbId) {
-    return { suburbId: ancestors.suburbId }
-  }
   if (ancestors.cityId) {
     return { OR: [{ cityId: ancestors.cityId }, { suburb: { cityId: ancestors.cityId } }] }
   }
@@ -97,12 +94,10 @@ function profileLocationWhere(ancestors) {
 }
 
 // Prisma where-fragment matching Venues located at-or-within the resolved
-// scope. Venue creation always keeps cityId populated alongside suburbId
-// (see venues.js's validateSuburbId), so - unlike Profile - there's no need
-// to OR in a suburb->city alternative for the CITY/STATE/COUNTRY branches.
+// scope. Scope tops out at CITY (see SCOPE_TYPES) - a venue's own suburb, if
+// it has one, is descriptive data only and plays no part in matching.
 function venueLocationWhere(ancestors) {
   if (!ancestors) return {}
-  if (ancestors.suburbId) return { suburbId: ancestors.suburbId }
   if (ancestors.cityId) return { cityId: ancestors.cityId }
   if (ancestors.stateId) return { city: { stateId: ancestors.stateId } }
   return { city: { state: { countryId: ancestors.countryId } } }
@@ -112,8 +107,8 @@ function venueLocationWhere(ancestors) {
 // the resolved scope. Unlike Profile/Venue, a Business's location represents
 // an explicit coverage claim rather than imprecision: GLOBAL always matches,
 // and a COUNTRY-scoped business matches any narrower scope within that
-// country. SPECIFIC_CITIES only ever records city-level locations (nothing
-// narrower), so a SUBURB scope falls back to matching its parent city.
+// country. SPECIFIC_CITIES only ever records city-level locations, matching
+// the CITY branch below (the deepest scope can ever be).
 function businessLocationWhere(ancestors) {
   if (!ancestors) return {}
   const global = { locationScope: 'GLOBAL' }

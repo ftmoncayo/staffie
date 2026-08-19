@@ -71,21 +71,22 @@ export function initialLocationSelection(profile) {
   return { suburb: null, city: null, state: null, country: null }
 }
 
-// Mirrors resolveLocationScope on the backend: the deepest of the four
-// selected levels is the effective scope, null when nothing is selected
-// (unfiltered). Used by LocationScopeFilter and every page that filters by
-// location.
-export function scopeFromSelection({ country, state, city, suburb } = {}) {
-  if (suburb) return { type: 'SUBURB', id: suburb.id }
+// Mirrors resolveLocationScope on the backend: the deepest of the selected
+// levels is the effective scope, capped at CITY - suburb is descriptive data
+// only, never a filter dimension, so a suburb-hydrated selection (which
+// always carries its parent city alongside it - see initialLocationSelection)
+// resolves to that city instead. Null when nothing is selected (unfiltered).
+// Used by LocationScopeFilter and every page that filters by location.
+export function scopeFromSelection({ country, state, city } = {}) {
   if (city) return { type: 'CITY', id: city.id }
   if (state) return { type: 'STATE', id: state.id }
   if (country) return { type: 'COUNTRY', id: country.id }
   return null
 }
 
-// Short label for a LocationScopeFilter's collapsed summary button.
-export function locationSelectionLabel({ country, state, city, suburb } = {}) {
-  if (suburb) return city ? `${suburb.name}, ${city.name}` : suburb.name
+// Short label for a LocationScopeFilter's collapsed summary button. Capped
+// at CITY like scopeFromSelection - suburb is never a filter level here.
+export function locationSelectionLabel({ country, state, city } = {}) {
   if (city) return city.name
   if (state) return state.name
   if (country) return country.name

@@ -5,6 +5,7 @@ import ConnectionButton from '../components/ConnectionButton'
 import PersonCard from '../components/PersonCard'
 import LocationScopeFilter from '../components/LocationScopeFilter'
 import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
+import { useNotifications } from '../context/NotificationsContext'
 
 function sharedSummary(shared) {
   if (!shared) return null
@@ -26,6 +27,7 @@ function DiscoverPeople() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const { selection, setSelection, scope } = useLocationScopeFilter()
+  const { refreshUnreadCount } = useNotifications()
 
   useEffect(() => {
     setLoading(true)
@@ -51,11 +53,13 @@ function DiscoverPeople() {
   async function handleAccept(person) {
     await api.acceptConnectionRequest(person.connectionRequestId)
     updatePerson(person.id, { connectionStatus: 'connected' })
+    refreshUnreadCount()
   }
 
   async function handleDecline(person) {
     await api.declineConnectionRequest(person.connectionRequestId)
     updatePerson(person.id, { connectionStatus: 'none', connectionRequestId: null })
+    refreshUnreadCount()
   }
 
   return (

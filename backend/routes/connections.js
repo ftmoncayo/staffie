@@ -101,11 +101,18 @@ async function respondToRequest(req, res, status) {
   })
 
   if (status === 'ACCEPTED') {
-    await prisma.activity.createMany({
-      data: [
-        { type: 'CONNECTION_MADE', actorUserId: existing.fromUserId, createdAt: respondedAt },
-        { type: 'CONNECTION_MADE', actorUserId: existing.toUserId, createdAt: respondedAt },
-      ],
+    // A single row, actored by whoever sent the original request - not one
+    // per participant. Two rows meant a third party connected to both people
+    // saw the event twice (each row independently matches feed.js's "actor
+    // is one of my connections" reach rule). One row still reaches both
+    // participants: the accepter sees it via that same rule (they're now
+    // connected to the actor), and the sender sees it via the dedicated
+    // CONNECTION_MADE self-reach exception in feed.js. It also makes the
+    // activity text unambiguous - see lib/activityFeed.js's counterpart
+    // resolution, which reads consistently as "sender connected with
+    // accepter" for every viewer once there's only one row to resolve from.
+    await prisma.activity.create({
+      data: { type: 'CONNECTION_MADE', actorUserId: existing.fromUserId, createdAt: respondedAt },
     })
 
     await createNotification({

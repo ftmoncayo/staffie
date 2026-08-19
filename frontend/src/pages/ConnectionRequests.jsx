@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
+import { useNotifications } from '../context/NotificationsContext'
 
 function personName(profile) {
   if (!profile) return null
@@ -12,6 +13,7 @@ function ConnectionRequests() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [respondingId, setRespondingId] = useState('')
+  const { refreshUnreadCount } = useNotifications()
 
   useEffect(() => {
     api
@@ -27,6 +29,7 @@ function ConnectionRequests() {
     try {
       await api.acceptConnectionRequest(id)
       setRequests((prev) => prev.filter((r) => r.id !== id))
+      refreshUnreadCount()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -40,6 +43,7 @@ function ConnectionRequests() {
     try {
       await api.declineConnectionRequest(id)
       setRequests((prev) => prev.filter((r) => r.id !== id))
+      refreshUnreadCount()
     } catch (err) {
       setError(err.message)
     } finally {

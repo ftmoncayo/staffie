@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProfile } from '../context/ProfileContext'
+import { useNotifications } from '../context/NotificationsContext'
 import * as api from '../lib/api'
 import ActivityItem from '../components/ActivityItem'
 import PostItem from '../components/PostItem'
@@ -15,6 +16,7 @@ import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 function Dashboard() {
   const { user } = useAuth()
   const { profile, loading: profileLoading } = useProfile()
+  const { refreshUnreadCount } = useNotifications()
   const [activities, setActivities] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [posts, setPosts] = useState([])
@@ -92,11 +94,13 @@ function Dashboard() {
   async function handleAccept(person) {
     await api.acceptConnectionRequest(person.connectionRequestId)
     updateSuggestion(person.id, { connectionStatus: 'connected' })
+    refreshUnreadCount()
   }
 
   async function handleDecline(person) {
     await api.declineConnectionRequest(person.connectionRequestId)
     updateSuggestion(person.id, { connectionStatus: 'none', connectionRequestId: null })
+    refreshUnreadCount()
   }
 
   async function handleCreatePost(e) {

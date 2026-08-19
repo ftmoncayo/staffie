@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import * as api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
+import { useNotifications } from '../context/NotificationsContext'
 import AboutSection from '../components/AboutSection'
 import ConnectionButton from '../components/ConnectionButton'
 import Tag from '../components/Tag'
@@ -19,6 +20,7 @@ function formatDate(value) {
 function PublicProfile() {
   const { userId } = useParams()
   const { user } = useAuth()
+  const { refreshUnreadCount } = useNotifications()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [activity, setActivity] = useState([])
@@ -51,11 +53,13 @@ function PublicProfile() {
   async function handleAccept() {
     await api.acceptConnectionRequest(data.connectionRequestId)
     setData((prev) => ({ ...prev, connectionStatus: 'connected' }))
+    refreshUnreadCount()
   }
 
   async function handleDecline() {
     await api.declineConnectionRequest(data.connectionRequestId)
     setData((prev) => ({ ...prev, connectionStatus: 'none', connectionRequestId: null }))
+    refreshUnreadCount()
   }
 
   async function handleRemove() {

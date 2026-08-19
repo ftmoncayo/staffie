@@ -63,6 +63,13 @@ router.get('/feed', async (req, res) => {
     noticeReachBusinessIds.length > 0
       ? { type: 'NOTICE_POSTED', businessId: { in: noticeReachBusinessIds } }
       : null,
+    // Every other activity type is reach-through-others-only (a feed shows
+    // what your network is doing, not your own actions) - but there's only
+    // ever one CONNECTION_MADE row per connection now, actored by whoever
+    // sent the request (see routes/connections.js), and it needs to reach
+    // both participants. The accepter already sees it via the "connected to
+    // the actor" rule above; this is what lets the sender see it too.
+    { type: 'CONNECTION_MADE', actorUserId: req.userId },
   ].filter(Boolean)
 
   // Mirrors the existing Posts city filter, generalized to any of the four

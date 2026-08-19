@@ -43,17 +43,16 @@ function EventsDirectory({ mine = false }) {
   const [category, setCategory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
+  const { selection, setSelection, scope } = useLocationScopeFilter()
 
   useEffect(() => {
-    if (!ready) return
     setLoading(true)
     api
       .fetchEvents({ scope, categoryId: category?.id, mine })
       .then(setEvents)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [category, mine, ready, scope?.type, scope?.id])
+  }, [category, mine, scope])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">

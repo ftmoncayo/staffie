@@ -1,32 +1,42 @@
-import { useEffect, useState } from 'react'
-import * as api from '../lib/api'
+import { useEffect, useMemo, useState } from 'react'
+import { useProfile } from '../context/ProfileContext'
 import { initialLocationSelection, scopeFromSelection } from '../lib/location'
 
 const EMPTY_SELECTION = { country: null, state: null, city: null, suburb: null }
 
-// Seeds a location-scope filter from the viewer's own profile (see
-// resolveLocationScope on the backend) and exposes the same
-// country/state/city/suburb selection LocationScopeFilter edits. Selecting
-// any level filters to that level (deepest wins); clearing all four means
-// unfiltered - mirroring the existing Posts city filter, generalized to all
-// four location levels.
+// Backs a LocationScopeFilter control. Until the viewer explicitly changes
+// the filter, `scope` is `undefined` - meaning "don't send scopeType/scopeId
+// at all," which every scope-aware endpoint reads as "default to my own
+// profile location" server-side (see resolveScopeForRequest on the
+// backend). That's what lets a page fire its real data request immediately
+// on mount instead of fetching the viewer's own profile first and gating on
+// it - the old source of the profile-fetch-then-feed-fetch cascade.
 //
-// `ready` stays false until the viewer's own profile has been fetched, so
-// callers can hold off their first (scoped) request until the real default
-// is known, rather than firing an unscoped one first.
+// `selection` (for the popover's display) still needs the viewer's own
+// profile to show the right default once it's known, so it reads from the
+// shared ProfileContext (fetched once at the app root, not per-hook-use) -
+// zero extra network cost even though this hook is used on 7+ pages.
 function useLocationScopeFilter() {
-  const [selection, setSelection] = useState(EMPTY_SELECTION)
-  const [ready, setReady] = useState(false)
+  const { profile } = useProfile()
+  const [touched, setTouched] = useState(false)
+  const [ownSelection, setOwnSelection] = useState(EMPTY_SELECTION)
+  const [override, setOverride] = useState(EMPTY_SELECTION)
 
   useEffect(() => {
-    api
-      .fetchProfile()
-      .then((data) => setSelection(initialLocationSelection(data.profile)))
-      .catch(() => {})
-      .finally(() => setReady(true))
-  }, [])
+    if (!touched) setOwnSelection(initialLocationSelection(profile))
+  }, [profile, touched])
 
-  return { selection, setSelection, scope: scopeFromSelection(selection), ready }
+  function setSelection(newSelection) {
+    setTouched(true)
+    setOverride(newSelection)
+  }
+
+  const selection = touched ? override : ownSelection
+  // Memoized so it's only a new reference when the effective scope actually
+  // changes - callers put this directly in a fetch effect's dependency array.
+  const scope = useMemo(() => (touched ? scopeFromSelection(override) : undefined), [touched, override])
+
+  return { selection, setSelection, scope }
 }
 
 export default useLocationScopeFilter

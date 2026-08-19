@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useProfile } from '../context/ProfileContext'
 import * as api from '../lib/api'
 import NotificationsLink from './NotificationsLink'
 
@@ -47,8 +48,8 @@ function buildAdminLinks(user, unverifiedVenueCount, unverifiedBusinessCount) {
 
 function TopNav() {
   const { user, logout } = useAuth()
+  const { profile } = useProfile()
   const navigate = useNavigate()
-  const [profile, setProfile] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [unverifiedVenueCount, setUnverifiedVenueCount] = useState(null)
   const [unverifiedBusinessCount, setUnverifiedBusinessCount] = useState(null)
@@ -56,27 +57,16 @@ function TopNav() {
   const toggleButtonRef = useRef(null)
 
   useEffect(() => {
-    if (!user) {
-      setProfile(null)
-      return
-    }
-    api
-      .fetchProfile()
-      .then((data) => setProfile(data.profile))
-      .catch(() => {})
-  }, [user])
-
-  useEffect(() => {
     if (user?.isAdmin || user?.isVenueAdmin) {
       api
-        .fetchVenues({ status: 'UNVERIFIED', includeManaged: true })
+        .fetchVenues({ status: 'UNVERIFIED', includeManaged: true, scope: null })
         .then((venues) => setUnverifiedVenueCount(venues.length))
     } else {
       setUnverifiedVenueCount(null)
     }
     if (user?.isAdmin) {
       api
-        .fetchBusinesses({ status: 'UNVERIFIED', includeManaged: true })
+        .fetchBusinesses({ status: 'UNVERIFIED', includeManaged: true, scope: null })
         .then((businesses) => setUnverifiedBusinessCount(businesses.length))
     } else {
       setUnverifiedBusinessCount(null)

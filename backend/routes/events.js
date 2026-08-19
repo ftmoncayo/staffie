@@ -3,7 +3,7 @@ const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
 const { canEditEventOwner, getEventOwnerManagers, ownerExists } = require('../lib/events')
 const { createNotification } = require('../lib/notifications')
-const { parseScopeParam, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
+const { resolveScopeForRequest, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -92,14 +92,18 @@ async function getManagedBusinessIds(userId) {
 }
 
 router.get('/events', async (req, res) => {
-  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
-  const scopeAncestors = await resolveScopeAncestors(scope)
   const categoryId =
     typeof req.query.categoryId === 'string' && req.query.categoryId.trim() ? req.query.categoryId.trim() : null
   const ownerType = req.query.ownerType === 'VENUE' || req.query.ownerType === 'BUSINESS' ? req.query.ownerType : null
   const ownerId = typeof req.query.ownerId === 'string' && req.query.ownerId.trim() ? req.query.ownerId.trim() : null
   const when = req.query.when === 'past' ? 'past' : 'upcoming'
   const mine = req.query.mine === 'true'
+  // A specific owner's timeline (e.g. PastEvents) isn't location-filterable
+  // - it's already scoped by owner identity - so an omitted scope means "no
+  // filter" there rather than defaulting. "My Events" is exempt from this:
+  // like My Venues/My Businesses, it's deliberately still location-scopable.
+  const scope = await resolveScopeForRequest(req, '', !(ownerType && ownerId))
+  const scopeAncestors = await resolveScopeAncestors(scope)
 
   const now = new Date()
   const and = [

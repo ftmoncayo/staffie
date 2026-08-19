@@ -65,11 +65,24 @@ async function authRequest(path, options = {}) {
 }
 
 // Appends scopeType/scopeId (or a prefixed variant, e.g. "suggestion") to a
-// URLSearchParams for a location-scope filter — omitted entirely when scope
-// is null, which every scope-aware endpoint treats as "don't filter."
+// URLSearchParams for a location-scope filter. Three distinct states:
+//  - scope === undefined: omit both params entirely, so the server defaults
+//    to the caller's own profile location (see resolveScopeForRequest on the
+//    backend) - this is what lets a page fire its real data request
+//    immediately on mount without fetching the viewer's own profile first.
+//  - scope === null: an explicit "don't filter" (e.g. the viewer cleared
+//    LocationScopeFilter to "All locations", or the caller - an admin badge
+//    count, "My Jobs", a single venue's job list - never wants location
+//    filtering at all). Sent as scopeType=NONE so it isn't mistaken for
+//    mere absence and silently defaulted.
+//  - scope === { type, id }: an explicit scope, sent as-is.
 function appendScope(params, scope, prefix = '') {
-  if (!scope) return
+  if (scope === undefined) return
   const key = prefix ? `${prefix}Scope` : 'scope'
+  if (scope === null) {
+    params.set(`${key}Type`, 'NONE')
+    return
+  }
   params.set(`${key}Type`, scope.type)
   params.set(`${key}Id`, scope.id)
 }
@@ -351,11 +364,14 @@ export async function fetchVenues({ search, sort, status, mine, includeManaged, 
   return data.venues
 }
 
-export async function fetchVenueOptions(search, { unrestricted = false, scope = null } = {}) {
+// Unrestricted explicitly clears the location filter; otherwise scope is
+// omitted so the server defaults to the viewer's own profile location (see
+// resolveScopeForRequest) - no profile pre-fetch needed on this end.
+export async function fetchVenueOptions(search, { unrestricted = false } = {}) {
   const venues = await fetchVenues({
     search,
     includeManaged: true,
-    scope: unrestricted ? null : scope,
+    scope: unrestricted ? null : undefined,
   })
   return venues.map((v) => ({ id: v.id, name: v.name, suburb: v.suburb, city: v.city }))
 }

@@ -4,7 +4,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth')
 const { canEditVenue } = require('./venues')
 const { buildConnectionsAdjacency } = require('../lib/connectionStatus')
 const { displayName } = require('../lib/displayName')
-const { parseScopeParam, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
+const { resolveScopeForRequest, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -132,11 +132,15 @@ function compareJobsMatch(a, b) {
 }
 
 router.get('/jobs', async (req, res) => {
-  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
-  const scopeAncestors = await resolveScopeAncestors(scope)
   const venueId =
     typeof req.query.venueId === 'string' && req.query.venueId.trim() ? req.query.venueId.trim() : null
   const mine = req.query.mine === 'true'
+  // Neither "My Jobs" nor a specific venue's job list is location-filterable
+  // - both are already scoped by ownership/venue identity, not location - so
+  // an omitted scope means "no filter" here rather than defaulting to the
+  // viewer's own location (see resolveScopeForRequest).
+  const scope = await resolveScopeForRequest(req, '', !(mine || venueId))
+  const scopeAncestors = await resolveScopeAncestors(scope)
   const sort = req.query.sort === 'match' ? 'match' : 'recent'
   const statusParam =
     req.query.status === 'OPEN' || req.query.status === 'CLOSED' ? req.query.status : null

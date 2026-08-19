@@ -36,6 +36,38 @@ function parseScopeParam(type, id) {
   return { type, id: id.trim() }
 }
 
+// Resolves the {type, id} scope a request should filter by, reading two
+// query fields (optionally prefixed, e.g. "suggestion" -> suggestionScopeType/
+// suggestionScopeId) with three possible outcomes:
+//  - both fields absent entirely -> default to the caller's own profile
+//    scope via resolveLocationScope, resolved server-side from req.userId so
+//    the client never has to fetch its own profile first just to know what
+//    to ask for. Skipped (treated as "no filter") when allowDefault is
+//    false - for requests where location scoping doesn't make sense
+//    regardless of who's asking, e.g. a specific venueId/ownerId lookup, or
+//    "My Jobs" (see routes/jobs.js) - the caller decides this from its own
+//    other params, since resolveScopeForRequest has no idea what those mean.
+//  - scopeType=NONE (with or without an id) -> an explicit "don't filter",
+//    e.g. after the viewer clears LocationScopeFilter to "All locations".
+//    Distinct from mere absence so a cleared filter doesn't keep reverting
+//    to the default on every request.
+//  - any other explicit type/id -> parsed and used as-is (parseScopeParam
+//    still governs validity; a malformed explicit value resolves to no
+//    filter rather than silently falling back to the default, since the
+//    caller clearly intended something specific).
+async function resolveScopeForRequest(req, prefix = '', allowDefault = true) {
+  const rawType = req.query[prefix ? `${prefix}ScopeType` : 'scopeType']
+  const rawId = req.query[prefix ? `${prefix}ScopeId` : 'scopeId']
+
+  if (rawType === undefined && rawId === undefined) {
+    if (!allowDefault) return null
+    const profile = await prisma.profile.findUnique({ where: { userId: req.userId }, include: { suburb: true } })
+    return resolveLocationScope(profile)
+  }
+  if (rawType === 'NONE') return null
+  return parseScopeParam(rawType, rawId)
+}
+
 // Resolves a scope up to its full ancestor chain (countryId always present;
 // stateId/cityId present only at-or-above the scope's own depth) by looking
 // up the actual row. Returns null for an unresolvable scope (bad id) or no
@@ -127,6 +159,7 @@ function businessLocationWhere(ancestors) {
 module.exports = {
   resolveLocationScope,
   parseScopeParam,
+  resolveScopeForRequest,
   resolveScopeAncestors,
   profileLocationWhere,
   venueLocationWhere,

@@ -19,7 +19,7 @@ function PastEvents({ ownerType, ownerId, canEdit }) {
 
   useEffect(() => {
     api
-      .fetchEvents({ ownerType, ownerId, when: 'past' })
+      .fetchEvents({ ownerType, ownerId, when: 'past', scope: null })
       .then(setEvents)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))

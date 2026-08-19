@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import * as api from '../lib/api'
 import SearchCombobox from './SearchCombobox'
-import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 import { venueOptionLabel } from '../lib/location'
 
 // Venue search/picker used wherever a venue is chosen (Experience entry,
-// Event location). Defaults to the viewer's own profile location scope; the
-// "Search a different location" toggle removes that filter entirely for one
-// search (off by default, never persisted). Result labels show enough
-// location context to disambiguate venues that share a name across cities -
-// see venueOptionLabel.
+// Event location). Defaults to the viewer's own profile location scope
+// (resolved server-side from the request's own user, not fetched here - see
+// fetchVenueOptions); the "Search a different location" toggle removes that
+// filter entirely for one search (off by default, never persisted). Result
+// labels show enough location context to disambiguate venues that share a
+// name across cities - see venueOptionLabel.
 function VenuePicker({
   onSelect,
   onCreate,
@@ -18,10 +18,9 @@ function VenuePicker({
   placeholder = 'Search or add a venue...',
 }) {
   const [unrestricted, setUnrestricted] = useState(false)
-  const { scope, ready } = useLocationScopeFilter()
 
   function fetchOptions(search) {
-    return api.fetchVenueOptions(search, { unrestricted, scope: ready ? scope : null })
+    return api.fetchVenueOptions(search, { unrestricted })
   }
 
   return (

@@ -7,7 +7,7 @@ const { displayName } = require('../lib/displayName')
 const { formatActivities } = require('../lib/activityFeed')
 const { sendInvite } = require('../lib/invites')
 const { createNotification } = require('../lib/notifications')
-const { parseScopeParam, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
+const { resolveScopeForRequest, resolveScopeAncestors, venueLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -140,7 +140,7 @@ router.get('/venues', async (req, res) => {
   // entry, admin-wide unverified counts) opt out of the directory exclusion
   // below — only the general Venues directory should hide managed venues.
   const includeManaged = req.query.includeManaged === 'true'
-  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
+  const scope = await resolveScopeForRequest(req)
   const scopeAncestors = await resolveScopeAncestors(scope)
 
   const managedVenueIds =

@@ -6,7 +6,7 @@ const {
   connectionStatusFor,
   buildConnectionsAdjacency,
 } = require('../lib/connectionStatus')
-const { parseScopeParam, resolveScopeAncestors, profileLocationWhere } = require('../lib/location')
+const { resolveScopeForRequest, resolveScopeAncestors, profileLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -91,7 +91,7 @@ async function getCommonGroundPeople(userId, scopeAncestors = null) {
 
 router.get('/discover/people', async (req, res) => {
   const lens = req.query.lens === 'common' ? 'common' : 'near'
-  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
+  const scope = await resolveScopeForRequest(req)
   const scopeAncestors = await resolveScopeAncestors(scope)
 
   if (lens === 'common') {

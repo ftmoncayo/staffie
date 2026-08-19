@@ -11,17 +11,16 @@ function VenueDirectory({ mine = false }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
+  const { selection, setSelection, scope } = useLocationScopeFilter()
 
   useEffect(() => {
-    if (!ready) return
     setLoading(true)
     api
       .fetchVenues({ sort, search, mine, scope })
       .then(setVenues)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [sort, search, mine, ready, scope?.type, scope?.id])
+  }, [sort, search, mine, scope])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">

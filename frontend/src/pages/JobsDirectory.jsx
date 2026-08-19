@@ -68,17 +68,20 @@ function JobsDirectory({ mine = false }) {
   const [sort, setSort] = useState('recent')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
+  const { selection, setSelection, scope } = useLocationScopeFilter()
 
   useEffect(() => {
-    if (!mine && !ready) return
     setLoading(true)
+    // "My Jobs" is never location-filtered - it's every job at venues the
+    // viewer manages, regardless of location, so it must explicitly opt out
+    // (null) rather than omit scope (which would default to the viewer's
+    // own location server-side - see resolveScopeForRequest).
     api
-      .fetchJobs({ scope: mine ? undefined : scope, sort: mine ? undefined : sort, mine })
+      .fetchJobs({ scope: mine ? null : scope, sort: mine ? undefined : sort, mine })
       .then(setJobs)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [sort, mine, ready, scope?.type, scope?.id])
+  }, [sort, mine, scope])
 
   return (
     <div className="min-h-screen bg-bg px-4 py-10">

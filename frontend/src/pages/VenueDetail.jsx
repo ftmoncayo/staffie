@@ -39,7 +39,7 @@ function VenueDetail() {
 
   useEffect(() => {
     refreshActivity().catch(() => {})
-    api.fetchJobs({ venueId: id }).then(setJobs).catch(() => {})
+    api.fetchJobs({ venueId: id, scope: null }).then(setJobs).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 

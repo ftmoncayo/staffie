@@ -3,7 +3,7 @@ const prisma = require('../lib/prisma')
 const { requireAuth } = require('../middleware/auth')
 const { getCommonGroundPeople } = require('./discover')
 const { formatActivities } = require('../lib/activityFeed')
-const { parseScopeParam, resolveScopeAncestors, profileLocationWhere } = require('../lib/location')
+const { resolveScopeForRequest, resolveScopeAncestors, profileLocationWhere } = require('../lib/location')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -13,9 +13,9 @@ const ACTIVITY_LIMIT = 50
 const SIGNUP_LIMIT = 20
 
 router.get('/feed', async (req, res) => {
-  const scope = parseScopeParam(req.query.scopeType, req.query.scopeId)
+  const scope = await resolveScopeForRequest(req)
   const scopeAncestors = await resolveScopeAncestors(scope)
-  const suggestionScope = parseScopeParam(req.query.suggestionScopeType, req.query.suggestionScopeId)
+  const suggestionScope = await resolveScopeForRequest(req, 'suggestion')
   const suggestionScopeAncestors = await resolveScopeAncestors(suggestionScope)
 
   const connectionRequests = await prisma.connectionRequest.findMany({

@@ -25,10 +25,9 @@ function DiscoverPeople() {
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { selection, setSelection, scope, ready } = useLocationScopeFilter()
+  const { selection, setSelection, scope } = useLocationScopeFilter()
 
   useEffect(() => {
-    if (!ready) return
     setLoading(true)
     setError('')
     api
@@ -36,7 +35,7 @@ function DiscoverPeople() {
       .then(setPeople)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [lens, ready, scope?.type, scope?.id])
+  }, [lens, scope])
 
   function updatePerson(userId, changes) {
     setPeople((prev) => prev.map((p) => (p.id === userId ? { ...p, ...changes } : p)))

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
+import { useProfile } from '../context/ProfileContext'
 import ProfileDetails from '../components/profile/ProfileDetails'
 import SkillsEditor from '../components/profile/SkillsEditor'
 import KnowledgeAreaEditor from '../components/profile/KnowledgeAreaEditor'
@@ -16,6 +17,7 @@ import ShowMore from '../components/ShowMore'
 
 function Profile() {
   const { user } = useAuth()
+  const { refreshProfile: refreshSharedProfile } = useProfile()
   const [profile, setProfile] = useState(null)
   const [activity, setActivity] = useState([])
   const [loading, setLoading] = useState(true)
@@ -62,6 +64,10 @@ function Profile() {
   async function handleSaveDetails(data) {
     const result = await api.saveProfile(data)
     setProfile(result.profile)
+    // Name/location can change here - keep the shared context (nav display
+    // name, every page's default location-scope filter) in sync rather than
+    // showing stale data until the next full app load.
+    refreshSharedProfile()
   }
 
   async function handleAddSkill(name) {

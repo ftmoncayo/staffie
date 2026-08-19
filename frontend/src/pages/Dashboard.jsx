@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useProfile } from '../context/ProfileContext'
 import * as api from '../lib/api'
 import ActivityItem from '../components/ActivityItem'
 import PostItem from '../components/PostItem'
@@ -13,22 +14,41 @@ import useLocationScopeFilter from '../hooks/useLocationScopeFilter'
 
 function Dashboard() {
   const { user } = useAuth()
+  const { profile, loading: profileLoading } = useProfile()
   const [activities, setActivities] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [posts, setPosts] = useState([])
-  const [cityFilter, setCityFilter] = useState(null)
+  const [cityTouched, setCityTouched] = useState(false)
+  const [cityOverride, setCityOverride] = useState(null)
   const [postContent, setPostContent] = useState('')
   const [posting, setPosting] = useState(false)
   const [postError, setPostError] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [feedLoading, setFeedLoading] = useState(true)
+  const [postsLoading, setPostsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [profileComplete, setProfileComplete] = useState(true)
   const activityFilter = useLocationScopeFilter()
   const suggestionFilter = useLocationScopeFilter()
 
+  // Derived (not synced via effect) so it reflects the shared profile the
+  // instant it loads, on the same render - no lag for the posts effect
+  // below to race against. Still user-editable via the post composer's own
+  // city picker, independent of the Activity/Suggestions location filters.
+  const cityFilter = cityTouched ? cityOverride : profile?.city || null
+  // Assume complete while the shared profile is still loading, so the
+  // banner doesn't flash on for a moment before the real value is known.
+  const profileComplete = profileLoading ? true : Boolean(profile?.professionalTitle)
+  const loading = feedLoading || postsLoading
+
+  function handleCityFilterChange(city) {
+    setCityTouched(true)
+    setCityOverride(city)
+  }
+
+  // Scope now defaults server-side (see resolveScopeForRequest on the
+  // backend) when the viewer hasn't touched the filter, so this fires
+  // immediately on mount - no need to wait on a profile fetch first.
   useEffect(() => {
-    if (!activityFilter.ready || !suggestionFilter.ready) return
-    setLoading(true)
+    setFeedLoading(true)
     api
       .fetchFeed({ scope: activityFilter.scope, suggestionScope: suggestionFilter.scope })
       .then((data) => {
@@ -36,34 +56,27 @@ function Dashboard() {
         setSuggestions(data.suggestions)
       })
       .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    activityFilter.ready,
-    activityFilter.scope?.type,
-    activityFilter.scope?.id,
-    suggestionFilter.ready,
-    suggestionFilter.scope?.type,
-    suggestionFilter.scope?.id,
-  ])
+      .finally(() => setFeedLoading(false))
+  }, [activityFilter.scope, suggestionFilter.scope])
 
+  // Runs in parallel with the feed fetch above, not after it - but waits on
+  // profileLoading so "no city yet" (still loading) isn't mistaken for
+  // "genuinely no city" (nothing to fetch) and left showing a premature
+  // empty state.
   useEffect(() => {
-    api
-      .fetchProfile()
-      .then((data) => {
-        if (data.profile?.city) setCityFilter(data.profile.city)
-        setProfileComplete(Boolean(data.profile?.professionalTitle))
-      })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
+    if (profileLoading) return
     if (!cityFilter) {
       setPosts([])
+      setPostsLoading(false)
       return
     }
-    api.fetchPosts(cityFilter.id).then(setPosts).catch((err) => setError(err.message))
-  }, [cityFilter])
+    setPostsLoading(true)
+    api
+      .fetchPosts(cityFilter.id)
+      .then(setPosts)
+      .catch((err) => setError(err.message))
+      .finally(() => setPostsLoading(false))
+  }, [cityFilter, profileLoading])
 
   function updateSuggestion(userId, changes) {
     setSuggestions((prev) => prev.map((p) => (p.id === userId ? { ...p, ...changes } : p)))
@@ -167,7 +180,7 @@ function Dashboard() {
               <div className="w-56">
                 <SearchCombobox
                   fetchOptions={api.fetchCities}
-                  onSelect={setCityFilter}
+                  onSelect={handleCityFilterChange}
                   allowCreate={false}
                   initialQuery={cityFilter?.name || ''}
                   placeholder="Search for a city..."
